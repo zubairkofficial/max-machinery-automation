@@ -1,0 +1,17 @@
+# Email configuration
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_SECURE=false
+MAIL_USER=your-email@gmail.com
+MAIL_PASSWORD=your-app-specific-password
+MAIL_FROM="MachineryMax <your-email@gmail.com>"
+
+# Frontend URL for verification links
+APP_URL=https://app.machinerymax.com
+
+# SMS configuration (Twilio)
+# Replace these with your actual Twilio credentials if SMS is needed
+# TWILIO_ACCOUNT_SID=your-twilio-account-sid
+# TWILIO_AUTH_TOKEN=your-twilio-auth-token
+# TWILIO_PHONE_NUMBER=your-twilio-phone-number
+SMS_ENABLED=false 

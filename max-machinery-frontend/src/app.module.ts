@@ -1,0 +1,38 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
+import { databaseConfig } from './config/database.config';
+import { LeadsModule } from './leads/leads.module';
+import { ApolloModule } from './apollo/apollo.module';
+import { HttpModule } from '@nestjs/axios';
+import { RetellModule } from './retell/retell.module';
+import { MailModule } from './mail/mail.module';
+import { SmsModule } from './sms/sms.module';
+import { ScheduleModule } from '@nestjs/schedule';
+// import mailConfig from './config/mail.config';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // load: [mailConfig],
+    }),
+    TypeOrmModule.forRoot(databaseConfig),
+    HttpModule,
+    UsersModule,
+    AuthModule,
+    LeadsModule,
+    ApolloModule,
+    RetellModule,
+    MailModule,
+    SmsModule,
+    ScheduleModule.forRoot(),
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
