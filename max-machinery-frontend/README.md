@@ -1,99 +1,112 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# MaxMachinery Call History Components
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This document describes the components used to display call history information in the MaxMachinery application.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Components
 
-## Description
+### CallHistoryList
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+The `CallHistoryList` component displays a list of calls for a lead, supporting both the old and new data structures.
 
-## Project setup
-
-```bash
-$ npm install
+```tsx
+<CallHistoryList
+  callHistoryRecords={lead.callHistoryRecords}
+  additionalInfoCallHistory={lead.additionalInfo?.callHistory}
+  leadName={lead.name}
+  leadCompany={lead.company}
+/>
 ```
 
-## Compile and run the project
+#### Props
+- `callHistoryRecords`: Array of call records in the new format
+- `additionalInfoCallHistory`: Array of call records in the old format
+- `leadName`: Name of the lead
+- `leadCompany`: Company name of the lead
 
-```bash
-# development
-$ npm run start
+### CallDetailPanel
 
-# watch mode
-$ npm run start:dev
+The `CallDetailPanel` component displays detailed information about a specific call.
 
-# production mode
-$ npm run start:prod
+```tsx
+<CallDetailPanel
+  call={{
+    ...callRecord,
+    leadName: lead.name,
+    leadCompany: lead.company,
+    isNewFormat: true // Set to true for new format calls
+  }}
+/>
 ```
 
-## Run tests
+#### Props
+- `call`: Call record with additional display information
+  - For new format calls, set `isNewFormat: true` to enable fetching additional details
+  - Include `leadName` and `leadCompany` for display purposes
 
-```bash
-# unit tests
-$ npm run test
+## Data Migration
 
-# e2e tests
-$ npm run test:e2e
+The application supports both old and new call data structures during the migration period:
 
-# test coverage
-$ npm run test:cov
+1. Old Structure:
+   - Call data stored in `lead.additionalInfo.callHistory`
+   - Basic call information only
+
+2. New Structure:
+   - Call data stored in `lead.callHistoryRecords` and `lead.lastCallRecord`
+   - Detailed call information with analytics, quality metrics, and sentiment analysis
+   - Supports fetching additional call details by ID
+
+## Usage Example
+
+```tsx
+import { CallHistoryList } from '../components/CallHistoryList';
+
+const LeadDetailsPage: React.FC<{ lead: Lead }> = ({ lead }) => {
+  return (
+    <div>
+      <h2>Call History</h2>
+      <CallHistoryList
+        callHistoryRecords={lead.callHistoryRecords}
+        additionalInfoCallHistory={lead.additionalInfo?.callHistory}
+        leadName={lead.name}
+        leadCompany={lead.company}
+      />
+    </div>
+  );
+};
 ```
 
-## Deployment
+## API Endpoints
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+The following endpoints are available for call data:
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+1. `GET /calls/:callId`
+   - Fetches detailed information about a specific call
 
-```bash
-$ npm install -g mau
-$ mau deploy
+2. `GET /leads/:leadId/calls`
+   - Fetches all calls for a specific lead
+
+3. `GET /leads/:leadId/last-call`
+   - Fetches the most recent call for a lead
+
+## Types
+
+The application uses TypeScript interfaces to define the call data structure:
+
+```typescript
+interface CallHistory {
+  id: string;
+  callId: string;
+  callType: string;
+  agentId: string;
+  status: string;
+  startTimestamp: number;
+  endTimestamp?: number;
+  fromNumber: string;
+  toNumber: string;
+  direction: string;
+  // ... additional fields for call quality, analytics, etc.
+}
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+For more details about the data structure, see `src/types/call-history.ts`. 
