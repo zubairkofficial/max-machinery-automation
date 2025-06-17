@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { FaPhone, FaSpinner, FaClock } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
-import { api } from '../services/api';
+import { api, CallResponse } from '../services/api';
+import toast from 'react-hot-toast';
 
 interface LeadCallSchedulerProps {
   leadId?: string;
@@ -18,7 +19,7 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
   const [callAllLeads, setCallAllLeads] = useState(false);
   const [callPriorityLeads, setCallPriorityLeads] = useState(false);
   const [fromNumber, setFromNumber] = useState("+1415843-6193");
-  const [callResults, setCallResults] = useState<any | null>(null);
+  const [callResults, setCallResults] = useState<CallResponse | null>(null);
   const [showScheduleOptions, setShowScheduleOptions] = useState(true); // Default to true as per requirements
   const [scheduledTime, setScheduledTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -63,6 +64,12 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
   };
 
   const handleScheduleCalls = async () => {
+    // Prevent multiple calls if already loading
+    if (loading) {
+      console.log('Call scheduling already in progress, preventing duplicate call');
+      return;
+    }
+
     try {
       // Validate times if scheduling is enabled
       if (showScheduleOptions && !validateTimes()) {
@@ -88,18 +95,32 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
         }
       }
 
+      console.log('Scheduling calls with payload:', payload);
+
       // Make API call
       const response = await api.scheduleLeadCalls(payload);
+     
       setCallResults(response);
 
-      // if (onCallComplete) {
-      //   onCallComplete(response);
-      // }
+      // Show success toast with details
+      const message = response.scheduledTime 
+        ? `Successfully scheduled ${response.scheduled} calls for ${new Date(response.scheduledTime).toLocaleString()}`
+        : `Successfully scheduled ${response.scheduled} calls for immediate execution`;
+      
+      toast.success(message, {
+        duration: 5000,
+        position: 'top-right'
+      });
+
+      console.log('Call scheduling successful:', response);
+
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message || "Failed to schedule calls");
+        toast.error(error.message || "Failed to schedule calls");
       } else {
         setError("Failed to schedule calls");
+        toast.error("Failed to schedule calls");
       }
       console.error("Error scheduling calls:", error);
     } finally {
@@ -109,6 +130,12 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
 
   const handleSingleCall = async (id: string) => {
     if (!id) return;
+    
+    // Prevent multiple calls if already loading
+    if (loading) {
+      console.log('Single call already in progress, preventing duplicate call');
+      return;
+    }
     
     try {
       // Validate times if scheduling is enabled
@@ -120,7 +147,10 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
       setError(null);
       setCallResults(null);
 
-      const payload: any = { fromNumber, leadId: id };
+      const payload: any = { 
+        toNumber: "+18055726774", // Default fallback number - will be overridden with fresh lead data when cron runs
+        override_agent_id: "agent_b6a6e23b739cde06fbe109a217" // Default agent
+      };
       
       // Add scheduled time if set
       if (showScheduleOptions && scheduledTime) {
@@ -130,8 +160,33 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
         }
       }
 
+      console.log('Scheduling single call with payload:', payload);
+
       const response = await api.callSingleLead(id, payload);
       setCallResults(response);
+
+      // Show success toast with details
+      let message = '';
+      if (response.scheduledTime) {
+        const scheduledDate = new Date(response.scheduledTime);
+        const now = new Date();
+        const daysDiff = Math.ceil((scheduledDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff > 0) {
+          message = `Successfully scheduled call for ${daysDiff} days from now (${scheduledDate.toLocaleString()})`;
+        } else {
+          message = `Successfully scheduled call for ${scheduledDate.toLocaleString()}`;
+        }
+      } else {
+        message = 'Successfully initiated call';
+      }
+      
+      toast.success(message, {
+        duration: 5000,
+        position: 'top-right'
+      });
+
+      console.log('Single call scheduling successful:', response);
 
       if (onCallComplete) {
         onCallComplete(response);
@@ -139,8 +194,10 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message || "Failed to make call");
+        toast.error(error.message || "Failed to make call");
       } else {
         setError("Failed to make call");
+        toast.error("Failed to make call");
       }
       console.error("Error making call:", error);
     } finally {

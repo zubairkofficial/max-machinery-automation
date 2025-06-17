@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Lead } from '../leads/entities/lead.entity';
 import type { MessageBird } from 'messagebird/types';
+import { MessageCategory } from 'src/message-templates/entities/message-template.entity';
+import { MessageTemplatesService } from 'src/message-templates/message-templates.service';
 
 @Injectable()
 export class SmsService {
@@ -13,6 +15,8 @@ export class SmsService {
   constructor(
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
+    private readonly messageTemplatesService: MessageTemplatesService,
+ 
   ) {
     const apiKey = this.configService.get<string>('MESSAGEBIRD_API_KEY');
     this.fromNumber = this.configService.get<string>('MESSAGEBIRD_ORIGINATOR') || 'MachineryMax';
@@ -74,10 +78,19 @@ export class SmsService {
       });
 
       // Create verification URL
-      const verificationUrl = `${this.configService.get('APP_URL')}/userInfo?token=${token}`;
+      const verificationUrl = `${this.configService.get('APP_URL')}/user-info?token=${token}`;
+const messageData = {
+        firstName: lead.firstName || '',
+        verificationUrl: verificationUrl,
+        currentYear: new Date().getFullYear().toString(),
+      };
 
+       const message = await this.messageTemplatesService.getSmsMessage(
+        MessageCategory.VERIFICATION,
+        messageData
+      );
       // SMS message
-      const message = `Thank you for your interest in MachineryMax! Complete your information here: ${verificationUrl}`;
+      // const message = `Thank you for your interest in MachineryMax! Complete your information here: ${verificationUrl}`;
 
       // Send SMS using MessageBird
       const success = await this.sendSms(lead.zohoPhoneNumber, message);

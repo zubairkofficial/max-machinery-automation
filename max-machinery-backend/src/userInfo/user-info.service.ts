@@ -36,15 +36,15 @@ export class UserInfoService {
         throw new UnauthorizedException('Lead not found');
       }
 
-     const getUserInfo = await this.userInfoRepository.findOne({where:{email:lead.email}})
-    //  if(getUserInfo){
-    //   return { redirectUrl: this.machineryMaxUrl };
-    //  }
+     const getUserInfo = await this.userInfoRepository.findOne({where:{email:lead.zohoEmail}})
+     if(getUserInfo){
+      return { redirectUrl: this.machineryMaxUrl };
+     }
       // Create user info from lead data
       const userInfo = this.userInfoRepository.create({
         firstName: lead.firstName || '',
         lastName: lead.lastName || '',
-        email: lead.email || decoded.email,
+        email: lead.zohoEmail || decoded.email,
         phone: lead.phone || '',
         leadId: lead.id,
         additionalDetails: '',

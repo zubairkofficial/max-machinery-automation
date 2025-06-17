@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { SearchParams, apolloApi } from '../services/api';
-import { FaSyncAlt } from 'react-icons/fa';
+import { SearchParams, apolloApi, leadsApi } from '../services/api';
+import { FaSyncAlt, FaInfoCircle } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface ApolloSearchFormProps {
@@ -24,6 +24,7 @@ const defaultParams: SearchParams = {
   industries: ['Manufacturing', 'Industrial Equipment', 'Machinery'],
   keywords: 'industrial machinery equipment',
   limit: 25,
+  page: 1,
   cronSchedule: '0 0 * * *', // Daily at midnight
 };
 
@@ -34,6 +35,8 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
   const [nextSyncAt, setNextSyncAt] = useState<string | null>(null);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [estimatedTotal, setEstimatedTotal] = useState<number | null>(null);
+  const [fetchingTotal, setFetchingTotal] = useState(false);
   const { register, handleSubmit, setValue, watch } = useForm<SearchParams>({
     defaultValues: defaultConfig,
   });
@@ -43,6 +46,46 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
   const watchIndustries = watch('industries');
   const watchLocations = watch('locations');
   const watchCompanySize = watch('companySize');
+  const watchLimit = watch('limit');
+  const watchPage = watch('page');
+
+  // Calculate total pages based on estimated total and per page
+  const totalPages = estimatedTotal && watchLimit ? Math.ceil(estimatedTotal / watchLimit) : null;
+
+  // Function to get total count from Apollo
+  const getTotalCount = async () => {
+    try {
+      setFetchingTotal(true);
+      
+      // Get current form values
+      const jobTitlesValue = watch('jobTitles');
+      const industriesValue = watch('industries');
+      const locationsValue = watch('locations');
+      const companySizeValue = watch('companySize');
+      const keywordsValue = watch('keywords');
+      
+      // Create search params
+      const searchParams: SearchParams = {
+        jobTitles: jobTitlesValue ? [jobTitlesValue.toString()] : [],
+        industries: industriesValue ? [industriesValue.toString()] : [],
+        locations: locationsValue ? [locationsValue.toString()] : [],
+        companySize: companySizeValue || '',
+        keywords: keywordsValue || '',
+        limit: 1, // Use limit 1 just to get total count
+        page: 1
+      };
+      
+      const response = await leadsApi.fetchFromApollo(searchParams);
+      if (response.stats?.total) {
+        setEstimatedTotal(response.stats.total);
+      }
+    } catch (error) {
+      console.error('Failed to fetch total count:', error);
+      setEstimatedTotal(null);
+    } finally {
+      setFetchingTotal(false);
+    }
+  };
 
   // Load the default configuration from the server
   useEffect(() => {
@@ -81,6 +124,9 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
         }
         if (defaultParameters.limit) {
           setValue('limit', Number(defaultParameters.limit));
+        }
+        if (defaultParameters.page) {
+          setValue('page', Number(defaultParameters.page));
         }
         if (defaultParameters.cronSchedule) {
           setValue('cronSchedule', defaultParameters.cronSchedule);
@@ -248,20 +294,113 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
 
           <div>
             <label htmlFor="limit" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Limit
+              Per Page
             </label>
-            <input
-              type="number"
+            <select
               id="limit"
               {...register('limit', { 
-                min: 1, 
-                max: 100,
                 valueAsNumber: true 
               })}
               className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="25"
               defaultValue={defaultConfig.limit || 25}
-            />
+            >
+              <option value={10}>10 per page</option>
+              <option value={25}>25 per page</option>
+              <option value={50}>50 per page</option>
+              <option value={100}>100 per page</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="page" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Page Number
+            </label>
+            <div className="mt-1 space-y-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  id="page"
+                  {...register('page', { 
+                    min: 1, 
+                    max: totalPages || 1000,
+                    valueAsNumber: true 
+                  })}
+                  className="block w-20 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="1"
+                  defaultValue={defaultConfig.page || 1}
+                />
+                {totalPages && (
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    of {totalPages.toLocaleString()} pages
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={getTotalCount}
+                  disabled={fetchingTotal}
+                  className="px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-500 disabled:opacity-50"
+                >
+                  {fetchingTotal ? (
+                    <>
+                      <FaSyncAlt className="animate-spin inline mr-1" />
+                      Getting...
+                    </>
+                  ) : (
+                    'Get Total'
+                  )}
+                </button>
+              </div>
+              
+              {totalPages && (
+                <div className="flex items-center space-x-1">
+                  <button
+                    type="button"
+                    onClick={() => setValue('page', 1)}
+                    disabled={(watchPage || 1) === 1}
+                    className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    First
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setValue('page', Math.max(1, (watchPage || 1) - 1))}
+                    disabled={(watchPage || 1) === 1}
+                    className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setValue('page', (watchPage || 1) + 1)}
+                    disabled={(watchPage || 1) >= totalPages}
+                    className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setValue('page', totalPages)}
+                    disabled={(watchPage || 1) === totalPages}
+                    className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Last
+                  </button>
+                </div>
+              )}
+              
+              {estimatedTotal && (
+                <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+                  <FaInfoCircle />
+                  <span>
+                    {estimatedTotal.toLocaleString()} total results found
+                  </span>
+                  <span className="text-gray-400">•</span>
+                  <span>
+                    {watchLimit || 25} per page = {totalPages} pages
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
@@ -297,7 +436,7 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
         </div>
 
         <div className="mt-5 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-          <button
+          {/* <button
             type="button"
             onClick={handleSyncNow}
             disabled={syncLoading}
@@ -311,7 +450,7 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
             ) : (
               'Sync Now'
             )}
-          </button>
+          </button> */}
           <button
             type="submit"
             disabled={searchLoading}

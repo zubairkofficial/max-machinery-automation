@@ -1,5 +1,6 @@
-import { Controller, Post, Body, HttpException, HttpStatus, Get, Logger } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, Get, Logger, Patch } from '@nestjs/common';
 import { RetellService } from './retell.service';
+import { UpdateAgentPromptDto } from './dto/update-agent-prompt.dto';
 
 @Controller('retell')
 export class RetellController {
@@ -61,5 +62,22 @@ export class RetellController {
     this.logger.log(`Call ${callId} ended with status ${callStatus}`);
 
     return 'Webhook received!';
+  }
+
+  @Patch('agent/prompt')
+  async updateAgentPrompt(@Body() updateAgentPromptDto: UpdateAgentPromptDto) {
+    try {
+      const result = await this.retellService.updateAgentPrompt(
+        updateAgentPromptDto.agentId,
+        updateAgentPromptDto.prompt
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      this.logger.error(`Error updating agent prompt: ${error.message}`, error.stack);
+      throw new HttpException(
+        `Failed to update agent prompt: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 }

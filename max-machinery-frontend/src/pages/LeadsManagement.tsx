@@ -101,31 +101,26 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     }
   );
 
-  // Remove client-side filtering since it's now handled by the backend
-  const filteredLeads = React.useMemo(() => {
+  // Apply client-side filtering and sorting to the current page data
+  const processedLeads = React.useMemo(() => {
     if (!leadsData?.data) return [];
     
-    return leadsData.data.filter(lead => {
-      // Only apply search term filter on the client side
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          (lead.firstName && lead.firstName.toLowerCase().includes(searchLower)) ||
-          (lead.lastName && lead.lastName.toLowerCase().includes(searchLower)) ||
-          (lead.company && lead.company.toLowerCase().includes(searchLower)) ||
-          (lead.email && lead.email.toLowerCase().includes(searchLower)) ||
-          (lead.location && lead.location.toLowerCase().includes(searchLower))
-        );
-      }
-      return true;
-    });
-  }, [leadsData?.data, searchTerm]);
-
-  // Apply sorting to filtered leads
-  const sortedAndFilteredLeads = React.useMemo(() => {
-    if (!filteredLeads) return [];
+    let leads = [...leadsData.data];
     
-    return [...filteredLeads].sort((a, b) => {
+    // Apply search term filter on the client side
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      leads = leads.filter(lead => 
+        (lead.firstName && lead.firstName.toLowerCase().includes(searchLower)) ||
+        (lead.lastName && lead.lastName.toLowerCase().includes(searchLower)) ||
+        (lead.company && lead.company.toLowerCase().includes(searchLower)) ||
+        (lead.email && lead.email.toLowerCase().includes(searchLower)) ||
+        (lead.location && lead.location.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Apply sorting to the current page data
+    return leads.sort((a, b) => {
       switch (sortOption) {
         case 'oldest':
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -138,16 +133,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });
-  }, [filteredLeads, sortOption]);
-
-  // Pagination for filtered and sorted leads
-  const paginatedLeads = React.useMemo(() => {
-    if (!sortedAndFilteredLeads) return [];
-    
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    return sortedAndFilteredLeads.slice(start, end);
-  }, [sortedAndFilteredLeads, page, pageSize]);
+  }, [leadsData?.data, searchTerm, sortOption]);
 
   // Mutation for searching and importing leads
   const searchMutation = useMutation(
@@ -167,6 +153,17 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     () => apolloApi.syncNow(),
     {
       onSuccess: () => {
+        // Reset pagination to page 1 to show newest leads
+        setPage(1);
+        // Clear search term to show all leads
+        setSearchTerm('');
+        // Reset filters to show all leads
+        setFilters({
+          status: 'all',
+          industry: 'all',
+        });
+        // Set sort to newest first to show latest synced leads
+        setSortOption('newest');
         // Invalidate and refetch leads
         queryClient.invalidateQueries(['leads']);
       },
@@ -178,6 +175,11 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     setCurrentTab(currentTab);
     setPage(1);
   }, [currentTab]);
+
+  // Reset page when search term changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
 
   // Handle tab change
   const handleTabChange = (tab: string) => {
@@ -217,6 +219,8 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
   // Handle search term change
   const handleSearchTermChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    // Reset to first page when search term changes
+    setPage(1);
   };
 
   // Handle filter change
@@ -294,9 +298,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
               onChange={(e) => handleTabChange(e.target.value)}
             >
               <option value={TABS.ALL}>All Leads</option>
-              <option value={TABS.PRIORITY}>Priority Leads</option>
-              <option value={TABS.SURPLUS}>Surplus Machinery</option>
-            </select>
+              </select>
           </div>
           <div className="hidden sm:block">
             <div className="border-b border-gray-200 dark:border-gray-700">
@@ -321,33 +323,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                     </span>
                   )}
                 </button>
-                <button
-                  onClick={() => handleTabChange(TABS.PRIORITY)}
-                  className={`${
-                    activeTab === TABS.PRIORITY
-                      ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
-                >
-                  <FaIndustry className="mr-2 h-5 w-5" />
-                  Priority Leads
-                </button>
-                <button
-                  onClick={() => handleTabChange(TABS.SURPLUS)}
-                  className={`${
-                    activeTab === TABS.SURPLUS
-                      ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
-                >
-                  <FaTools className="mr-2 h-5 w-5" />
-                  Surplus Machinery
-                  {activeTab === TABS.SURPLUS && leadsData?.pagination?.total ? (
-                    <span className="bg-indigo-100 text-indigo-600 ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium">
-                      {leadsData.pagination.total}
-                    </span>
-                  ) : null}
-                </button>
+                
               </nav>
             </div>
           </div>
@@ -471,7 +447,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
           ) : (
             <div className="p-1 sm:p-0">
               <LeadsList
-                leads={paginatedLeads || []}
+                leads={processedLeads || []}
                 isLoading={isLoading || isRefreshing}
                 onViewDetails={handleViewLeadDetails}
               />

@@ -36,7 +36,7 @@ export class ZohoSyncService {
     });
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_MINUTE)
   async syncLeadsWithZoho() {
     try {
       this.logger.log('Starting Zoho CRM sync');

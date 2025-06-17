@@ -12,11 +12,14 @@ import { MailService } from 'src/mail/mail.service';
 import { SmsService } from 'src/sms/sms.service';
 import { JwtService } from '@nestjs/jwt';
 import { transcription } from 'src/constant';
+import axios from 'axios';
 
 @Injectable()
 export class RetellService {
   private readonly logger = new Logger(RetellService.name);
   private openai: ChatOpenAI;
+  private readonly retellApiKey: string;
+  private readonly retellApiUrl: string;
 
   constructor(
     @InjectRepository(CallHistory)
@@ -34,6 +37,8 @@ export class RetellService {
       temperature: 0.2,
       modelName: 'gpt-4'
     });
+    this.retellApiKey = process.env.RETELL_API_KEY;
+    this.retellApiUrl = 'https://api.retellai.com';
   }
 
   /**
@@ -229,6 +234,21 @@ export class RetellService {
     }
   }
 
+   private getNextBusinessDay(): Date {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0); // Set to 10 AM
+    
+    // If tomorrow is weekend, move to Monday
+    if (tomorrow.getDay() === 0) { // Sunday
+      tomorrow.setDate(tomorrow.getDate() + 1);
+    } else if (tomorrow.getDay() === 6) { // Saturday
+      tomorrow.setDate(tomorrow.getDate() + 2);
+    }
+    
+    return tomorrow;
+  }
+
   /**
    * Process transcript for email or phone information
    */
@@ -256,22 +276,25 @@ export class RetellService {
       const messages = [
         {
           role: "system",
-          content: `You are a contact information extractor. Extract email or phone numbers from conversations and determine the preferred contact method.`
+          content: `You are an information extractor. Extract contact information and scheduling details from conversations.`
         },
         {
           role: "user",
           content: `Analyze this conversation and extract:
-1. The preferred contact method (must be "email", "phone", or "none")
+1. The preferred contact method (must be "email", "phone", "schedule", or "none")
 2. The contact information (email address or phone number)
+3. If scheduling is mentioned, extract the number of days for callback 
+4. Convert any specific time mentioned for callback into a 24-hour format (e.g., "6 PM" to "18:00")
 
-Return ONLY a JSON object with two fields:
-- preferredMethod: "email", "phone", or "none"
+Return ONLY a JSON object with these fields:
+- preferredMethod: "email", "phone", "schedule", or "none"
 - contactInfo: the actual email/phone or null
+- scheduleDays: number of days for callback or null
+- specificTime: the specific time mentioned for callback in 24-hour format or null
 
 Conversation:
 ${transcript}`
-        }
-      ];
+        }]
 
       try {
         const response = await this.openai.invoke(messages);
@@ -300,7 +323,27 @@ ${transcript}`
           }
         }
 
-        // Update lead with extracted information
+
+       if (contactInfo.preferredMethod === 'schedule' && contactInfo.scheduleDays) {
+  const scheduleDate = new Date();
+  scheduleDate.setDate(scheduleDate.getDate() + contactInfo.scheduleDays);
+  
+  // Set the specific time (18:00)
+  if(contactInfo.specificTime) {
+  const [hours, minutes] = contactInfo?.specificTime?.split(':').map(Number);
+  
+  // Set the hours and minutes
+  scheduleDate.setHours(hours);
+  scheduleDate.setMinutes(minutes);
+  scheduleDate.setSeconds(0); // Optional: set seconds to 0
+  }
+  // Store the scheduled callback date
+  lead.scheduledCallbackDate = scheduleDate;
+  await this.leadRepository.save(lead);
+  
+  this.logger.log(`Scheduled callback for ${scheduleDate.toISOString()}`);
+  return;
+}  // Update lead with extracted information
         if (contactInfo.preferredMethod === 'email') {
           // Store original email in zohoEmail
           lead.zohoEmail = contactInfo.contactInfo;
@@ -316,7 +359,11 @@ ${transcript}`
           await this.smsService.sendVerificationSMS(lead);
           this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo}`);
         }
-        
+        else{
+        lead.scheduledCallbackDate= this.getNextBusinessDay()
+        await this.leadRepository.save(lead);   
+      }
+
       } catch (error) {
         this.logger.error(`Error processing transcript: ${error.message}`, error.stack);
       }
@@ -362,5 +409,31 @@ ${transcript}`
     if (sentimentLower.includes('positive')) return 'positive';
     if (sentimentLower.includes('negative')) return 'negative';
     return 'neutral';
+  }
+
+  /**
+   * Update Retell AI agent prompt
+   */
+  async updateAgentPrompt(agentId: string, prompt: string): Promise<any> {
+    try {
+      const response = await axios.patch(
+        `${this.retellApiUrl}/update-agent/${agentId}`,
+        {
+          prompt: prompt
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.retellApiKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      this.logger.log(`Successfully updated prompt for agent ${agentId}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Error updating agent prompt: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 }

@@ -84,11 +84,16 @@ export class Lead {
   @Column({ nullable: true })
   zohoEmail: string;
 
+  @Column({ type: 'timestamp', nullable: true })
+  scheduledCallbackDate: Date;
+  
   @OneToMany(() => CallHistory, callHistory => callHistory.lead)
   callHistoryRecords: CallHistory[];
 
   @OneToOne(() => LastCall, lastCall => lastCall.lead)
   lastCallRecord: LastCall;
+
+ 
 
   @CreateDateColumn()
   createdAt: Date;

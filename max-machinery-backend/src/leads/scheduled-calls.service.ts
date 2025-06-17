@@ -56,6 +56,50 @@ export class ScheduledCallsService {
     return this.scheduledCallRepository.save(scheduledCalls);
   }
 
+    @Cron(CronExpression.EVERY_MINUTE)
+  async handleIndivitualScheduledCall() {
+    try {
+    
+      // Find all pending calls that are within their time window
+      const scheduledCallsLeads = await this.leadsService.findAllWithIndivitualScheduledCalls()
+
+      this.logger.log(`Found ${scheduledCallsLeads.length} calls to process`);
+
+      for (const scheduledCallLead of scheduledCallsLeads) {
+        try {
+           
+          const callResult = await this.retellAiService.makeCall(
+            this.configService.get<string>('FROM_PHONE_NUMBER'),
+            this.configService.get<string>('TO_PHONE_NUMBER'),
+            scheduledCallLead.id,
+            this.configService.get<string>('AGENT_ID'),
+          );
+          
+          await this.leadsService.updateLeadCallHistory(scheduledCallLead.id, {
+            ...callResult,
+            fromNumber:this.configService.get<string>('FROM_PHONE_NUMBER'),
+            toNumber:scheduledCallLead.phone,
+            agent_id: callResult.agent_id
+          })
+         
+         } 
+        catch (error) {
+          this.logger.error(
+            `Failed to process scheduled scheduledCall ${scheduledCallLead.id}: ${error.message}`,
+            error.stack,
+          );
+
+          
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error processing scheduled calls: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
   @Cron(CronExpression.EVERY_MINUTE)
   async handleScheduledCalls() {
     try {

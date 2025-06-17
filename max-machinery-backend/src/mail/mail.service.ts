@@ -3,13 +3,16 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as nodemailer from 'nodemailer';
 import { Lead } from 'src/leads/entities/lead.entity';
+import { MessageCategory } from 'src/message-templates/entities/message-template.entity';
+import { MessageTemplatesService } from 'src/message-templates/message-templates.service';
 
 @Injectable()
 export class MailService {
   private transporter: nodemailer.Transporter;
   private readonly logger = new Logger(MailService.name);
   
-  constructor(private configService: ConfigService,private jwtService: JwtService) {
+  constructor(private configService: ConfigService,private jwtService: JwtService,  private readonly messageTemplatesService: MessageTemplatesService,
+ ) {
     const mailConfig = this.configService.get('mail');
     
     this.transporter = nodemailer.createTransport({
@@ -42,7 +45,7 @@ export class MailService {
       
       const result = await this.transporter.sendMail({
         from: mailConfig.defaultFrom,
-       to:"muhaffan945@gmail.com",
+       to:to,
         subject,
         text,
         html,
@@ -64,42 +67,30 @@ export class MailService {
     }
   }
 
-  async sendVerificationLink(lead:Lead) {
+   async sendVerificationLink(lead: Lead) {
     try {
-
-
-      const payload={email:lead.email,leadId:lead.id}
-      const token=  this.jwtService.sign(payload)
+      const payload = { email: lead.email, leadId: lead.id };
+      const token = this.jwtService.sign(payload);
 
       const appUrl = `${this.configService.get('APP_URL')}/user-info?token=${token}` || `http://localhost:4000/api/v1/user-info?token=${token}`;
-  
- 
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #f0f0f0; padding: 20px; text-align: center;">
-            <img src="	https://mmaxstorage.blob.core.windows.net/assets/media/a94bd20a-4a87-4aff-bd45-807bc378d569.png" alt="MachineryMax" style="max-width: 200px;" />
-          </div>
-          <div style="padding: 20px; border: 1px solid #ddd;">
-            <h2>Hello ${lead.firstName || 'there'},</h2>
-            <p>Thank you for your interest in MachineryMax. To complete your information, please click the link below:</p>
-            <p style="text-align: center;">
-              <a href="${appUrl}" style="display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
-                Complete Your Information
-              </a>
-            </p>
-            <p>If you have any questions, feel free to contact us.</p>
-            <p>Best regards,<br>The MachineryMax Team</p>
-          </div>
-          <div style="background-color: #333; color: white; padding: 10px; text-align: center; font-size: 12px;">
-            &copy; ${new Date().getFullYear()} MachineryMax. All rights reserved.
-          </div>
-        </div>
-      `;
+
+      // Get dynamic email message from templates
+      const messageData = {
+        firstName: lead.firstName || 'there',
+        verificationUrl: appUrl,
+        currentYear: new Date().getFullYear().toString(),
+      };
+
+      const emailMessage = await this.messageTemplatesService.getEmailMessage(
+        MessageCategory.VERIFICATION,
+        messageData
+      );
 
       const result = await this.sendMail({
-        to:lead.email,
-        subject: 'Complete Your Information - MachineryMax',
-        html,
+        to: lead.zohoEmail,
+        subject: emailMessage.subject,
+        text: emailMessage.content,
+        html: emailMessage.htmlContent || emailMessage.content,
       });
 
       this.logger.log(`Verification email sent successfully to ${lead.email}`);

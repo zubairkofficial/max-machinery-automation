@@ -12,7 +12,9 @@ import {
   UserPlus,
   Award,
   Sliders,
-  ChevronDown
+  ChevronDown,
+  FileText,
+  Bot
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import logo from "../assets/logo.png"
@@ -150,7 +152,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   <Users className="w-4 h-4 mr-3" />
                   <span>All Leads</span>
                 </NavLink>
-                <NavLink
+                {/* <NavLink
                   to="/leads/priority"
                   className={({ isActive }) =>
                     `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -171,8 +173,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 >
                   <UserPlus className="w-4 h-4 mr-3" />
                   <span>Add New Lead</span>
-                </NavLink>
-                <NavLink
+                </NavLink> */}
+                {/* <NavLink
                   to="/leads/search"
                   className={({ isActive }) =>
                     `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -182,7 +184,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 >
                   <Search className="w-4 h-4 mr-3" />
                   <span>Advanced Search</span>
-                </NavLink>
+                </NavLink> */}
               </div>
             )}
           </div>
@@ -228,8 +230,32 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 </NavLink>
               </div>
             )}
-            
+
             <NavLink
+              to="/templates"
+              className={({ isActive }) =>
+                `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
+                  isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
+                }`
+              }
+            >
+              <FileText className="w-5 h-5 mr-3" />
+              <span>Message Templates</span>
+            </NavLink>
+
+            <NavLink
+              to="/retell-settings"
+              className={({ isActive }) =>
+                `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
+                  isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
+                }`
+              }
+            >
+              <Bot className="w-5 h-5 mr-3" />
+              <span>AI Agent Settings</span>
+            </NavLink>
+            
+            {/* <NavLink
               to="/follow-ups"
               className={({ isActive }) =>
                 `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -239,11 +265,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             >
               <MessageSquare className="w-5 h-5 mr-3" />
               <span>Follow-ups</span>
-            </NavLink>
+            </NavLink> */}
           </div>
           
           {/* Data & Settings Section */}
-          <div className="space-y-1">
+          {/* <div className="space-y-1">
             <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Data & Settings
             </p>
@@ -280,13 +306,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               <Settings className="w-5 h-5 mr-3" />
               <span>Settings</span>
             </NavLink>
-          </div>
+          </div> */}
         </nav>
         
         {/* Application Version */}
-        <div className="mt-6 px-4 py-2">
-          <p className="text-xs text-gray-500">MaxMachinery v1.0.0</p>
-        </div>
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 px-4 py-2">
+  <p className="text-xs text-gray-500 text-center">MaxMachinery v1.0.0</p>
+</div>
       </div>
     </div>
   )

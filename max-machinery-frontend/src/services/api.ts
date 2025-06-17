@@ -118,6 +118,17 @@ export interface ScheduleCallsParams {
   endTime?: string;
 }
 
+export interface CallResponse {
+  success: boolean;
+  scheduled: number;
+  skipped: number;
+  errors: any[];
+  callDetails: any[];
+  scheduledTime?: string;
+  endTime?: string;
+  message?: string;
+}
+
 // Leads API
 export const leadsApi = {
   getAll: async (
@@ -150,7 +161,7 @@ export const leadsApi = {
       page: page.toString(),
       limit: limit.toString()
     });
-    const response = await apiClient.get(`/leads/priority?${params.toString()}`);
+    const response = await apiClient.get(`/leads?${params.toString()}`);
     return response.data;
   },
 
@@ -204,13 +215,7 @@ export const leadsApi = {
     return response.data;
   },
   
-  scheduleLeadCalls: async (params: ScheduleCallsParams): Promise<{
-    success: boolean;
-    scheduled: number;
-    skipped: number;
-    errors: any[];
-    callDetails: any[];
-  }> => {
+  scheduleLeadCalls: async (params: ScheduleCallsParams): Promise<CallResponse> => {
     const response = await apiClient.post('/leads/call/schedule', params);
     return response.data;
   },
@@ -219,13 +224,7 @@ export const leadsApi = {
     toNumber: string; 
     fromNumber?: string;
     override_agent_id?: string;
-  }): Promise<{
-    success: boolean;
-    scheduled: number;
-    skipped: number;
-    errors: any[];
-    callDetails: any[];
-  }> => {
+  }): Promise<CallResponse> => {
     const response = await apiClient.post(`/leads/call/single/${leadId}`, params);
     return response.data;
   },

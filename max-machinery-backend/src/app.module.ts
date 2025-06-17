@@ -15,6 +15,8 @@ import { SmsModule } from './sms/sms.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UserInfoModule } from './userInfo/user-info.module';
 import jwtConfig from './config/jwt.config';
+import { MessageTemplatesModule } from './message-templates/message-templates.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import jwtConfig from './config/jwt.config';
     SmsModule,
     ScheduleModule.forRoot(),
     UserInfoModule,
+    MessageTemplatesModule,
+    DashboardModule
   ],
   controllers: [AppController],
   providers: [AppService],

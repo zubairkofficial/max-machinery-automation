@@ -470,6 +470,20 @@ export class LeadsService {
     }
   }
   
+
+   async findAllWithIndivitualScheduledCalls() {
+   const now=new Date();
+    const startOfMinute = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 0); // Start of the current minute
+        const endOfMinute = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 59, 999); // End of the current minute
+     
+      return this.leadRepository.find({
+      where: {
+        scheduledCallbackDate: Between(startOfMinute, endOfMinute),
+      },
+    });
+      
+    }
+    
   /**
    * Update lead's call history
    */

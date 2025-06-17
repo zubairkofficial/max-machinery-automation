@@ -8,7 +8,7 @@ const FormPage: React.FC = () => {
   const token = queryParams.get('token');
   
   // Replace with your API URL from environment variable or configuration
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
   if (!token) {
     return (

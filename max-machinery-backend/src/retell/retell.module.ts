@@ -11,10 +11,12 @@ import { ConfigModule } from '@nestjs/config';
 import { MailService } from 'src/mail/mail.service';
 import { JwtModule } from '@nestjs/jwt';
 import { SmsService } from 'src/sms/sms.service';
+import { MessageTemplate } from 'src/message-templates/entities/message-template.entity';
+import { MessageTemplatesService } from 'src/message-templates/message-templates.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CallHistory, Lead, CallTranscript, LastCall]),
+    TypeOrmModule.forFeature([CallHistory, Lead, CallTranscript, LastCall,MessageTemplate]),
     forwardRef(() => LeadsModule),
     ConfigModule,
     JwtModule.register({
@@ -23,7 +25,7 @@ import { SmsService } from 'src/sms/sms.service';
     }),
   ],
   controllers: [RetellController],
-  providers: [RetellService,MailService,SmsService],
+  providers: [RetellService,MailService,SmsService,MessageTemplatesService],
   exports: [RetellService],
 })
 export class RetellModule {}

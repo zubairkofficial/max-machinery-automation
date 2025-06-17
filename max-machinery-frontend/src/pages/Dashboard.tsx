@@ -1,45 +1,55 @@
- 
-
 import { useState, useEffect } from "react"
-import { Phone, MessageSquare, Users, Clock, CheckCircle, AlertCircle } from "lucide-react"
+import { Phone, MessageSquare, Users, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { dashboardService, type DashboardStats, type Activity, type UpcomingCall } from "../services/dashboard.service"
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<DashboardStats>({
     totalLeads: 0,
     activeCalls: 0,
     completedCalls: 0,
     pendingFollowUps: 0,
     successfulConversions: 0,
   })
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([])
+  const [upcomingCalls, setUpcomingCalls] = useState<UpcomingCall[]>([])
 
-  // Simulate loading data
   useEffect(() => {
-    // In a real app, this would be an API call
-    setTimeout(() => {
-      setStats({
-        totalLeads: 1248,
-        activeCalls: 3,
-        completedCalls: 856,
-        pendingFollowUps: 42,
-        successfulConversions: 128,
-      })
-    }, 1000)
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        const [statsData, activityData, callsData] = await Promise.all([
+          dashboardService.getStats(),
+          dashboardService.getRecentActivity(),
+          dashboardService.getUpcomingCalls(),
+        ])
+        
+        setStats(statsData)
+        setRecentActivity(activityData)
+        setUpcomingCalls(callsData)
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
   }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <div className="flex space-x-2">
-          <select className="bg-white border border-gray-300 text-gray-700 py-2 px-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-            <option>Today</option>
-            <option>This Week</option>
-            <option>This Month</option>
-            <option>This Quarter</option>
-            <option>This Year</option>
-          </select>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md shadow-sm">Export</button>
-        </div>
+       
       </div>
 
       {/* Stats Cards */}
@@ -113,13 +123,13 @@ const Dashboard = () => {
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((item) => (
-                <div key={item} className="flex items-start">
+              {recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-start">
                   <div className="flex-shrink-0 mr-3">
                     <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                      {item % 3 === 0 ? (
+                      {activity.type === 'call' ? (
                         <Phone className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                      ) : item % 3 === 1 ? (
+                      ) : activity.type === 'email' ? (
                         <MessageSquare className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                       ) : (
                         <Users className="h-5 w-5 text-gray-500 dark:text-gray-400" />
@@ -128,14 +138,10 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {item % 3 === 0
-                        ? "Call completed with Acme Industries"
-                        : item % 3 === 1
-                          ? "Follow-up email sent to Global Manufacturing"
-                          : "New lead imported from Apollo.io"}
+                      {activity.description}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {item} hour{item !== 1 ? "s" : ""} ago
+                      {new Date(activity.timestamp).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -144,48 +150,15 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Upcoming Calls</h3>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((item) => (
-                <div key={item} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 mr-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                        <Clock className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {
-                          [
-                            "Acme Corp",
-                            "XYZ Industries",
-                            "Global Manufacturing",
-                            "Tech Solutions",
-                            "Machinery Experts",
-                          ][item - 1]
-                        }
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Scheduled for {new Date().toLocaleDateString()} at {10 + item}:00 AM
-                      </p>
-                    </div>
-                  </div>
-                  <button className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                    View
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+       
+      </div>
+
+      {/* Version Info */}
+      <div className="mt-6 px-4 py-2">
+        <p className="text-xs text-gray-500">MaxMachinery v1.0.0</p>
       </div>
     </div>
   )
 }
 
-export default Dashboard
+export default Dashboard 
