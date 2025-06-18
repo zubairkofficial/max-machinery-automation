@@ -20,7 +20,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import CallDashboard from './components/CallDashboard';
 import FormPage from './pages/FormPage';
 import InitialContactForm from './components/leads/InitialContactForm';
-import RetellLLMPage from "./pages/RetellLlmPage";
+import RetellLLMPage from "./pages/RetellLLMPage";
 
 // Import or create route placeholders (these components can be implemented later)
 // const PriorityLeads = () => <LeadsManagement currentTab="priority" />;
