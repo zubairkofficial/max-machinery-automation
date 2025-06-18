@@ -270,8 +270,8 @@ export class RetellService {
         return;
       }
 
-      const transcript = transcription;
-      // call.transcript;
+      const transcript = call.transcript;
+      //  transcription;
 
       // Create structured messages for the chat
       const messages = [
