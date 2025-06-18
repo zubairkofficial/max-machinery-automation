@@ -1,6 +1,5 @@
-import { Controller, Post, Body, HttpException, HttpStatus, Get, Logger, Patch } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, Get, Logger, Param } from '@nestjs/common';
 import { RetellService } from './retell.service';
-import { UpdateAgentPromptDto } from './dto/update-agent-prompt.dto';
 
 @Controller('retell')
 export class RetellController {
@@ -64,18 +63,30 @@ export class RetellController {
     return 'Webhook received!';
   }
 
-  @Patch('agent/prompt')
-  async updateAgentPrompt(@Body() updateAgentPromptDto: UpdateAgentPromptDto) {
+  @Get('llm/:llmId')
+  async getRetellLLM(@Param('llmId') llmId: string) {
     try {
-      const result = await this.retellService.updateAgentPrompt(
-        updateAgentPromptDto.agentId,
-        updateAgentPromptDto.prompt
-      );
-      return { success: true, data: result };
+      return await this.retellService.getRetellLLM(llmId);
     } catch (error) {
-      this.logger.error(`Error updating agent prompt: ${error.message}`, error.stack);
+      this.logger.error(`Error in getRetellLLM: ${error.message}`);
       throw new HttpException(
-        `Failed to update agent prompt: ${error.message}`,
+        `Failed to get Retell LLM: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('llm/:llmId/update')
+  async updateRetellLLM(
+    @Param('llmId') llmId: string,
+    @Body() data: { prompt: string }
+  ) {
+    try {
+      return await this.retellService.updateRetellLLM(llmId, data.prompt);
+    } catch (error) {
+      this.logger.error(`Error in updateRetellLLM: ${error.message}`);
+      throw new HttpException(
+        `Failed to update Retell LLM: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }

@@ -1,13 +1,16 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ApolloConfigService } from './apollo-config.service';
-import { catchError, firstValueFrom, map } from 'rxjs';
+import { catchError, firstValueFrom, map, retry, timeout, timer } from 'rxjs';
 import { AxiosError } from 'axios';
 import { SearchLeadsDto } from './dto/search-leads.dto';
 
 @Injectable()
 export class ApolloService {
   private readonly logger = new Logger(ApolloService.name);
+  private readonly TIMEOUT_MS = 30000; // 30 seconds timeout
+  private readonly MAX_RETRIES = 3;
+  private readonly RETRY_DELAY_MS = 1000; // 1 second delay between retries
 
   constructor(
     private readonly httpService: HttpService,
@@ -27,28 +30,66 @@ export class ApolloService {
       this.logger.log(`Storing search parameters in the database: ${JSON.stringify(searchParams)}`);
       await this.configService.updateSearchParams(searchParams);
       
-      // Execute the search against Apollo API
+      // Execute the search against Apollo API with retry logic
       const response = await firstValueFrom(
-       this.httpService
-        .post(`${baseUrl}/mixed_people/search`, {
-          page: 1,
-          per_page: searchParams.limit || 25,
-          ...this.buildSearchCriteria(searchParams),
-        }, {
-          headers: {
-            'X-Api-Key': apiKey, // Set the API key in the headers
-          },
-        })
+        this.httpService
+          .post(`${baseUrl}/mixed_people/search`, {
+            page: 1,
+            per_page: searchParams.limit || 25,
+            ...this.buildSearchCriteria(searchParams),
+          }, {
+            headers: {
+              'X-Api-Key': apiKey,
+            },
+            timeout: this.TIMEOUT_MS, // Set timeout in axios config
+          })
           .pipe(
+            timeout(this.TIMEOUT_MS), // Set timeout in rxjs
+            retry({
+              count: this.MAX_RETRIES,
+              delay: (error, retryCount) => {
+                // Only retry on network errors or 5xx server errors
+                if (error instanceof AxiosError) {
+                  const status = error.response?.status;
+                  const shouldRetry = !error.response || // Network error
+                    (status && status >= 500) || // Server error
+                    error.code === 'ECONNABORTED'; // Timeout
+                  
+                  if (!shouldRetry) {
+                    throw error; // Don't retry for other errors
+                  }
+                }
+                // Return an observable that emits after the delay
+                return timer(this.RETRY_DELAY_MS * retryCount);
+              },
+            }),
             map((response) => response.data),
             catchError((error: AxiosError) => {
+              let errorMessage = 'Failed to fetch leads from Apollo';
+              let statusCode = HttpStatus.BAD_GATEWAY;
+
+              if (error.code === 'ECONNABORTED') {
+                errorMessage = `Request timed out after ${this.TIMEOUT_MS}ms`;
+                statusCode = HttpStatus.REQUEST_TIMEOUT;
+              } else if (error.response) {
+                // The request was made and the server responded with a status code
+                // that falls out of the range of 2xx
+                errorMessage = `Apollo API error: ${error.response.status} - ${error.response.statusText}`;
+                statusCode = error.response.status;
+              } else if (error.request) {
+                // The request was made but no response was received
+                errorMessage = 'No response received from Apollo API';
+                statusCode = HttpStatus.SERVICE_UNAVAILABLE;
+              }
+
               this.logger.error(
-                `Error fetching leads from Apollo: ${error.message}`,
+                `${errorMessage}: ${error.message}`,
                 error.stack,
               );
+
               throw new HttpException(
-                `Failed to fetch leads from Apollo: ${error.message}`,
-                HttpStatus.BAD_GATEWAY,
+                errorMessage,
+                statusCode,
               );
             }),
           ),

@@ -13,8 +13,7 @@ import {
   Award,
   Sliders,
   ChevronDown,
-  FileText,
-  Bot
+  FileText
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import logo from "../assets/logo.png"
@@ -242,17 +241,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               <FileText className="w-5 h-5 mr-3" />
               <span>Message Templates</span>
             </NavLink>
-
             <NavLink
-              to="/retell-settings"
+              to="/retell-llm"
               className={({ isActive }) =>
                 `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
                   isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
                 }`
               }
             >
-              <Bot className="w-5 h-5 mr-3" />
-              <span>AI Agent Settings</span>
+              <FileText className="w-5 h-5 mr-3" />
+              <span>LLM Prompt</span>
             </NavLink>
             
             {/* <NavLink

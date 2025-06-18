@@ -23,7 +23,11 @@ export class ApolloConfigService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.loadConfigFromDatabase();
+    try {
+      await this.loadConfigFromDatabase();
+    } catch (error) {
+      this.logger.error(`Failed to initialize Apollo config service: ${error.message}`, error.stack);
+    }
   }
 
   private async loadConfigFromDatabase() {
@@ -53,6 +57,7 @@ export class ApolloConfigService implements OnModuleInit {
       this.configId = config.id;
     } catch (error) {
       this.logger.error(`Failed to load Apollo config from database: ${error.message}`, error.stack);
+      throw error; // Re-throw to handle in calling function
     }
   }
 
@@ -65,8 +70,13 @@ export class ApolloConfigService implements OnModuleInit {
   }
 
   async setApiKey(apiKey: string): Promise<void> {
-    this.apiKey = apiKey;
-    await this.updateConfig({ apiKey });
+    try {
+      this.apiKey = apiKey;
+      await this.updateConfig({ apiKey });
+    } catch (error) {
+      this.logger.error(`Failed to set API key: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   async getConfig(): Promise<ApolloConfig> {
@@ -128,47 +138,67 @@ export class ApolloConfigService implements OnModuleInit {
   }
   
   async updateSearchParams(searchParams: SearchLeadsDto): Promise<ApolloConfig> {
-    const config: Partial<ApolloConfig> = {};
-    
-    if (searchParams.jobTitles) config.jobTitles = searchParams.jobTitles;
-    if (searchParams.industries) config.industries = searchParams.industries;
-    if (searchParams.locations) config.locations = searchParams.locations;
-    if (searchParams.companySize !== undefined) config.companySize = searchParams.companySize;
-    if (searchParams.keywords !== undefined) config.keywords = searchParams.keywords;
-    if (searchParams.companyNames) config.companyNames = searchParams.companyNames;
-    if (searchParams.emailStatus !== undefined) config.emailStatus = searchParams.emailStatus;
-    if (searchParams.limit) config.limit = searchParams.limit;
-    if (searchParams.cronSchedule) config.cronSchedule = searchParams.cronSchedule;
-    
-    return this.updateConfig(config);
+    try {
+      const config: Partial<ApolloConfig> = {};
+      
+      if (searchParams.jobTitles) config.jobTitles = searchParams.jobTitles;
+      if (searchParams.industries) config.industries = searchParams.industries;
+      if (searchParams.locations) config.locations = searchParams.locations;
+      if (searchParams.companySize !== undefined) config.companySize = searchParams.companySize;
+      if (searchParams.keywords !== undefined) config.keywords = searchParams.keywords;
+      if (searchParams.companyNames) config.companyNames = searchParams.companyNames;
+      if (searchParams.emailStatus !== undefined) config.emailStatus = searchParams.emailStatus;
+      if (searchParams.limit) config.limit = searchParams.limit;
+      if (searchParams.cronSchedule) config.cronSchedule = searchParams.cronSchedule;
+      
+      return await this.updateConfig(config);
+    } catch (error) {
+      this.logger.error(`Failed to update search params: ${error.message}`, error.stack);
+      throw error;
+    }
   }
   
   async getSearchParamsDto(): Promise<SearchLeadsDto> {
-    const config = await this.getConfig();
-    
-    return {
-      jobTitles: config.jobTitles,
-      industries: config.industries,
-      locations: config.locations,
-      companySize: config.companySize,
-      keywords: config.keywords,
-      companyNames: config.companyNames,
-      emailStatus: config.emailStatus,
-      limit: config.limit,
-      page: config.page,
-      cronSchedule: config.cronSchedule,
-    };
+    try {
+      const config = await this.getConfig();
+      
+      return {
+        jobTitles: config.jobTitles,
+        industries: config.industries,
+        locations: config.locations,
+        companySize: config.companySize,
+        keywords: config.keywords,
+        companyNames: config.companyNames,
+        emailStatus: config.emailStatus,
+        limit: config.limit,
+        page: config.page,
+        cronSchedule: config.cronSchedule,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get search params DTO: ${error.message}`, error.stack);
+      throw error;
+    }
   }
   
   async updateLastRunTime(): Promise<void> {
-    const now = new Date();
-    await this.updateConfig({ 
-      lastRunAt: now,
-    });
+    try {
+      const now = new Date();
+      await this.updateConfig({ 
+        lastRunAt: now,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to update last run time: ${error.message}`, error.stack);
+      throw error;
+    }
   }
   
   async updateNextRunTime(nextRunAt: Date): Promise<void> {
-    await this.updateConfig({ nextRunAt });
+    try {
+      await this.updateConfig({ nextRunAt });
+    } catch (error) {
+      this.logger.error(`Failed to update next run time: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   // Create a new config profile
@@ -201,7 +231,7 @@ export class ApolloConfigService implements OnModuleInit {
   // Get all config profiles
   async getAllConfigProfiles(): Promise<ApolloConfig[]> {
     try {
-      return this.apolloConfigRepository.find({
+      return await this.apolloConfigRepository.find({
         order: { updatedAt: 'DESC' }
       });
     } catch (error) {

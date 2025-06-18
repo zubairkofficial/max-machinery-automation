@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CallHistory } from '../leads/entities/call-history.entity';
@@ -13,13 +13,14 @@ import { SmsService } from 'src/sms/sms.service';
 import { JwtService } from '@nestjs/jwt';
 import { transcription } from 'src/constant';
 import axios from 'axios';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RetellService {
   private readonly logger = new Logger(RetellService.name);
   private openai: ChatOpenAI;
   private readonly retellApiKey: string;
-  private readonly retellApiUrl: string;
+  private readonly retellBaseUrl = 'https://api.retellai.com';
 
   constructor(
     @InjectRepository(CallHistory)
@@ -30,15 +31,15 @@ export class RetellService {
     private callTranscriptRepository: Repository<CallTranscript>,
     private mailService: MailService,
     private smsService: SmsService,
-    private jwtService: JwtService
+    private jwtService: JwtService,
+    private configService: ConfigService
   ) {
     this.openai = new ChatOpenAI({
       openAIApiKey: process.env.OPENAI_API_KEY,
       temperature: 0.2,
       modelName: 'gpt-4'
     });
-    this.retellApiKey = process.env.RETELL_API_KEY;
-    this.retellApiUrl = 'https://api.retellai.com';
+    this.retellApiKey = this.configService.get<string>('RETELL_AI_API_KEY');
   }
 
   /**
@@ -269,7 +270,7 @@ export class RetellService {
         return;
       }
 
-      const transcript = transcription
+      const transcript = transcription;
       // call.transcript;
 
       // Create structured messages for the chat
@@ -281,14 +282,17 @@ export class RetellService {
         {
           role: "user",
           content: `Analyze this conversation and extract:
-1. The preferred contact method (must be "email", "phone", "schedule", or "none")
-2. The contact information (email address or phone number)
+1. The preferred contact method (must be "email", "phone", "both", "schedule", or "none")
+2. The contact information (email address and/or phone number)
 3. If scheduling is mentioned, extract the number of days for callback 
 4. Convert any specific time mentioned for callback into a 24-hour format (e.g., "6 PM" to "18:00")
 
 Return ONLY a JSON object with these fields:
-- preferredMethod: "email", "phone", "schedule", or "none"
-- contactInfo: the actual email/phone or null
+- preferredMethod: "email", "phone", "both", "schedule", or "none"
+- contactInfo: {
+    email: the email address or null,
+    phone: the phone number or null
+  }
 - scheduleDays: number of days for callback or null
 - specificTime: the specific time mentioned for callback in 24-hour format or null
 
@@ -323,46 +327,62 @@ ${transcript}`
           }
         }
 
+        if (contactInfo.preferredMethod === 'schedule' && contactInfo.scheduleDays) {
+          const scheduleDate = new Date();
+          scheduleDate.setDate(scheduleDate.getDate() + contactInfo.scheduleDays);
+          
+          // Set the specific time (18:00)
+          if(contactInfo.specificTime) {
+            const [hours, minutes] = contactInfo?.specificTime?.split(':').map(Number);
+            
+            // Set the hours and minutes
+            scheduleDate.setHours(hours);
+            scheduleDate.setMinutes(minutes);
+            scheduleDate.setSeconds(0); // Optional: set seconds to 0
+          }
+          // Store the scheduled callback date
+          lead.scheduledCallbackDate = scheduleDate;
+          await this.leadRepository.save(lead);
+          
+          this.logger.log(`Scheduled callback for ${scheduleDate.toISOString()}`);
+          return;
+        }
 
-       if (contactInfo.preferredMethod === 'schedule' && contactInfo.scheduleDays) {
-  const scheduleDate = new Date();
-  scheduleDate.setDate(scheduleDate.getDate() + contactInfo.scheduleDays);
-  
-  // Set the specific time (18:00)
-  if(contactInfo.specificTime) {
-  const [hours, minutes] = contactInfo?.specificTime?.split(':').map(Number);
-  
-  // Set the hours and minutes
-  scheduleDate.setHours(hours);
-  scheduleDate.setMinutes(minutes);
-  scheduleDate.setSeconds(0); // Optional: set seconds to 0
-  }
-  // Store the scheduled callback date
-  lead.scheduledCallbackDate = scheduleDate;
-  await this.leadRepository.save(lead);
-  
-  this.logger.log(`Scheduled callback for ${scheduleDate.toISOString()}`);
-  return;
-}  // Update lead with extracted information
-        if (contactInfo.preferredMethod === 'email') {
-          // Store original email in zohoEmail
-          lead.zohoEmail = contactInfo.contactInfo;
+        // Handle both email and phone cases
+        if (contactInfo.preferredMethod === 'both') {
+          // Store both email and phone
+          if (contactInfo.contactInfo.email) {
+            lead.zohoEmail = contactInfo.contactInfo.email;
+            await this.mailService.sendVerificationLink(lead);
+            this.logger.log(`Sent verification email to ${contactInfo.contactInfo.email}`);
+          }
+          
+          if (contactInfo.contactInfo.phone) {
+            lead.zohoPhoneNumber = contactInfo.contactInfo.phone;
+            await this.smsService.sendVerificationSMS(lead);
+            this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
+          }
           
           await this.leadRepository.save(lead);
+        }
+        // Handle email only
+        else if (contactInfo.preferredMethod === 'email') {
+          lead.zohoEmail = contactInfo.contactInfo.email;
+          await this.leadRepository.save(lead);
           await this.mailService.sendVerificationLink(lead);
-          this.logger.log(`Sent verification email to ${contactInfo.contactInfo}`);
+          this.logger.log(`Sent verification email to ${contactInfo.contactInfo.email}`);
         } 
+        // Handle phone only
         else if (contactInfo.preferredMethod === 'phone') {
-          // Store original phone in zohoPhoneNumber
-          lead.zohoPhoneNumber = contactInfo.contactInfo;
+          lead.zohoPhoneNumber = contactInfo.contactInfo.phone;
           await this.leadRepository.save(lead);
           await this.smsService.sendVerificationSMS(lead);
-          this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo}`);
+          this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
         }
-        else{
-        lead.scheduledCallbackDate= this.getNextBusinessDay()
-        await this.leadRepository.save(lead);   
-      }
+        else {
+          lead.scheduledCallbackDate = this.getNextBusinessDay();
+          await this.leadRepository.save(lead);   
+        }
 
       } catch (error) {
         this.logger.error(`Error processing transcript: ${error.message}`, error.stack);
@@ -411,29 +431,43 @@ ${transcript}`
     return 'neutral';
   }
 
-  /**
-   * Update Retell AI agent prompt
-   */
-  async updateAgentPrompt(agentId: string, prompt: string): Promise<any> {
+  async getRetellLLM(llmId: string) {
+    try {
+      const response = await axios.get(`${this.retellBaseUrl}/get-retell-llm/${llmId}`, {
+        headers: {
+          'Authorization': `Bearer ${this.retellApiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Error getting Retell LLM: ${error.message}`);
+      throw new HttpException(
+        `Failed to get Retell LLM: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async updateRetellLLM(llmId: string, prompt: string) {
     try {
       const response = await axios.patch(
-        `${this.retellApiUrl}/update-agent/${agentId}`,
-        {
-          prompt: prompt
-        },
+        `${this.retellBaseUrl}/update-retell-llm/${llmId}`,
+        { general_prompt:prompt },
         {
           headers: {
             'Authorization': `Bearer ${this.retellApiKey}`,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         }
       );
-
-      this.logger.log(`Successfully updated prompt for agent ${agentId}`);
       return response.data;
     } catch (error) {
-      this.logger.error(`Error updating agent prompt: ${error.message}`, error.stack);
-      throw error;
+      this.logger.error(`Error updating Retell LLM: ${error.message}`);
+      throw new HttpException(
+        `Failed to update Retell LLM: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 }
