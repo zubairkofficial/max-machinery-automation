@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
-import { Phone, MessageSquare, Users, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { Phone, MessageSquare, Users,  CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { dashboardService, type DashboardStats, type Activity, type UpcomingCall } from "../services/dashboard.service"
+import { FaSpinner } from "react-icons/fa"
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true)
@@ -37,13 +38,16 @@ const Dashboard = () => {
     fetchDashboardData()
   }, [])
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    )
-  }
+ 
+
+   if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen">
+          <FaSpinner className="animate-spin h-8 w-8 text-indigo-600 mb-4" />
+          <p className="text-gray-700 dark:text-gray-300">Loading dashboard...</p>
+        </div>
+      );
+    }
 
   return (
     <div className="space-y-6">

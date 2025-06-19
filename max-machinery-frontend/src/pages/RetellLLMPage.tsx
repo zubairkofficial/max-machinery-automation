@@ -3,7 +3,7 @@ import RetellLLMEditor from '../components/RetellLLMEditor';
 
 const RetellLLMPage: React.FC = () => {
   // You can make this configurable or fetch from an API
-  const llmId = 'llm_bec730a8baacffdb13ec0cc522a4';
+  const llmId = import.meta.env.RETELL_LLM_API_KEY || 'llm_bec730a8baacffdb13ec0cc522a4';
 
   return (
     <div className="container mx-auto py-8">

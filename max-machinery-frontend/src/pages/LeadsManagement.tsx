@@ -7,13 +7,9 @@ import ApolloSearchForm from '../components/ApolloSearchForm';
 import { 
   FaFilter, 
   FaUserTie, 
-  FaIndustry, 
   FaSyncAlt, 
   FaSearch,
-  FaTools,
   FaSort,
-  FaChevronLeft, 
-  FaChevronRight
 } from 'react-icons/fa';
 import Pagination from '../components/common/Pagination';
 

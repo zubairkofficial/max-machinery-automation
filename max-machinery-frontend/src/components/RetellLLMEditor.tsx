@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { retellService } from '../services/retellService';
 import { RetellLLMResponse } from '../types/retell';
 import { Save, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { FaSpinner } from 'react-icons/fa';
 
 interface RetellLLMEditorProps {
   llmId: string;
@@ -70,13 +71,22 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
     });
   };
 
-  if (loading && !llmConfig) {
+
+   if (loading && !llmConfig) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-indigo-500" />
+      <div className="flex flex-col items-center justify-center h-screen">
+        <FaSpinner className="animate-spin h-8 w-8 text-indigo-600 mb-4" />
+        <p className="text-gray-700 dark:text-gray-300">Loading leads data...</p>
       </div>
     );
   }
+  // if (loading && !llmConfig) {
+  //   return (
+  //     <div className="flex items-center justify-center h-64">
+  //       <RefreshCw className="w-8 h-8 animate-spin text-indigo-500" />
+  //     </div>
+  //   );
+  // }
 
   if (!llmConfig) {
     return (

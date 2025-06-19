@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
 import { Lead, leadsApi } from '../services/api';
-import { FaPhone, FaEnvelope, FaLinkedin, FaBuilding, FaMapMarkerAlt, FaEdit, FaTimes, FaSave, FaUserTie, FaCog } from 'react-icons/fa';
+import { FaPhone, FaEnvelope, FaLinkedin, FaBuilding, FaMapMarkerAlt, FaEdit, FaTimes, FaSave, FaUserTie } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useTheme } from '../contexts/ThemeContext';
 import LeadCallScheduler from './LeadCallScheduler';
@@ -41,7 +40,6 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
       estimatedValue: lead?.machineryDetails?.estimatedValue || 0,
     },
   });
-  const { theme } = useTheme();
 
   React.useEffect(() => {
     if (lead) {
@@ -62,9 +60,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
 
   if (!isOpen || !lead) return null;
 
-  const handleEditToggle = () => {
-    setIsEditing(!isEditing);
-  };
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

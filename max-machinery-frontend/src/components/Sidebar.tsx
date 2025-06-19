@@ -3,20 +3,14 @@ import {
   Home, 
   Users, 
   Phone, 
-  MessageSquare, 
-  BarChart2, 
-  Settings, 
+ 
   X, 
   PhoneCall,
-  Search,
-  UserPlus,
-  Award,
-  Sliders,
+
   ChevronDown,
   FileText
 } from "lucide-react"
 import { useState, useEffect } from "react"
-import logo from "../assets/logo.png"
 
 interface SidebarProps {
   sidebarOpen: boolean
