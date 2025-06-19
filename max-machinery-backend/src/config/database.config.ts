@@ -8,5 +8,5 @@ username: process.env.DB_USERNAME || 'hamza123',
   password: process.env.DB_PASSWORD || 'hamza123',
   database: process.env.DB_NAME || 'max-machinery-automation',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-  synchronize: process.env.NODE_ENV !== 'production', // Only enable in development
+  synchronize: true, // Only enable in development
 }; 
