@@ -779,7 +779,8 @@ export class LeadsService {
       try {
         const callResult = await this.retellAiService.makeCall(
           fromNumber,
-          this.configService.get<string>('TO_PHONE_NUMBER'),
+          callParams.toNumber,
+          // this.configService.get<string>('TO_PHONE_NUMBER'),
           id,
           callParams.override_agent_id,
           

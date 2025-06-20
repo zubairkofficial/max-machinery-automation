@@ -70,7 +70,7 @@ export class ScheduledCallsService {
            
           const callResult = await this.retellAiService.makeCall(
             this.configService.get<string>('FROM_PHONE_NUMBER'),
-            this.configService.get<string>('TO_PHONE_NUMBER'),
+            scheduledCallLead.phone,
             scheduledCallLead.id,
             this.configService.get<string>('AGENT_ID'),
           );
@@ -128,7 +128,7 @@ export class ScheduledCallsService {
           }
           const callResult = await this.retellAiService.makeCall(
             this.configService.get<string>('FROM_PHONE_NUMBER'),
-            this.configService.get<string>('TO_PHONE_NUMBER'),
+           lead.phone,
             lead.id,
             this.configService.get<string>('AGENT_ID'),
           );
