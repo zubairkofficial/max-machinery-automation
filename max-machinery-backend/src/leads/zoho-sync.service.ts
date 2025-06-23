@@ -40,7 +40,7 @@ export class ZohoSyncService {
     });
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   async syncLeadsWithZoho() {
     try {
       this.logger.log('Starting Zoho CRM sync');
