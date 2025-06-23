@@ -64,7 +64,8 @@ export class RetellAiService {
           }
         }
       );
-
+     lead.status = 'CALLING';
+      await this.leadRepository.save(lead);
       this.logger.log(`Successfully initiated call from ${cleanFromNumber} to ${cleanToNumber}`);
       return response.data;
     } catch (error) {
