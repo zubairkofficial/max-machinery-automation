@@ -12,6 +12,8 @@ import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { ConfigService } from '@nestjs/config';
 import { UserInfo } from 'src/userInfo/entities/user-info.entity';
+import { MailService } from 'src/mail/mail.service';
+import { SmsService } from 'src/sms/sms.service';
 
 @Injectable()
 export class ZohoSyncService {
@@ -28,6 +30,8 @@ export class ZohoSyncService {
     @InjectRepository(CallTranscript)
     private readonly callTranscriptRepository: Repository<CallTranscript>,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
+    private readonly smsService:SmsService,
   ) {
     this.openai = new ChatOpenAI({
       openAIApiKey: this.configService.get('OPENAI_API_KEY'),
@@ -48,7 +52,7 @@ export class ZohoSyncService {
           { email: Not('') },
           { contacted: false }
         ],
-        select: ['id', 'email', 'contacted'] // Only select fields we need
+        select: ['id', 'email', 'contacted','leadId'], // Only select fields we need      
       });
 
       for (const leadInfo of userInfo) {
@@ -59,29 +63,37 @@ export class ZohoSyncService {
           // Search for leadInfo in Zoho
           const zohoLead = await this.searchLeadInZoho(leadInfo.email);
           
-          if (!zohoLead) {
+          if (!zohoLead?.Email ) {
             // If leadInfo not found, check call transcripts for contact info
-            const contactInfo = await this.extractContactInfoFromTranscripts(leadInfo.id);
+            const leadRes = await this.leadRepository.findOne({where:{id:leadInfo.leadId}});
             
-            if (contactInfo) {
-              // Handle contact preference first
-              await this.handleContactPreference(leadInfo, contactInfo);
-              
+            if (leadRes) {
+            
               // Try searching Zoho again with the new contact info
               let foundLead = null;
               
-              if (contactInfo.email) {
-                foundLead = await this.searchLeadInZoho(contactInfo.email);
+              if (leadRes.zohoEmail) {
+                foundLead = await this.searchLeadInZoho(leadRes.zohoEmail);
               }
               
-              if (!foundLead && contactInfo.phone) {
-                foundLead = await this.searchLeadInZohoByPhone(contactInfo.phone);
+              if (!foundLead && leadRes.zohoPhoneNumber) {
+                foundLead = await this.searchLeadInZohoByPhone(leadRes.zohoPhoneNumber);
               }
               
               if (foundLead) {
                 // Update our lead with Zoho data
                 await this.updateLeadWithZohoData(leadInfo, foundLead);
+              }else {
+                if(leadRes.zohoEmail){
+                  await this.mailService.sendVerificationLink(leadRes);
+                }
+                else if (leadRes.zohoPhoneNumber){
+                  
+                   await this.smsService.sendVerificationSMS(leadRes);
+                }
+
               }
+             
             }
           } else {
             // Update our lead with Zoho data
