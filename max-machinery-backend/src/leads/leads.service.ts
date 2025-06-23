@@ -693,6 +693,12 @@ export class LeadsService {
           total_duration_seconds: retellCall.call_cost?.total_duration_seconds || 0,
           total_duration_unit_price: retellCall.call_cost?.total_duration_unit_price || 0
         },
+        recording_url:retellCall.recording_url || null,
+        transcription: retellCall.transcription || null,
+        dynamicVariables: retellCall.dynamic_variables || null,
+        telephonyIdentifier: retellCall.telephony_identifier || null,
+        agentId: retellCall.agent_id || null,
+        callType: retellCall.call_type || 'outbound', // Default to outbound if not specified
         // Additional fields
         opt_out_sensitive_data_storage: retellCall.opt_out_sensitive_data_storage || false,
         opt_in_signed_url: retellCall.opt_in_signed_url || false
