@@ -11,6 +11,7 @@ import {
   FileText
 } from "lucide-react"
 import { useState, useEffect } from "react"
+import { FaRobot } from "react-icons/fa"
 
 interface SidebarProps {
   sidebarOpen: boolean
@@ -243,7 +244,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 }`
               }
             >
-              <FileText className="w-5 h-5 mr-3" />
+              <FaRobot className="w-5 h-5 mr-3" />
               <span>LLM Prompt</span>
             </NavLink>
             
