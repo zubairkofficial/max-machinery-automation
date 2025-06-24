@@ -255,15 +255,20 @@ export class RetellService {
    */
   private async processTranscriptForContactInfo(call: any, leadId: string): Promise<void> {
     try {
+
+         const lead = await this.leadRepository.findOne({
+        where: { id: leadId }
+      });
+
       if (!call.transcript) {
         this.logger.warn(`No transcript found for call ${call.call_id}`);
+       lead.scheduledCallbackDate = this.getNextBusinessDay();
+          await this.leadRepository.save(lead);  
         return;
       }
 
       // Get lead info first to fail fast if not found
-      const lead = await this.leadRepository.findOne({
-        where: { id: leadId }
-      });
+   
 
       if (!lead) {
         this.logger.warn(`Lead not found for ID: ${leadId}`);
