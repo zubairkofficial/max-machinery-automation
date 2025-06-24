@@ -49,8 +49,7 @@ export class RetellAiService {
           to_number: cleanToNumber,
           override_agent_id: overrideAgentId,
          retell_llm_dynamic_variables: {
-      lead_name:lead.firstName,          // [Lead Name]
-      follow_up_weeks: "2 weeks",             // [X weeks] — as string or number
+      lead_name:lead.firstName,        
       consultation_link: "https://machinerymax.com/schedule",  // [URL]
       contact_info: "contact@machinerymax.com | (555) 123-4567", // [contact info]
     },

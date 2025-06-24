@@ -2,67 +2,94 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Lead } from '../leads/entities/lead.entity';
-import type { MessageBird } from 'messagebird/types';
-import { MessageCategory } from 'src/message-templates/entities/message-template.entity';
-import { MessageTemplatesService } from 'src/message-templates/message-templates.service';
+import { MessageTemplatesService } from '../message-templates/message-templates.service';
+import { MessageCategory } from '../message-templates/entities/message-template.entity';
 
 @Injectable()
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
-  private readonly messageBirdClient: MessageBird;
+  private readonly apiKey: string;
   private readonly fromNumber: string;
+  private readonly birdApiUrl: string;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     private readonly messageTemplatesService: MessageTemplatesService,
- 
   ) {
-    const apiKey = this.configService.get<string>('MESSAGEBIRD_API_KEY');
-    this.fromNumber = this.configService.get<string>('MESSAGEBIRD_ORIGINATOR') || 'MachineryMax';
+    this.apiKey = this.configService.get<string>('BIRD_API_KEY') || 'Fcd0htERi3akNCxrw7k9B7Its2yXopTdYoLg';
+    this.fromNumber = this.configService.get<string>('BIRD_ORIGINATOR') || 'MachineryMax';
+    this.birdApiUrl = this.configService.get<string>('BIRD_URL') || 'https://api.bird.com/workspaces/641e4d94-facc-4112-a4c9-0e8449e943c2/channels/15e09bc2-24a3-5b01-97b7-4593d79ce4b6/messages';
 
-    if (apiKey) {
-      // Using require for MessageBird initialization
-      const messagebirdInit = require('messagebird');
-      this.messageBirdClient = messagebirdInit(apiKey);
+    if (this.apiKey) {
+      this.logger.log('Bird API client initialized successfully');
     } else {
-      this.logger.warn('MessageBird API key not found. SMS service will be disabled.');
+      this.logger.warn('Bird API key not found. SMS service will be disabled.');
     }
   }
 
   async sendSms(to: string, body: string): Promise<boolean> {
-    if (!this.messageBirdClient) {
-      this.logger.warn('MessageBird client not initialized');
+    if (!this.apiKey) {
+      this.logger.warn('Bird API key not configured');
       return false;
     }
 
-    try {
-      await new Promise((resolve, reject) => {
-        this.messageBirdClient.messages.create({
-          originator: this.fromNumber,
-          recipients: [to],
-          body: body
-        }, (err: any, response: any) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(response);
+    const maxRetries = 3;
+    let retries = 0;
+    let success = false;
+
+    while (retries < maxRetries && !success) {
+      try {
+        const requestBody = {
+          receiver: {
+            contacts: [
+              {
+                identifierValue: to
+              }
+            ]
+          },
+          body: {
+            type: "text",
+            text: {
+              text: body
+            }
           }
-        });
-      });
+        };
 
-      this.logger.log(`SMS sent successfully to ${to}`);
-      return true;
-    } catch (error) {
-      this.logger.error(`Failed to send SMS to ${to}: ${error.message}`);
-      return false;
+        const response = await fetch(this.birdApiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `AccessKey ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        this.logger.log(`SMS sent successfully to ${to}. Message ID: ${responseData.id}`);
+        success = true;
+      } catch (error) {
+        retries += 1;
+        this.logger.error(`Error sending SMS (attempt ${retries}): ${error.message}`);
+
+        if (retries >= maxRetries) {
+          this.logger.error(`Failed to send SMS after ${maxRetries} attempts.`);
+          return false;
+        }
+      }
     }
+
+    return success;
   }
 
   async sendVerificationSMS(lead: Lead): Promise<void> {
     try {
-      if (!this.messageBirdClient) {
-        this.logger.warn('MessageBird client not initialized. SMS service disabled.');
+      if (!this.apiKey) {
+        this.logger.warn('Bird API key not configured. SMS service disabled.');
         return;
       }
 
@@ -79,20 +106,20 @@ export class SmsService {
 
       // Create verification URL
       const verificationUrl = `${this.configService.get('APP_URL')}/user-info?token=${token}`;
-const messageData = {
+
+      // Get dynamic SMS message from templates
+      const messageData = {
         firstName: lead.firstName || '',
         verificationUrl: verificationUrl,
         currentYear: new Date().getFullYear().toString(),
       };
 
-       const message = await this.messageTemplatesService.getSmsMessage(
+      const message = await this.messageTemplatesService.getSmsMessage(
         MessageCategory.VERIFICATION,
         messageData
       );
-      // SMS message
-      // const message = `Thank you for your interest in MachineryMax! Complete your information here: ${verificationUrl}`;
 
-      // Send SMS using MessageBird
+      // Send SMS using Bird API
       const success = await this.sendSms(lead.zohoPhoneNumber, message);
 
       if (success) {
@@ -105,4 +132,4 @@ const messageData = {
       throw error;
     }
   }
-} 
+}
