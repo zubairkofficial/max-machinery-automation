@@ -17,7 +17,6 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
   const variables = [
     { name: 'lead_name', description: 'Lead Name' },
     { name: 'contact_info', description: 'Contact Information' },
-    { name: 'follow_up_weeks', description: 'Follow-up Weeks' },
   ];
 
   useEffect(() => {
