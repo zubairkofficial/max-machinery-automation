@@ -1,7 +1,7 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import { Lead } from './entities/lead.entity';
 import axios from 'axios';
 import { Not, IsNull } from 'typeorm';
@@ -14,6 +14,8 @@ import { ConfigService } from '@nestjs/config';
 import { UserInfo } from 'src/userInfo/entities/user-info.entity';
 import { MailService } from 'src/mail/mail.service';
 import { SmsService } from 'src/sms/sms.service';
+import { RetellService } from 'src/retell/retell.service';
+import { RetellAiService } from './retell-ai.service';
 
 @Injectable()
 export class ZohoSyncService {
@@ -30,21 +32,121 @@ export class ZohoSyncService {
     @InjectRepository(CallTranscript)
     private readonly callTranscriptRepository: Repository<CallTranscript>,
     private readonly configService: ConfigService,
-    private readonly mailService: MailService,
-    private readonly smsService:SmsService,
+    private readonly retellAiService:RetellAiService,
   ) {
     this.openai = new ChatOpenAI({
       openAIApiKey: this.configService.get('OPENAI_API_KEY'),
       temperature: 0,
       modelName: this.configService.get('OPENAI_MODEL_NAME')
     });
+    
   }
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
-  async syncLeadsWithZoho() {
+  // @Cron(CronExpression.EVERY_30_MINUTES)
+  // async syncLeadsWithZoho() {
+  //   try {
+  //     this.logger.log('Starting Zoho CRM sync');
+      
+  //     // Get all leads that need to be checked
+  //     const userInfo = await this.userInfoRepository.find({
+  //       where: [
+  //         { email: Not(IsNull()) },
+  //         { email: Not('') },
+  //         { contacted: false }
+  //       ],
+  //       select: ['id', 'email', 'contacted','leadId'], // Only select fields we need      
+  //     });
+
+  //     for (const leadInfo of userInfo) {
+  //       try {
+  //         // Check if we need to refresh the token
+  //         await this.ensureValidAccessToken();
+          
+  //         // Search for leadInfo in Zoho
+  //         const zohoLead = await this.searchLeadInZoho(leadInfo.email);
+          
+  //         if (!zohoLead?.Email ) {
+  //           // If leadInfo not found, check call transcripts for contact info
+  //           const leadRes = await this.leadRepository.findOne({where:{id:leadInfo.leadId}});
+            
+  //           if (leadRes) {
+            
+  //             // Try searching Zoho again with the new contact info
+  //             let foundLead = null;
+              
+  //             if (leadRes.zohoEmail) {
+  //               foundLead = await this.searchLeadInZoho(leadRes.zohoEmail);
+  //             }
+              
+  //             if (!foundLead && leadRes.zohoPhoneNumber) {
+  //               foundLead = await this.searchLeadInZohoByPhone(leadRes.zohoPhoneNumber);
+  //             }
+              
+  //             if (foundLead) {
+  //               // Update our lead with Zoho data
+  //               await this.updateLeadWithZohoData(leadInfo);
+  //             }else {
+  //               if(leadRes.zohoEmail){
+  //                 await this.mailService.sendVerificationLink(leadRes);
+  //               }
+  //               else if (leadRes.zohoPhoneNumber){
+                  
+  //                  await this.smsService.sendVerificationSMS(leadRes);
+  //               }
+
+  //             }
+             
+  //           }
+  //         } else {
+  //           // Update our lead with Zoho data
+  //           await this.updateLeadWithZohoData(leadInfo);
+  //         }
+  //       } catch (error) {
+  //         this.logger.error(`Error processing lead ${leadInfo.id}: ${error.message}`);
+  //         continue; // Continue with next lead even if one fails
+  //       }
+  //     }
+      
+  //     this.logger.log('Completed Zoho CRM sync');
+  //   } catch (error) {
+  //     this.logger.error(`Error in Zoho sync: ${error.message}`);
+  //   }
+  // }
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async zohoLinkNoCall() {
     try {
       this.logger.log('Starting Zoho CRM sync');
-      
+
+      const leads = await this.leadRepository
+  .createQueryBuilder('lead')
+  .leftJoinAndSelect('lead.userInfo', 'userInfo') // Left join with userInfo
+  .where(
+    new Brackets(qb => {
+      qb.where('lead.contacted = :contacted', { contacted: true })
+        .andWhere('lead.zohoEmail IS NOT NULL AND lead.zohoPhoneNumber IS NULL') // First condition
+        .orWhere('lead.contacted = :contacted AND lead.zohoEmail IS NULL AND lead.zohoPhoneNumber IS NOT NULL') // Second condition
+        .orWhere('lead.contacted = :contacted AND lead.zohoEmail IS NOT NULL AND lead.zohoPhoneNumber IS NOT NULL'); // Third condition
+    })
+  )
+  .andWhere('userInfo.id IS NULL') // Ensure userInfo does not exist
+  .select(['lead.id', 'lead.zohoEmail', 'lead.zohoPhoneNumber']) // Only select needed fields
+  .getMany(); // Use getMany() to return the results as an array
+
+// Now, `leads` will contain only leads that satisfy the given conditions and do not have an associated UserInfo
+
+
+for(const lead of leads) {
+
+  try {
+     const formSumbit=false
+    const linkClick=false
+    await this.retellAiService.makeCallLeadZoho(lead,this.configService.get<string>('FROM_PHONE_NUMBER'), formSumbit,linkClick,this.configService.get<string>('AGENT_ID'));
+  } catch (error) {
+    this.logger.error(`Error processing lead ${lead.id}: ${error.message}`);
+    continue; // Continue with next lead even if one fails
+  }
+}
+
       // Get all leads that need to be checked
       const userInfo = await this.userInfoRepository.find({
         where: [
@@ -55,17 +157,13 @@ export class ZohoSyncService {
         select: ['id', 'email', 'contacted','leadId'], // Only select fields we need      
       });
 
-      for (const leadInfo of userInfo) {
+      for (const userLeadInfo of userInfo) {
         try {
           // Check if we need to refresh the token
           await this.ensureValidAccessToken();
           
-          // Search for leadInfo in Zoho
-          const zohoLead = await this.searchLeadInZoho(leadInfo.email);
-          
-          if (!zohoLead?.Email ) {
-            // If leadInfo not found, check call transcripts for contact info
-            const leadRes = await this.leadRepository.findOne({where:{id:leadInfo.leadId}});
+            // If userLeadInfo not found, check call transcripts for contact info
+            const leadRes = await this.leadRepository.findOne({where:{id:userLeadInfo.leadId}});
             
             if (leadRes) {
             
@@ -79,28 +177,20 @@ export class ZohoSyncService {
               if (!foundLead && leadRes.zohoPhoneNumber) {
                 foundLead = await this.searchLeadInZohoByPhone(leadRes.zohoPhoneNumber);
               }
+                // await this.retellAiService.makeCallLeadZoho(leadRes,this.configService.get<string>('FROM_PHONE_NUMBER'), false,true,this.configService.get<string>('AGENT_ID'));
               
-              if (foundLead) {
+              if (!foundLead?.Email ) {
+                const formSumbit=false
+                const linkClick=true
                 // Update our lead with Zoho data
-                await this.updateLeadWithZohoData(leadInfo, foundLead);
+                await this.retellAiService.makeCallLeadZoho(leadRes,this.configService.get<string>('FROM_PHONE_NUMBER'), formSumbit,linkClick,this.configService.get<string>('AGENT_ID'));
               }else {
-                if(leadRes.zohoEmail){
-                  await this.mailService.sendVerificationLink(leadRes);
-                }
-                else if (leadRes.zohoPhoneNumber){
-                  
-                   await this.smsService.sendVerificationSMS(leadRes);
-                }
-
-              }
-             
-            }
-          } else {
             // Update our lead with Zoho data
-            await this.updateLeadWithZohoData(leadInfo, zohoLead);
+            await this.updateLeadWithZohoData(userLeadInfo);
           }
+          }   
         } catch (error) {
-          this.logger.error(`Error processing lead ${leadInfo.id}: ${error.message}`);
+          this.logger.error(`Error processing lead ${userLeadInfo.id}: ${error.message}`);
           continue; // Continue with next lead even if one fails
         }
       }
@@ -137,6 +227,90 @@ export class ZohoSyncService {
     }
   }
 
+
+ async getZohoLead(lead: Lead): Promise<any> {
+  try {
+    await this.ensureValidAccessToken();
+    const response = await axios.get(`https://www.zohoapis.com/crm/v2/Leads/search?criteria=(Email:equals:${lead.zohoEmail})`, {
+      headers: {
+        Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+      },
+    });
+
+    console.log('Lead details:', response.data);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      this.logger.error(`Error fetching lead from Zoho CRM: ${JSON.stringify(error.response.data)}`);
+    } else {
+      this.logger.error(`Error fetching lead from Zoho CRM: ${error.message}`);
+    }
+    return null;  // Return null or handle error as per your logic
+  }
+}
+
+
+
+  async createZohoLead(leadData: Lead,status: string) {
+  try {
+    await this.ensureValidAccessToken();
+    const response = await axios.post('https://www.zohoapis.com/crm/v2/Leads', {
+      data: [
+        {
+          "First_Name": leadData.firstName,
+          "Last_Name": leadData.lastName,
+          "Email": leadData.zohoEmail,
+          "Phone": leadData?.zohoPhoneNumber??leadData.phone,
+          "Lead_Id": leadData.id,
+          "Lead_Status": status, // Default lead status for new leads
+        }
+      ]
+    }, {
+      headers: {
+        Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+      }
+    });
+
+    console.log('Lead created in Zoho CRM:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating lead in Zoho CRM:', error.message);
+  }
+}
+
+
+ async updateZohoLead(lead, leadData) {
+  try {
+    await this.ensureValidAccessToken();
+
+      const searchResponse = await axios.get(`https://www.zohoapis.com/crm/v2/Leads/search?criteria=(Email:equals:${lead.zohoEmail})`, {
+      headers: {
+        Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+      }
+    });
+
+     if (searchResponse.data.data && searchResponse.data.data.length > 0) {
+    const leadId = searchResponse.data.data[0].id; // Get the first matching lead
+
+      // Step 2: Update the lead with new data (PUT request)
+      const updateResponse = await axios.put(`https://www.zohoapis.com/crm/v2/Leads/${leadId}`, {
+        data: [
+          {
+           
+            "Lead_Status": leadData || 'Form Submitted', // Default to 'Form Submitted' if no status provided
+          }
+        ]
+      }, {
+        headers: {
+          Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+        }
+      });
+      console.log('Lead updated in Zoho CRM:', updateResponse.data);
+      return updateResponse.data;
+    }
+} catch (error) {
+    console.error('Error updating lead in Zoho CRM:', error.message);
+  }}
   private async searchLeadInZoho(email: string): Promise<any> {
     try {
       const response = await axios.get('https://www.zohoapis.com/crm/v2/Leads/search', {
@@ -248,7 +422,7 @@ export class ZohoSyncService {
     }
   }
 
-  private async updateLeadWithZohoData(userInfo: UserInfo, zohoLead: any): Promise<void> {
+  private async updateLeadWithZohoData(userInfo: UserInfo): Promise<void> {
     try {
       // Update local lead with Zoho data
       // userInfo.firstName = zohoLead.First_Name || userInfo.firstName;

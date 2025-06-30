@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { transcription } from 'src/constant';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
+import { ZohoSyncService } from 'src/leads/zoho-sync.service';
 
 @Injectable()
 export class RetellService {
@@ -32,7 +33,8 @@ export class RetellService {
     private mailService: MailService,
     private smsService: SmsService,
     private jwtService: JwtService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private zohosyncService: ZohoSyncService
   ) {
     this.openai = new ChatOpenAI({
       openAIApiKey: process.env.OPENAI_API_KEY,
@@ -292,7 +294,7 @@ export class RetellService {
 2. The contact information (email address and/or phone number)
 3. If scheduling is mentioned, extract the number of days for callback 
 4. Convert any specific time mentioned for callback into a 24-hour format (e.g., "6 PM" to "18:00")
-
+5. Resent link 
 Return ONLY a JSON object with these fields:
 - preferredMethod: "email", "phone", "both", "schedule", or "none"
 - contactInfo: {
@@ -301,7 +303,7 @@ Return ONLY a JSON object with these fields:
   }
 - scheduleDays: number of days for callback or null
 - specificTime: the specific time mentioned for callback in 24-hour format or null
-
+- resentLink: boolean
 Conversation:
 ${transcript}`
         }]
@@ -332,6 +334,17 @@ ${transcript}`
             throw new Error('Failed to parse response as JSON');
           }
         }
+        if(contactInfo.resentLink){
+    if(lead.zohoEmail){
+          await this.mailService.sendVerificationLink(lead);
+          this.logger.log(`Sent verification email to ${lead.zohoEmail}`);
+      }
+          if(lead.zohoPhoneNumber){
+          await this.smsService.sendVerificationSMS(lead);
+          this.logger.log(`Sent verification SMS to ${lead.zohoPhoneNumber}`);
+          }
+
+        }
 
         if (contactInfo.preferredMethod === 'schedule' && contactInfo.scheduleDays) {
           const scheduleDate = new Date();
@@ -348,6 +361,16 @@ ${transcript}`
           }
           // Store the scheduled callback date
           lead.scheduledCallbackDate = scheduleDate;
+        this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
+          if (zohoLead) {
+            zohoLead.scheduledCallbackDate = scheduleDate;
+            await this.zohosyncService.updateZohoLead(zohoLead, "Scheduled Callback Date");
+            this.logger.log(`Updated Zoho lead with scheduled callback date: ${scheduleDate.toISOString()}`);
+          } else {
+            this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
+            await this.zohosyncService.createZohoLead(lead, "Scheduled Callback Date");
+          }
+        });
           await this.leadRepository.save(lead);
           
           this.logger.log(`Scheduled callback for ${scheduleDate.toISOString()}`);
@@ -368,14 +391,36 @@ ${transcript}`
             await this.smsService.sendVerificationSMS(lead);
             this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
           }
-          
+          this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
+            if (zohoLead) {
+              zohoLead.zohoEmail = contactInfo.contactInfo.email;
+              zohoLead.zohoPhoneNumber = contactInfo.contactInfo.phone;
+              await this.zohosyncService.updateZohoLead(zohoLead, "Email and Phone Send Consultation Link");
+              this.logger.log(`Updated Zoho lead with email and phone: ${contactInfo.contactInfo.email}, ${contactInfo.contactInfo.phone}`);
+            } else {
+              this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
+              await this.zohosyncService.createZohoLead(lead,"Email and Phone Send Consultation Link");
+            }
+          });
+        
           await this.leadRepository.save(lead);
         }
         // Handle email only
         else if (contactInfo.preferredMethod === 'email') {
           lead.zohoEmail = contactInfo.contactInfo.email;
           await this.leadRepository.save(lead);
-          await this.mailService.sendVerificationLink(lead);
+         
+          this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
+            if (zohoLead) {
+              zohoLead.zohoEmail = contactInfo.contactInfo.email;
+              await this.zohosyncService.updateZohoLead(zohoLead, "Email Sent with Consultation Link");
+              this.logger.log(`Updated Zoho lead with email: ${contactInfo.contactInfo.email}`);
+            } else {
+              this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
+              await this.zohosyncService.createZohoLead(lead, "Email Sent with Consultation Link");
+            }
+          });
+           await this.mailService.sendVerificationLink(lead);
           this.logger.log(`Sent verification email to ${contactInfo.contactInfo.email}`);
         } 
         // Handle phone only
@@ -383,11 +428,33 @@ ${transcript}`
           lead.zohoPhoneNumber = contactInfo.contactInfo.phone;
           await this.leadRepository.save(lead);
           await this.smsService.sendVerificationSMS(lead);
+          this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
+            if (zohoLead) {
+              zohoLead.zohoPhoneNumber = contactInfo.contactInfo.phone;
+              await this.zohosyncService.updateZohoLead(zohoLead, "Phone Send Consultation Link");
+              this.logger.log(`Updated Zoho lead with phone: ${contactInfo.contactInfo.phone}`);
+            } else {
+              this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
+              await this.zohosyncService.createZohoLead(lead, "Phone Send Consultation Link");
+            }
+          });
           this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
         }
         else {
           lead.scheduledCallbackDate = this.getNextBusinessDay();
           await this.leadRepository.save(lead);   
+          this.logger.log(`No contact method specified, scheduled callback for next business day: ${lead.scheduledCallbackDate.toISOString()}`);
+          this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
+            if (zohoLead) {
+              zohoLead.scheduledCallbackDate = lead.scheduledCallbackDate;
+              await this.zohosyncService.updateZohoLead(zohoLead, "Scheduled Callback Date");
+              this.logger.log(`Updated Zoho lead with scheduled callback date: ${lead.scheduledCallbackDate.toISOString()}`);
+            }
+            else {
+              this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
+              await this.zohosyncService.createZohoLead(lead, "Scheduled Callback Date");
+            }
+          });
         }
 
       } catch (error) {

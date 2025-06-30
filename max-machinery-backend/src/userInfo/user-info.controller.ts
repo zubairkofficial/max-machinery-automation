@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Query, Put, Res } from '@nestjs/common';
+import { Controller, Get,  Body, Param, Patch,  Query, Put, Res } from '@nestjs/common';
 import { UserInfoService } from './user-info.service';
 import { CreateUserInfoDto } from './dto/create-user-info.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';

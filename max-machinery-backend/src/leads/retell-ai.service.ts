@@ -49,7 +49,7 @@ export class RetellAiService {
           to_number: cleanToNumber,
           override_agent_id: overrideAgentId,
          retell_llm_dynamic_variables: {
-      lead_name:lead.firstName,          // [Lead Name]
+     lead_name:`${lead.firstName}${lead.lastName}`,          // [Lead Name]
       follow_up_weeks: "2 weeks",             // [X weeks] — as string or number
       consultation_link: "https://machinerymax.com/schedule",  // [URL]
       contact_info: "contact@machinerymax.com | (555) 123-4567", // [contact info]
@@ -66,6 +66,59 @@ export class RetellAiService {
       );
      lead.status = 'CALLING';
       await this.leadRepository.save(lead);
+      this.logger.log(`Successfully initiated call from ${cleanFromNumber} to ${cleanToNumber}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to make RetellAI call: ${error.message}`, 
+        error.stack
+      );
+      
+      throw new HttpException(
+        `Failed to make call: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+  async makeCallLeadZoho(userLead:Lead, fromNumber: string,formNotSubmit: boolean,linkClick:boolean, overrideAgentId: string,): Promise<any> {
+    try {
+      if (!this.apiKey) {
+        throw new Error('RetellAI API key is not configured');
+      }
+
+      if (!userLead.phone) {
+        throw new Error('No phone number provided for the call');
+      }
+
+   
+      // Clean up phone numbers to ensure proper format
+      const cleanFromNumber = this.cleanPhoneNumber(fromNumber);
+      const cleanToNumber = this.cleanPhoneNumber(userLead.phone);
+
+      const response = await axios.post(
+        this.apiUrl,
+        {
+          from_number: cleanFromNumber,
+          to_number: cleanToNumber,
+          override_agent_id: overrideAgentId,
+         retell_llm_dynamic_variables: {
+      lead_name:`${userLead.firstName}${userLead.lastName}`,          // [Lead Name]
+     form_not_submit: !!formNotSubmit ? 'true' : 'false',
+  link_click: linkClick ? 'true' : 'false',     
+     
+    },
+    metadata:{lead_id: userLead.id}
+
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+     userLead.status = 'CALLING';
+      await this.leadRepository.save(userLead);
       this.logger.log(`Successfully initiated call from ${cleanFromNumber} to ${cleanToNumber}`);
       return response.data;
     } catch (error) {

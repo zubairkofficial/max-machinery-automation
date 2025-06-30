@@ -6,6 +6,7 @@ import { CreateUserInfoDto } from './dto/create-user-info.dto';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Lead } from '../leads/entities/lead.entity';
+import { ZohoSyncService } from 'src/leads/zoho-sync.service';
 
 @Injectable()
 export class UserInfoService {
@@ -18,6 +19,7 @@ export class UserInfoService {
     @InjectRepository(Lead)
     private readonly leadRepository: Repository<Lead>,
     private readonly jwtService: JwtService,
+    private readonly zohoSyncService: ZohoSyncService,
   ) {
     this.machineryMaxUrl = 'https://machinerymax.com/SellYourEquipment';
   }
@@ -38,6 +40,16 @@ export class UserInfoService {
 
      const getUserInfo = await this.userInfoRepository.findOne({where:{email:lead.zohoEmail}})
      if(getUserInfo){
+      this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
+        if (zohoLead) {
+          zohoLead.zohoEmail = lead.zohoEmail;
+          await this.zohoSyncService.updateZohoLead(zohoLead, "Zoho Crm link click again");
+          this.logger.log(`Updated Zoho lead with email: ${lead.zohoEmail}`);
+        } else {
+          this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
+          await this.zohoSyncService.createZohoLead(lead, "Zoho Crm link click again");
+        }
+      });
       return { redirectUrl: this.machineryMaxUrl };
      }
       // Create user info from lead data
@@ -50,7 +62,17 @@ export class UserInfoService {
         additionalDetails: '',
         contacted: false
       });
-
+this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
+        if (zohoLead) {
+          zohoLead.zohoEmail = userInfo.email;
+          zohoLead.zohoPhoneNumber = userInfo.phone;
+          await this.zohoSyncService.updateZohoLead(zohoLead, "Zoho crm consultation link click");
+          this.logger.log(`Updated Zoho lead with email: ${userInfo.email} and phone: ${userInfo.phone}`);
+        } else {
+          this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
+          await this.zohoSyncService.createZohoLead(lead, "Zoho crm consultation link click");
+        }
+      });
       // Save the user info
       await this.userInfoRepository.save(userInfo);
 

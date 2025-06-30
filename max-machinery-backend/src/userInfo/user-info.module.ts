@@ -6,10 +6,13 @@ import { UserInfoController } from './user-info.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { Lead } from '../leads/entities/lead.entity';
+import { ZohoSyncService } from 'src/leads/zoho-sync.service';
+import { CallTranscript } from 'src/retell/entities/call-transcript.entity';
+import { RetellAiService } from 'src/leads/retell-ai.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserInfo, Lead]),
+    TypeOrmModule.forFeature([UserInfo, Lead,CallTranscript]),
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -26,7 +29,7 @@ import { Lead } from '../leads/entities/lead.entity';
     }),
   ],
   controllers: [UserInfoController],
-  providers: [UserInfoService],
+  providers: [UserInfoService,ZohoSyncService,RetellAiService],
   exports: [UserInfoService],
 })
 export class UserInfoModule {} 

@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { CallHistory } from './call-history.entity';
 import { LastCall } from './last-call.entity';
+import { UserInfo } from 'src/userInfo/entities/user-info.entity';
 
 @Entity('leads')
 export class Lead {
@@ -93,7 +94,8 @@ export class Lead {
   @OneToOne(() => LastCall, lastCall => lastCall.lead)
   lastCallRecord: LastCall;
 
- 
+ @OneToOne(() => UserInfo, userInfo => userInfo.lead, { onDelete: 'CASCADE', })
+userInfo: UserInfo;
 
   @CreateDateColumn()
   createdAt: Date;
