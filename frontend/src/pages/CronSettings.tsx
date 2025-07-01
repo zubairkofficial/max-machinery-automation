@@ -110,7 +110,7 @@ const CronSettings: React.FC = () => {
             <div key={setting.jobName} className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{setting.jobName}</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white"> {setting.jobName.replace(/([a-z])([A-Z])/g, '$1 $2')}</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{setting.description}</p>
                 </div>
                 <div className="flex items-center space-x-4 mt-4 md:mt-0">
