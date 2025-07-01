@@ -3,6 +3,7 @@ import { retellService } from '../services/retellService';
 import { RetellLLMResponse } from '../types/retell';
 import { Save, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { FaSpinner } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 
 interface RetellLLMEditorProps {
   llmId: string;
@@ -91,10 +92,16 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
     try {
       setLoading(true);
       const mergedPrompt = `${masterPrompt}\n\n${reminderPrompt}\n\n${busyPrompt}`;
-      await retellService.updateRetellLLM(llmId, mergedPrompt);
-      setSuccess('Prompt updated successfully');
-      setError(null);
-      setTimeout(() => setSuccess(null), 3000);
+    const res=  await retellService.updateRetellLLM(llmId, mergedPrompt);
+    console.log("res",res) 
+    if(res.general_prompt){
+        toast.success("Prompt updated successfully", {
+        duration: 5000,
+        position: 'top-right'
+      });
+    // setSuccess('Prompt updated successfully');
+    }  setError(null);
+      // setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError('Failed to update prompt');
       console.error(err);
