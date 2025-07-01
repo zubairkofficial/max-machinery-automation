@@ -21,24 +21,21 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
   const reminderRef = useRef<HTMLTextAreaElement>(null);
   const busyRef = useRef<HTMLTextAreaElement>(null);
 
+  // Shared variables for dynamic placeholders
+  const commonVariables = [
+    'link_click',
+    'form_not_submit',
+    'lead_name', 
+    'contact_info', // Add more if needed
+  ];
+
+  const [showMasterVars, setShowMasterVars] = useState(false);
+  const [showReminderVars, setShowReminderVars] = useState(false);
+  const [showBusyVars, setShowBusyVars] = useState(false);
+
   useEffect(() => {
     fetchLLMData();
   }, [llmId]);
-
-  // Helper to parse prompt into sections
-  const parsePromptSections = (prompt: string) => {
-    // Section 1: Master Prompt (combine 1, 3, 4, 6)
-  const master = prompt.match(/1\. [^\n]*[\s\S]*?(?=---|2\.|$)/)?.[0] || '';
-
-console.log("identity",master)
-    // Section 2: Link Interaction Reminder Logic
-    const reminder = prompt.match(/2\. [^\n]*[\s\S]*?(?=---|3\.|$)/)?.[0] || '';
-
-    // Section 3: Handling BUSY Responses
-    const busy = prompt.match(/3\. Handling BUSY Responses[\s\S]*?(?=---|$)/)?.[0] || '';
-
-    return { master, reminder, busy };
-  };
 
   const fetchLLMData = async () => {
     try {
@@ -58,6 +55,34 @@ console.log("identity",master)
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const parsePromptSections = (prompt: string) => {
+    const master = prompt.match(/1\. [^\n]*[\s\S]*?(?=---|2\.|$)/)?.[0] || '';
+    const reminder = prompt.match(/2\. [^\n]*[\s\S]*?(?=---|3\.|$)/)?.[0] || '';
+    const busy = prompt.match(/3\. Handling BUSY Responses[\s\S]*?(?=---|$)/)?.[0] || '';
+    return { master, reminder, busy };
+  };
+
+  // Helper to insert variables at the cursor position in the textareas
+  const insertVariable = (
+    ref: React.RefObject<HTMLTextAreaElement>,
+    value: string,
+    setter: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    const textarea = ref.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const current = textarea.value;
+      const placeholder = `{{${value}}}`;
+      const newValue = current.substring(0, start) + placeholder + current.substring(end);
+      setter(newValue);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
+      }, 0);
     }
   };
 
@@ -108,6 +133,37 @@ console.log("identity",master)
           <label htmlFor="master-prompt-textarea" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             1. Master Prompt
           </label>
+          <div className="relative mb-2">
+            <button
+              type="button"
+              onClick={() => setShowMasterVars((v) => !v)}
+              className="flex items-center px-3 py-1 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+            >
+              <span className="mr-1">Show Variables</span>
+            </button>
+            {showMasterVars && (
+              <div className="variables-dropdown absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 min-w-[200px]">
+                <div className="p-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Click to insert:</p>
+                  <div className="grid grid-cols-1 gap-1">
+                    {commonVariables.map((variable) => (
+                      <button
+                        key={variable}
+                        type="button"
+                        onClick={() => {
+                          insertVariable(masterRef, variable, setMasterPrompt);
+                          setShowMasterVars(false);
+                        }}
+                        className="text-left px-2 py-1 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                      >
+                        {`{{${variable}}}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <textarea
             id="master-prompt-textarea"
             ref={masterRef}
@@ -123,6 +179,37 @@ console.log("identity",master)
           <label htmlFor="reminder-prompt-textarea" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             2. Link Interaction Reminder
           </label>
+          <div className="relative mb-2">
+            <button
+              type="button"
+              onClick={() => setShowReminderVars((v) => !v)}
+              className="flex items-center px-3 py-1 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+            >
+              <span className="mr-1">Show Variables</span>
+            </button>
+            {showReminderVars && (
+              <div className="variables-dropdown absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 min-w-[200px]">
+                <div className="p-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Click to insert:</p>
+                  <div className="grid grid-cols-1 gap-1">
+                    {commonVariables.map((variable) => (
+                      <button
+                        key={variable}
+                        type="button"
+                        onClick={() => {
+                          insertVariable(reminderRef, variable, setReminderPrompt);
+                          setShowReminderVars(false);
+                        }}
+                        className="text-left px-2 py-1 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                      >
+                        {`{{${variable}}}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <textarea
             id="reminder-prompt-textarea"
             ref={reminderRef}
@@ -138,6 +225,37 @@ console.log("identity",master)
           <label htmlFor="busy-prompt-textarea" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             3. Handling BUSY Responses
           </label>
+          <div className="relative mb-2">
+            <button
+              type="button"
+              onClick={() => setShowBusyVars((v) => !v)}
+              className="flex items-center px-3 py-1 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+            >
+              <span className="mr-1">Show Variables</span>
+            </button>
+            {showBusyVars && (
+              <div className="variables-dropdown absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 min-w-[200px]">
+                <div className="p-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Click to insert:</p>
+                  <div className="grid grid-cols-1 gap-1">
+                    {commonVariables.map((variable) => (
+                      <button
+                        key={variable}
+                        type="button"
+                        onClick={() => {
+                          insertVariable(busyRef, variable, setBusyPrompt);
+                          setShowBusyVars(false);
+                        }}
+                        className="text-left px-2 py-1 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                      >
+                        {`{{${variable}}}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <textarea
             id="busy-prompt-textarea"
             ref={busyRef}
@@ -147,22 +265,6 @@ console.log("identity",master)
             placeholder="Enter busy/interrupt handling prompt..."
           />
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg flex items-center space-x-2">
-            <AlertCircle className="w-5 h-5" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Success Message */}
-        {success && (
-          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg flex items-center space-x-2">
-            <CheckCircle2 className="w-5 h-5" />
-            <span>{success}</span>
-          </div>
-        )}
 
         {/* Save Button */}
         <div className="flex justify-end">
