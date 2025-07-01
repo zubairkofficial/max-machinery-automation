@@ -133,7 +133,7 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
           <label htmlFor="master-prompt-textarea" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             1. Master Prompt
           </label>
-          <div className="relative mb-2">
+          <div className="relative my-2 float-end">
             <button
               type="button"
               onClick={() => setShowMasterVars((v) => !v)}
@@ -179,7 +179,7 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
           <label htmlFor="reminder-prompt-textarea" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             2. Link Interaction Reminder
           </label>
-          <div className="relative mb-2">
+          <div className="relative my-2 float-end">
             <button
               type="button"
               onClick={() => setShowReminderVars((v) => !v)}
@@ -225,7 +225,7 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
           <label htmlFor="busy-prompt-textarea" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             3. Handling BUSY Responses
           </label>
-          <div className="relative mb-2">
+          <div className="relative my-2  float-end">
             <button
               type="button"
               onClick={() => setShowBusyVars((v) => !v)}
