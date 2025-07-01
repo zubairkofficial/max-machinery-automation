@@ -12,10 +12,11 @@ import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { ConfigService } from '@nestjs/config';
 import { UserInfo } from 'src/userInfo/entities/user-info.entity';
-import { MailService } from 'src/mail/mail.service';
-import { SmsService } from 'src/sms/sms.service';
-import { RetellService } from 'src/retell/retell.service';
+// import { MailService } from 'src/mail/mail.service';
+// import { SmsService } from 'src/sms/sms.service';
+// import { RetellService } from 'src/retell/retell.service';
 import { RetellAiService } from './retell-ai.service';
+import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 
 @Injectable()
 export class ZohoSyncService {
@@ -33,6 +34,7 @@ export class ZohoSyncService {
     private readonly callTranscriptRepository: Repository<CallTranscript>,
     private readonly configService: ConfigService,
     private readonly retellAiService:RetellAiService,
+    // private readonly cronSettingService:CronSettingsService,
   ) {
     this.openai = new ChatOpenAI({
       openAIApiKey: this.configService.get('OPENAI_API_KEY'),
@@ -112,11 +114,13 @@ export class ZohoSyncService {
   //     this.logger.error(`Error in Zoho sync: ${error.message}`);
   //   }
   // }
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_MINUTE)
   async zohoLinkNoCall() {
     try {
       this.logger.log('Starting Zoho CRM sync');
-
+// const callReminder= await this.cronSettingService.getByName("ReminderCall")
+const now=new Date()
+// if(callReminder.startTime==now){
       const leads = await this.leadRepository
   .createQueryBuilder('lead')
   .leftJoinAndSelect('lead.userInfo', 'userInfo') // Left join with userInfo
@@ -194,11 +198,13 @@ for(const lead of leads) {
           continue; // Continue with next lead even if one fails
         }
       }
-      
+    
       this.logger.log('Completed Zoho CRM sync');
+// }
     } catch (error) {
       this.logger.error(`Error in Zoho sync: ${error.message}`);
     }
+    
   }
 
   private async ensureValidAccessToken(): Promise<void> {

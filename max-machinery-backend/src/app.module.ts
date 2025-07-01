@@ -17,6 +17,7 @@ import { UserInfoModule } from './userInfo/user-info.module';
 import jwtConfig from './config/jwt.config';
 import { MessageTemplatesModule } from './message-templates/message-templates.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { CronSettingsModule } from './cron-settings/cron-settings.module';
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ScheduleModule.forRoot(),
     UserInfoModule,
     MessageTemplatesModule,
-    DashboardModule
+    DashboardModule,
+    CronSettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

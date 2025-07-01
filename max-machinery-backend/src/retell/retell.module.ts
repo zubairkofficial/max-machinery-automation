@@ -13,10 +13,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { SmsService } from 'src/sms/sms.service';
 import { MessageTemplate } from 'src/message-templates/entities/message-template.entity';
 import { MessageTemplatesService } from 'src/message-templates/message-templates.service';
+import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
+import { CronSetting } from 'src/cron-settings/entities/cron-setting.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CallHistory, Lead, CallTranscript, LastCall,MessageTemplate]),
+    TypeOrmModule.forFeature([CallHistory, Lead, CallTranscript, LastCall,MessageTemplate,CronSetting]),
     forwardRef(() => LeadsModule),
     ConfigModule,
     JwtModule.register({
@@ -25,7 +27,7 @@ import { MessageTemplatesService } from 'src/message-templates/message-templates
     }),
   ],
   controllers: [RetellController],
-  providers: [RetellService,MailService,SmsService,MessageTemplatesService],
+  providers: [RetellService,MailService,SmsService,MessageTemplatesService,CronSettingsService],
   exports: [RetellService],
 })
 export class RetellModule {}

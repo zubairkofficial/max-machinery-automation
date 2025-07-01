@@ -21,6 +21,7 @@ import CallDashboard from './components/CallDashboard';
 import FormPage from './pages/FormPage';
 import InitialContactForm from './components/leads/InitialContactForm';
 import RetellLLMPage from "./pages/RetellLLMPage";
+import CronSettings from './pages/CronSettings';
 
 // Import or create route placeholders (these components can be implemented later)
 // const PriorityLeads = () => <LeadsManagement currentTab="priority" />;
@@ -80,16 +81,17 @@ function App() {
                             <Route path="/leads/new" element={<AddNewLead />} />
                             <Route path="/leads/search" element={<LeadSearch />} /> */}
                             
-                            <Route path="/apollo-settings" element={<ApolloSettings />} />
+                            {/* <Route path="/apollo-settings" element={<ApolloSettings />} /> */}
                             {/* <Route path="/calls" element={<CallCenter />} /> */}
-                            <Route path="/calls/batch" element={<BatchCallPage />} />
-                            <Route path="/follow-ups" element={<FollowUps />} />
-                            <Route path="/analytics" element={<Analytics />} />
-                            <Route path="/settings" element={<Settings />} />
+                            <Route path="/calls/batch" element={<ProtectedRoute><BatchCallPage /></ProtectedRoute>} />
+                            {/* <Route path="/follow-ups" element={<FollowUps />} /> */}
+                            {/* <Route path="/analytics" element={<Analytics />} /> */}
+                            {/* <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} /> */}
                             <Route path="/calls" element={<CallDashboard />} />
                             <Route path="/calls/dashboard" element={<CallDashboard />} />
-                            <Route path="/templates" element={<MessageTemplates />} />
+                            <Route path="/templates" element={<ProtectedRoute><MessageTemplates /></ProtectedRoute>} />
                             <Route path="/retell-llm" element={<RetellLLMPage />} />
+                            <Route path="/cron-settings" element={<CronSettings />} />
                             <Route path="*" element={<Navigate to="/" replace />} />
                           </Routes>
                         </main>

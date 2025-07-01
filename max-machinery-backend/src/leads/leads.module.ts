@@ -36,6 +36,7 @@ import { UserInfo } from 'src/userInfo/entities/user-info.entity';
       CallTranscript,
       UserInfo
     ]),
+    
     forwardRef(() => RetellModule),
     ApolloModule,
     MailModule,
@@ -50,6 +51,6 @@ import { UserInfo } from 'src/userInfo/entities/user-info.entity';
     RetellAiService,
     ZohoSyncService
   ],
-  exports: [LeadsService,  RetellAiService, ZohoSyncService]
+  exports: [LeadsService,  RetellAiService, ZohoSyncService, ScheduledCallsService]
 })
 export class LeadsModule {} 

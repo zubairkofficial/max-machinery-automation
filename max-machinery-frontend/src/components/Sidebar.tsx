@@ -3,12 +3,14 @@ import {
   Home, 
   Users, 
   Phone, 
- 
   X, 
   PhoneCall,
-
   ChevronDown,
-  FileText
+  FileText,
+  Sliders,
+  BarChart2,
+  Settings,
+  Clock
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { FaRobot } from "react-icons/fa"
@@ -262,11 +264,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           </div>
           
           {/* Data & Settings Section */}
-          {/* <div className="space-y-1">
+          <div className="space-y-1">
             <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Data & Settings
             </p>
-            <NavLink
+            {/* <NavLink
               to="/apollo-settings"
               className={({ isActive }) =>
                 `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -276,8 +278,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             >
               <Sliders className="w-5 h-5 mr-3" />
               <span>Apollo Settings</span>
-            </NavLink>
-            <NavLink
+            </NavLink> */}
+            {/* <NavLink
               to="/analytics"
               className={({ isActive }) =>
                 `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -287,8 +289,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             >
               <BarChart2 className="w-5 h-5 mr-3" />
               <span>Analytics</span>
-            </NavLink>
+            </NavLink> */}
             <NavLink
+              to="/cron-settings"
+              className={({ isActive }) =>
+                `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
+                  isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
+                }`
+              }
+            >
+              <Clock className="w-5 h-5 mr-3" />
+              <span>Job Scheduler</span>
+            </NavLink>
+            {/* <NavLink
               to="/settings"
               className={({ isActive }) =>
                 `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -298,8 +311,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             >
               <Settings className="w-5 h-5 mr-3" />
               <span>Settings</span>
-            </NavLink>
-          </div> */}
+            </NavLink> */}
+          </div>
         </nav>
         
         {/* Application Version */}

@@ -56,7 +56,7 @@ export class ScheduledCallsService {
     return this.scheduledCallRepository.save(scheduledCalls);
   }
 
-    @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_MINUTE)
   async handleIndivitualScheduledCall() {
     try {
     

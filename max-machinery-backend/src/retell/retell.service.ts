@@ -15,6 +15,7 @@ import { transcription } from 'src/constant';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { ZohoSyncService } from 'src/leads/zoho-sync.service';
+import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 
 @Injectable()
 export class RetellService {
@@ -34,7 +35,8 @@ export class RetellService {
     private smsService: SmsService,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private zohosyncService: ZohoSyncService
+    private zohosyncService: ZohoSyncService,
+    private cronSettingService: CronSettingsService
   ) {
     this.openai = new ChatOpenAI({
       openAIApiKey: process.env.OPENAI_API_KEY,
@@ -252,6 +254,11 @@ export class RetellService {
     return tomorrow;
   }
 
+  private async getNextScheduleDay():Promise<Date> {
+    const cronSetting=   await this.cronSettingService.getByName("RescheduleCall")
+      console.log("cronSetting",cronSetting)
+       return cronSetting.startTime??this.getNextBusinessDay();
+     }
   /**
    * Process transcript for email or phone information
    */
@@ -264,7 +271,7 @@ export class RetellService {
 
       if (!call.transcript) {
         this.logger.warn(`No transcript found for call ${call.call_id}`);
-       lead.scheduledCallbackDate = this.getNextBusinessDay();
+       lead.scheduledCallbackDate =await this.getNextScheduleDay();
           await this.leadRepository.save(lead);  
         return;
       }
@@ -441,7 +448,7 @@ ${transcript}`
           this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
         }
         else {
-          lead.scheduledCallbackDate = this.getNextBusinessDay();
+          lead.scheduledCallbackDate =await this.getNextScheduleDay();
           await this.leadRepository.save(lead);   
           this.logger.log(`No contact method specified, scheduled callback for next business day: ${lead.scheduledCallbackDate.toISOString()}`);
           this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
@@ -512,6 +519,7 @@ ${transcript}`
           'Content-Type': 'application/json',
         },
       });
+      const generalPrompt=response.data.general_prompt  
       return response.data;
     } catch (error) {
       this.logger.error(`Error getting Retell LLM: ${error.message}`);
