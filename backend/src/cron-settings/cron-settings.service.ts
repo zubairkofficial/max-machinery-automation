@@ -5,7 +5,6 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { CronSetting } from './entities/cron-setting.entity';
 import { UpdateCronSettingDto } from './dto/update-cron-setting.dto';
-import { ZohoSyncService } from '../leads/zoho-sync.service';
 import { ScheduledCallsService } from '../leads/scheduled-calls.service';
 
 @Injectable()
@@ -16,7 +15,6 @@ export class CronSettingsService implements OnModuleInit {
     @InjectRepository(CronSetting)
     private cronSettingsRepository: Repository<CronSetting>,
     private schedulerRegistry: SchedulerRegistry,
-    private readonly zohoSyncService: ZohoSyncService,
     private readonly scheduledCallsService: ScheduledCallsService,
   ) {}
 
@@ -66,10 +64,10 @@ export class CronSettingsService implements OnModuleInit {
 
     switch (name) {
       case 'zohoSync':
-        jobCallback = () => this.zohoSyncService.zohoLinkNoCall();
+        jobCallback = () => this.logger.warn('ZohoSync job is disabled - service was removed');
         break;
       case 'individualScheduledCalls':
-        jobCallback = () => this.scheduledCallsService.handleIndivitualScheduledCall();
+        jobCallback = () => this.scheduledCallsService.handleIndivitualReScheduledCall();
         break;
       case 'batchScheduledCalls':
         jobCallback = () => this.scheduledCallsService.handleScheduledCalls();

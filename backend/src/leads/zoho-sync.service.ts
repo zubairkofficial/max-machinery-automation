@@ -12,9 +12,6 @@ import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { ConfigService } from '@nestjs/config';
 import { UserInfo } from 'src/userInfo/entities/user-info.entity';
-// import { MailService } from 'src/mail/mail.service';
-// import { SmsService } from 'src/sms/sms.service';
-// import { RetellService } from 'src/retell/retell.service';
 import { RetellAiService } from './retell-ai.service';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 
@@ -34,7 +31,7 @@ export class ZohoSyncService {
     private readonly callTranscriptRepository: Repository<CallTranscript>,
     private readonly configService: ConfigService,
     private readonly retellAiService:RetellAiService,
-    // private readonly cronSettingService:CronSettingsService,
+    private readonly cronSettingService:CronSettingsService,
   ) {
     this.openai = new ChatOpenAI({
       openAIApiKey: this.configService.get('OPENAI_API_KEY'),
@@ -44,83 +41,20 @@ export class ZohoSyncService {
     
   }
 
-  // @Cron(CronExpression.EVERY_30_MINUTES)
-  // async syncLeadsWithZoho() {
-  //   try {
-  //     this.logger.log('Starting Zoho CRM sync');
-      
-  //     // Get all leads that need to be checked
-  //     const userInfo = await this.userInfoRepository.find({
-  //       where: [
-  //         { email: Not(IsNull()) },
-  //         { email: Not('') },
-  //         { contacted: false }
-  //       ],
-  //       select: ['id', 'email', 'contacted','leadId'], // Only select fields we need      
-  //     });
-
-  //     for (const leadInfo of userInfo) {
-  //       try {
-  //         // Check if we need to refresh the token
-  //         await this.ensureValidAccessToken();
-          
-  //         // Search for leadInfo in Zoho
-  //         const zohoLead = await this.searchLeadInZoho(leadInfo.email);
-          
-  //         if (!zohoLead?.Email ) {
-  //           // If leadInfo not found, check call transcripts for contact info
-  //           const leadRes = await this.leadRepository.findOne({where:{id:leadInfo.leadId}});
-            
-  //           if (leadRes) {
-            
-  //             // Try searching Zoho again with the new contact info
-  //             let foundLead = null;
-              
-  //             if (leadRes.zohoEmail) {
-  //               foundLead = await this.searchLeadInZoho(leadRes.zohoEmail);
-  //             }
-              
-  //             if (!foundLead && leadRes.zohoPhoneNumber) {
-  //               foundLead = await this.searchLeadInZohoByPhone(leadRes.zohoPhoneNumber);
-  //             }
-              
-  //             if (foundLead) {
-  //               // Update our lead with Zoho data
-  //               await this.updateLeadWithZohoData(leadInfo);
-  //             }else {
-  //               if(leadRes.zohoEmail){
-  //                 await this.mailService.sendVerificationLink(leadRes);
-  //               }
-  //               else if (leadRes.zohoPhoneNumber){
-                  
-  //                  await this.smsService.sendVerificationSMS(leadRes);
-  //               }
-
-  //             }
-             
-  //           }
-  //         } else {
-  //           // Update our lead with Zoho data
-  //           await this.updateLeadWithZohoData(leadInfo);
-  //         }
-  //       } catch (error) {
-  //         this.logger.error(`Error processing lead ${leadInfo.id}: ${error.message}`);
-  //         continue; // Continue with next lead even if one fails
-  //       }
-  //     }
-      
-  //     this.logger.log('Completed Zoho CRM sync');
-  //   } catch (error) {
-  //     this.logger.error(`Error in Zoho sync: ${error.message}`);
-  //   }
-  // }
+  
   @Cron(CronExpression.EVERY_MINUTE)
   async zohoLinkNoCall() {
     try {
       this.logger.log('Starting Zoho CRM sync');
-// const callReminder= await this.cronSettingService.getByName("ReminderCall")
-const now=new Date()
-// if(callReminder.startTime==now){
+   const callReminder = await this.cronSettingService.getByName("ReminderCall");
+    const now = new Date();
+    const callReminderStartTime = callReminder.startTime;
+
+    // Create a 60-second window around the scheduled time
+    const windowStart = new Date(callReminderStartTime.getTime() - 30000); // 30 seconds before
+    const windowEnd = new Date(callReminderStartTime.getTime() + 30000); // 30 seconds after
+
+    if (now >= windowStart && now <= windowEnd) {
       const leads = await this.leadRepository
   .createQueryBuilder('lead')
   .leftJoinAndSelect('lead.userInfo', 'userInfo') // Left join with userInfo
@@ -200,7 +134,9 @@ for(const lead of leads) {
       }
     
       this.logger.log('Completed Zoho CRM sync');
-// }
+} else {
+  console.log('The times do not match');
+}
     } catch (error) {
       this.logger.error(`Error in Zoho sync: ${error.message}`);
     }

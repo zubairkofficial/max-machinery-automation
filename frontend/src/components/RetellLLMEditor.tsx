@@ -1,19 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { retellService } from '../services/retellService';
-import { RetellLLMResponse } from '../types/retell';
 import { Save, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import retellService from '@/services/retell-service';
+
+interface RetellLLMResponse {
+  llm_id: string;
+  masterPrompt: string;
+  reminderPrompt: string;
+  busyPrompt: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface RetellLLMEditorProps {
   llmId: string;
 }
 
 const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
-  const [llmConfig, setLlmConfig] = useState<RetellLLMResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [masterPrompt, setMasterPrompt] = useState('');
   const [reminderPrompt, setReminderPrompt] = useState('');
   const [busyPrompt, setBusyPrompt] = useState('');
@@ -22,12 +28,11 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
   const reminderRef = useRef<HTMLTextAreaElement>(null);
   const busyRef = useRef<HTMLTextAreaElement>(null);
 
-  // Shared variables for dynamic placeholders
   const commonVariables = [
     'link_click',
     'form_not_submit',
     'lead_name', 
-    'contact_info', // Add more if needed
+    'contact_info',
   ];
 
   const [showMasterVars, setShowMasterVars] = useState(false);
@@ -42,15 +47,11 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
     try {
       setLoading(true);
       const data = await retellService.getRetellLLM(llmId);
-      setLlmConfig(data);
+      
+      setMasterPrompt(data.masterPrompt || '');
+      setReminderPrompt(data.reminderPrompt || '');
+      setBusyPrompt(data.busyPrompt || '');
       setError(null);
-      // Parse and set each section
-      if (data && data.general_prompt) {
-        const sections = parsePromptSections(data.general_prompt);
-        setMasterPrompt(sections.master);
-        setReminderPrompt(sections.reminder);
-        setBusyPrompt(sections.busy);
-      }
     } catch (err) {
       setError('Failed to fetch LLM data');
       console.error(err);
@@ -59,14 +60,6 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
     }
   };
 
-  const parsePromptSections = (prompt: string) => {
-    const master = prompt.match(/1\. [^\n]*[\s\S]*?(?=---|2\.|$)/)?.[0] || '';
-    const reminder = prompt.match(/2\. [^\n]*[\s\S]*?(?=---|3\.|$)/)?.[0] || '';
-    const busy = prompt.match(/3\. Handling BUSY Responses[\s\S]*?(?=---|$)/)?.[0] || '';
-    return { master, reminder, busy };
-  };
-
-  // Helper to insert variables at the cursor position in the textareas
   const insertVariable = (
     ref: React.RefObject<HTMLTextAreaElement>,
     value: string,
@@ -88,20 +81,24 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
   };
 
   const handleUpdate = async () => {
-    if (!llmConfig) return;
     try {
       setLoading(true);
-      const mergedPrompt = `${masterPrompt}\n\n${reminderPrompt}\n\n${busyPrompt}`;
-    const res=  await retellService.updateRetellLLM(llmId, mergedPrompt);
-    console.log("res",res) 
-    if(res.general_prompt){
+      
+      const promptData = {
+        masterPrompt,
+        reminderPrompt,
+        busyPrompt
+      };
+      
+      const res = await retellService.updateRetellLLM(llmId, promptData);
+      console.log("res",res)
+      if (res) {
         toast.success("Prompt updated successfully", {
-        duration: 5000,
-        position: 'top-right'
-      });
-    // setSuccess('Prompt updated successfully');
-    }  setError(null);
-      // setTimeout(() => setSuccess(null), 3000);
+          duration: 5000,
+          position: 'top-right'
+        });
+        setError(null);
+      }
     } catch (err) {
       setError('Failed to update prompt');
       console.error(err);
@@ -110,21 +107,21 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
     }
   };
 
-  if (loading && !llmConfig) {
+  if (loading && !masterPrompt) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <FaSpinner className="animate-spin h-8 w-8 text-indigo-600 mb-4" />
-        <p className="text-gray-700 dark:text-gray-300">Loading leads data...</p>
+        <p className="text-gray-700 dark:text-gray-300">Loading LLM data...</p>
       </div>
     );
   }
 
-  if (!llmConfig) {
+  if (error) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-red-500 flex items-center space-x-2">
           <AlertCircle className="w-5 h-5" />
-          <span>Failed to load LLM configuration</span>
+          <span>{error}</span>
         </div>
       </div>
     );
@@ -184,7 +181,7 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
         {/* Reminder Prompt Section */}
         <div className="mb-6">
           <label htmlFor="reminder-prompt-textarea" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            2. Link Interaction Reminder
+            2. Reminder Prompt
           </label>
           <div className="relative my-2 float-end">
             <button
@@ -230,7 +227,7 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
         {/* Busy Prompt Section */}
         <div className="mb-6">
           <label htmlFor="busy-prompt-textarea" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            3. Handling BUSY Responses
+            3. Rescheduled Prompt
           </label>
           <div className="relative my-2  float-end">
             <button

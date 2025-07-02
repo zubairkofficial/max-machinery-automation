@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpException, HttpStatus, Get, Logger, Param } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, Get, Logger, Param, Put } from '@nestjs/common';
 import { RetellService } from './retell.service';
 
 @Controller('retell')
@@ -76,10 +76,10 @@ export class RetellController {
     }
   }
 
-  @Post('llm/:llmId/update')
+  @Put('llm/:llmId/update')
   async updateRetellLLM(
     @Param('llmId') llmId: string,
-    @Body() data: { prompt: string }
+    @Body() data: { prompt }
   ) {
     try {
       return await this.retellService.updateRetellLLM(llmId, data.prompt);

@@ -39,6 +39,7 @@ import { CronSettingsModule } from './cron-settings/cron-settings.module';
     MessageTemplatesModule,
     DashboardModule,
     CronSettingsModule,
+ 
   ],
   controllers: [AppController],
   providers: [AppService],

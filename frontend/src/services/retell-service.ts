@@ -78,6 +78,27 @@ export const retellService = {
       throw error;
     }
   },
+   async getRetellLLM(llmId: string) {
+    try {
+      const response = await apiClient.get(`/retell/llm/${llmId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting Retell LLM:', error);
+      throw error;
+    }
+  },
+
+  async updateRetellLLM(llmId: string, prompt: { masterPrompt: string; reminderPrompt: string; busyPrompt: string; }) {
+    try {
+      const response = await apiClient.put(`/retell/llm/${llmId}/update`, {
+        prompt,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating Retell LLM:', error);
+      throw error;
+    }
+  },
 
   getCallHistory: async (leadId: string): Promise<RetellCall[]> => {
     try {
@@ -88,6 +109,8 @@ export const retellService = {
       throw new Error('Failed to fetch call history');
     }
   }
+
+  
 };
 
 // Also export as default for components that want to import it that way

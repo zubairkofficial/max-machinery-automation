@@ -9,11 +9,13 @@ import { Lead } from '../leads/entities/lead.entity';
 import { ZohoSyncService } from 'src/leads/zoho-sync.service';
 import { CallTranscript } from 'src/retell/entities/call-transcript.entity';
 import { RetellAiService } from 'src/leads/retell-ai.service';
+import { CronSettingsModule } from 'src/cron-settings/cron-settings.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserInfo, Lead,CallTranscript]),
     ConfigModule,
+    CronSettingsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {

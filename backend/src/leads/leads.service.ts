@@ -11,11 +11,12 @@ import { UpdateLeadDto } from './dto/update-lead.dto';
 import { In } from 'typeorm';
 import { RetellAiService } from './retell-ai.service';
 import { ScheduleCallsDto } from './dto/schedule-calls.dto';
-import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { CallDashboardFilterDto } from './leads.controller';
 import { ScheduledCallsService } from './scheduled-calls.service';
 import { OnEvent } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
+import { RetellService } from 'src/retell/retell.service';
 
 @Injectable()
 export class LeadsService {
@@ -35,6 +36,7 @@ export class LeadsService {
     @Inject(forwardRef(() => ScheduledCallsService))
     private scheduledCallsService: ScheduledCallsService,
     private readonly configService: ConfigService,
+    private readonly retellService: RetellService,
   ) {
     this.retellApiKey = this.configService.get<string>('RETELL_AI_API_KEY');
   }
@@ -192,6 +194,9 @@ export class LeadsService {
       where: { id },
       
     });
+  }
+  async getByRetellId(id: string) {
+    return this.retellService.getRetellLLM(id);
   }
 
   async create(createLeadDto: CreateLeadDto): Promise<Lead> {

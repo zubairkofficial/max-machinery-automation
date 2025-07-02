@@ -57,7 +57,7 @@ export class ScheduledCallsService {
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
-  async handleIndivitualScheduledCall() {
+  async handleIndivitualReScheduledCall() {
     try {
     
       // Find all pending calls that are within their time window
@@ -72,6 +72,7 @@ export class ScheduledCallsService {
             this.configService.get<string>('FROM_PHONE_NUMBER'),
             scheduledCallLead.phone,
             scheduledCallLead.id,
+            "rescheduled",
             this.configService.get<string>('AGENT_ID'),
           );
           
@@ -130,6 +131,7 @@ export class ScheduledCallsService {
             this.configService.get<string>('FROM_PHONE_NUMBER'),
            lead.phone,
             lead.id,
+            "scheduled",
             this.configService.get<string>('AGENT_ID'),
           );
           await this.leadsService.updateLeadCallHistory(lead.id, {

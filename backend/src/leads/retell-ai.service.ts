@@ -1,20 +1,24 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { LeadsService } from './leads.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Lead } from './entities/lead.entity';
+import { LeadsService } from './leads.service';
 
 @Injectable()
 export class RetellAiService {
   private readonly logger = new Logger(RetellAiService.name);
   private readonly apiUrl = 'https://api.retellai.com/v2/create-phone-call';
+  private readonly retellBaseUrl = 'https://api.retellai.com';
+
   private readonly apiKey: string;
-// private leadsService: LeadsService;
+private leadsService: LeadsService;
   constructor(private configService: ConfigService,
     @InjectRepository(Lead)
     private readonly leadRepository: Repository<Lead>,
+
+    // private readonly retellService: RetellService,
   ) {
     this.apiKey = this.configService.get<string>('RETELL_AI_API_KEY');
     
@@ -26,72 +30,94 @@ export class RetellAiService {
   /**
    * Makes a phone call using RetellAI API
    */
-  async makeCall(fromNumber: string, toNumber: string,id:string, overrideAgentId?: string): Promise<any> {
+private async updateRetellLLM(overrideAgentId: string, promptType: 'master' | 'reminder' | 'busy'): Promise<void> {
+    const retell = await this.leadsService.getByRetellId(overrideAgentId);
+    let prompt = '';
+
+    switch (promptType) {
+      case 'master':
+        prompt = retell.masterPrompt;
+        break;
+      case 'reminder':
+        prompt = retell.reminderPrompt;
+        break;
+      case 'busy':
+        prompt = retell.busyPrompt;
+        break;
+    }
+
     try {
-      if (!this.apiKey) {
-        throw new Error('RetellAI API key is not configured');
-      }
+      await axios.patch(
+        `${this.retellBaseUrl}/update-retell-llm/${overrideAgentId}`,
+        { general_prompt: prompt },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    } catch (error) {
+      throw new HttpException(`Failed to update Retell LLM: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 
-      if (!toNumber) {
-        throw new Error('No phone number provided for the call');
-      }
+  // Call making method with error handling
+  public async makeCall(fromNumber: string, toNumber: string, id: string, type: string, overrideAgentId?: string): Promise<any> {
+    try {
+      if (!this.apiKey) throw new Error('RetellAI API key is not configured');
+      if (!toNumber) throw new Error('No phone number provided for the call');
 
-    const lead = await this.leadRepository.findOne({where:{id}});
+      const lead = await this.leadRepository.findOne({ where: { id } });
+      if (!lead) throw new Error('Lead not found');
 
-      // Clean up phone numbers to ensure proper format
       const cleanFromNumber = this.cleanPhoneNumber(fromNumber);
       const cleanToNumber = this.cleanPhoneNumber(toNumber);
 
+      // Choose the prompt type based on the call type
+      const promptType: 'master' | 'reminder' | 'busy' = type === 'rescheduled' ? 'busy' : 'master';
+      await this.updateRetellLLM(overrideAgentId, promptType);
+
+      // Make the call via RetellAI API
       const response = await axios.post(
         this.apiUrl,
         {
           from_number: cleanFromNumber,
           to_number: cleanToNumber,
           override_agent_id: overrideAgentId,
-         retell_llm_dynamic_variables: {
-     lead_name:`${lead.firstName}${lead.lastName}`,          // [Lead Name]
-      follow_up_weeks: "2 weeks",             // [X weeks] — as string or number
-      consultation_link: "https://machinerymax.com/schedule",  // [URL]
-      contact_info: "contact@machinerymax.com | (555) 123-4567", // [contact info]
-    },
-    metadata:{lead_id: lead.id}
-
+          retell_llm_dynamic_variables: {
+            lead_name: `${lead.firstName}${lead.lastName}`,
+            follow_up_weeks: "2 weeks",
+            consultation_link: "https://machinerymax.com/schedule",
+            contact_info: "contact@machinerymax.com | (555) 123-4567",
+          },
+          metadata: { lead_id: lead.id },
         },
         {
           headers: {
             'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         }
       );
-     lead.status = 'CALLING';
+
+      // Update lead status
+      lead.status = 'CALLING';
       await this.leadRepository.save(lead);
-      this.logger.log(`Successfully initiated call from ${cleanFromNumber} to ${cleanToNumber}`);
       return response.data;
     } catch (error) {
-      this.logger.error(
-        `Failed to make RetellAI call: ${error.message}`, 
-        error.stack
-      );
-      
-      throw new HttpException(
-        `Failed to make call: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      throw new HttpException(`Failed to make call: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-  async makeCallLeadZoho(userLead:Lead, fromNumber: string,formNotSubmit: boolean,linkClick:boolean, overrideAgentId: string,): Promise<any> {
+
+  // Lead call reminder handling method
+  public async makeCallLeadZoho(userLead: any, fromNumber: string, formNotSubmit: boolean, linkClick: boolean, overrideAgentId: string): Promise<any> {
     try {
-      if (!this.apiKey) {
-        throw new Error('RetellAI API key is not configured');
-      }
+      if (!this.apiKey) throw new Error('RetellAI API key is not configured');
+      if (!userLead.phone) throw new Error('No phone number provided for the call');
 
-      if (!userLead.phone) {
-        throw new Error('No phone number provided for the call');
-      }
+      await this.updateRetellLLM(overrideAgentId, 'reminder');  // Use 'reminder' prompt for this case
 
-   
-      // Clean up phone numbers to ensure proper format
       const cleanFromNumber = this.cleanPhoneNumber(fromNumber);
       const cleanToNumber = this.cleanPhoneNumber(userLead.phone);
 
@@ -101,36 +127,27 @@ export class RetellAiService {
           from_number: cleanFromNumber,
           to_number: cleanToNumber,
           override_agent_id: overrideAgentId,
-         retell_llm_dynamic_variables: {
-      lead_name:`${userLead.firstName}${userLead.lastName}`,          // [Lead Name]
-     form_not_submit: !!formNotSubmit ? 'true' : 'false',
-  link_click: linkClick ? 'true' : 'false',     
-     
-    },
-    metadata:{lead_id: userLead.id}
-
+          retell_llm_dynamic_variables: {
+            lead_name: `${userLead.firstName}${userLead.lastName}`,
+            form_not_submit: formNotSubmit ? 'true' : 'false',
+            link_click: linkClick ? 'true' : 'false',
+          },
+          metadata: { lead_id: userLead.id },
         },
         {
           headers: {
             'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         }
       );
-     userLead.status = 'CALLING';
+
+      // Update lead status
+      userLead.status = 'CALLING';
       await this.leadRepository.save(userLead);
-      this.logger.log(`Successfully initiated call from ${cleanFromNumber} to ${cleanToNumber}`);
       return response.data;
     } catch (error) {
-      this.logger.error(
-        `Failed to make RetellAI call: ${error.message}`, 
-        error.stack
-      );
-      
-      throw new HttpException(
-        `Failed to make call: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      throw new HttpException(`Failed to make lead Zoho call: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

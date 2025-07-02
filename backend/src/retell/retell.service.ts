@@ -14,8 +14,8 @@ import { JwtService } from '@nestjs/jwt';
 import { transcription } from 'src/constant';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
-import { ZohoSyncService } from 'src/leads/zoho-sync.service';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
+import { Retell } from './entities/retell.entity';
 
 @Injectable()
 export class RetellService {
@@ -35,8 +35,9 @@ export class RetellService {
     private smsService: SmsService,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private zohosyncService: ZohoSyncService,
-    private cronSettingService: CronSettingsService
+    private cronSettingService: CronSettingsService,
+   @InjectRepository(Retell)
+private retellRepository: Repository<Retell>
   ) {
     this.openai = new ChatOpenAI({
       openAIApiKey: process.env.OPENAI_API_KEY,
@@ -368,16 +369,8 @@ ${transcript}`
           }
           // Store the scheduled callback date
           lead.scheduledCallbackDate = scheduleDate;
-        this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
-          if (zohoLead) {
-            zohoLead.scheduledCallbackDate = scheduleDate;
-            await this.zohosyncService.updateZohoLead(zohoLead, "Scheduled Callback Date");
-            this.logger.log(`Updated Zoho lead with scheduled callback date: ${scheduleDate.toISOString()}`);
-          } else {
-            this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
-            await this.zohosyncService.createZohoLead(lead, "Scheduled Callback Date");
-          }
-        });
+        // ZohoSyncService was removed - logging instead
+        this.logger.log(`Scheduled callback for ${scheduleDate.toISOString()} - Zoho sync disabled`);
           await this.leadRepository.save(lead);
           
           this.logger.log(`Scheduled callback for ${scheduleDate.toISOString()}`);
@@ -398,17 +391,8 @@ ${transcript}`
             await this.smsService.sendVerificationSMS(lead);
             this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
           }
-          this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
-            if (zohoLead) {
-              zohoLead.zohoEmail = contactInfo.contactInfo.email;
-              zohoLead.zohoPhoneNumber = contactInfo.contactInfo.phone;
-              await this.zohosyncService.updateZohoLead(zohoLead, "Email and Phone Send Consultation Link");
-              this.logger.log(`Updated Zoho lead with email and phone: ${contactInfo.contactInfo.email}, ${contactInfo.contactInfo.phone}`);
-            } else {
-              this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
-              await this.zohosyncService.createZohoLead(lead,"Email and Phone Send Consultation Link");
-            }
-          });
+          // ZohoSyncService was removed - logging instead
+          this.logger.log(`Contact info updated - email: ${contactInfo.contactInfo.email}, phone: ${contactInfo.contactInfo.phone} - Zoho sync disabled`);
         
           await this.leadRepository.save(lead);
         }
@@ -417,16 +401,8 @@ ${transcript}`
           lead.zohoEmail = contactInfo.contactInfo.email;
           await this.leadRepository.save(lead);
          
-          this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
-            if (zohoLead) {
-              zohoLead.zohoEmail = contactInfo.contactInfo.email;
-              await this.zohosyncService.updateZohoLead(zohoLead, "Email Sent with Consultation Link");
-              this.logger.log(`Updated Zoho lead with email: ${contactInfo.contactInfo.email}`);
-            } else {
-              this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
-              await this.zohosyncService.createZohoLead(lead, "Email Sent with Consultation Link");
-            }
-          });
+          // ZohoSyncService was removed - logging instead
+          this.logger.log(`Email contact info updated: ${contactInfo.contactInfo.email} - Zoho sync disabled`);
            await this.mailService.sendVerificationLink(lead);
           this.logger.log(`Sent verification email to ${contactInfo.contactInfo.email}`);
         } 
@@ -435,33 +411,16 @@ ${transcript}`
           lead.zohoPhoneNumber = contactInfo.contactInfo.phone;
           await this.leadRepository.save(lead);
           await this.smsService.sendVerificationSMS(lead);
-          this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
-            if (zohoLead) {
-              zohoLead.zohoPhoneNumber = contactInfo.contactInfo.phone;
-              await this.zohosyncService.updateZohoLead(zohoLead, "Phone Send Consultation Link");
-              this.logger.log(`Updated Zoho lead with phone: ${contactInfo.contactInfo.phone}`);
-            } else {
-              this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
-              await this.zohosyncService.createZohoLead(lead, "Phone Send Consultation Link");
-            }
-          });
+          // ZohoSyncService was removed - logging instead
+          this.logger.log(`Phone contact info updated: ${contactInfo.contactInfo.phone} - Zoho sync disabled`);
           this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
         }
         else {
           lead.scheduledCallbackDate =await this.getNextScheduleDay();
           await this.leadRepository.save(lead);   
           this.logger.log(`No contact method specified, scheduled callback for next business day: ${lead.scheduledCallbackDate.toISOString()}`);
-          this.zohosyncService.getZohoLead(lead).then(async (zohoLead) => {
-            if (zohoLead) {
-              zohoLead.scheduledCallbackDate = lead.scheduledCallbackDate;
-              await this.zohosyncService.updateZohoLead(zohoLead, "Scheduled Callback Date");
-              this.logger.log(`Updated Zoho lead with scheduled callback date: ${lead.scheduledCallbackDate.toISOString()}`);
-            }
-            else {
-              this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
-              await this.zohosyncService.createZohoLead(lead, "Scheduled Callback Date");
-            }
-          });
+          // ZohoSyncService was removed - logging instead
+          this.logger.log(`Scheduled callback for next business day: ${lead.scheduledCallbackDate.toISOString()} - Zoho sync disabled`);
         }
 
       } catch (error) {
@@ -513,14 +472,15 @@ ${transcript}`
 
   async getRetellLLM(llmId: string) {
     try {
-      const response = await axios.get(`${this.retellBaseUrl}/get-retell-llm/${llmId}`, {
-        headers: {
-          'Authorization': `Bearer ${this.retellApiKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const generalPrompt=response.data.general_prompt  
-      return response.data;
+ return this.retellRepository.findOne({where:{llm_id:llmId}})
+      // const response = await axios.get(`${this.retellBaseUrl}/get-retell-llm/${llmId}`, {
+      //   headers: {
+      //     'Authorization': `Bearer ${this.retellApiKey}`,
+      //     'Content-Type': 'application/json',
+      //   },
+      // });
+      // const generalPrompt=response.data.general_prompt  
+      // return response.data;
     } catch (error) {
       this.logger.error(`Error getting Retell LLM: ${error.message}`);
       throw new HttpException(
@@ -529,20 +489,34 @@ ${transcript}`
       );
     }
   }
+  // async getCronSetting(name: string) {
+  //   try {
+  //    return this.cronSettingService.getByName(name)
+  //   } catch (error) {
+  //     this.logger.error(`Error getting Cron Setting LLM: ${error.message}`);
+  //     throw new HttpException(
+  //       `Failed to get Cron Setting: ${error.message}`,
+  //       HttpStatus.INTERNAL_SERVER_ERROR
+  //     );
+  //   }
+  // }
 
-  async updateRetellLLM(llmId: string, prompt: string) {
+  async updateRetellLLM(llmId: string, prompt: any) {
     try {
-      const response = await axios.patch(
-        `${this.retellBaseUrl}/update-retell-llm/${llmId}`,
-        { general_prompt:prompt },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.retellApiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      return response.data;
+     const retell = await this.retellRepository.findOne({where:{llm_id:llmId}})
+    if(retell){
+      retell.masterPrompt = prompt.masterPrompt || '';
+      retell.reminderPrompt = prompt.reminderPrompt || '';
+      retell.busyPrompt = prompt.busyPrompt || '';
+     return  this.retellRepository.save(retell)
+    }else{
+      const newRetell = new Retell()
+      newRetell.masterPrompt = prompt.masterPrompt || '';
+      newRetell.reminderPrompt = prompt.reminderPrompt || '';
+      newRetell.busyPrompt = prompt.busyPrompt || '';
+      newRetell.llm_id = llmId;
+      return this.retellRepository.save(newRetell)
+    }
     } catch (error) {
       this.logger.error(`Error updating Retell LLM: ${error.message}`);
       throw new HttpException(
