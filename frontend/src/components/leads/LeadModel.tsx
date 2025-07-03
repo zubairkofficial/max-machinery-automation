@@ -31,10 +31,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
       setIsAddingLead(true);
       const createDto = {
         firstName: newLead.firstName,
-        lastName: newLead.lastName,
+        lastName: "lead",
         phone: newLead.phone,
-        company: newLead.company,
-        jobTitle: newLead.jobTitle,
+        // company: newLead.company,
+        // jobTitle: newLead.jobTitle,
         status: 'new',
         contacted: false,
         source: 'manual'
@@ -86,7 +86,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                First Name *
+                 Name *
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -102,7 +102,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
               </div>
             </div>
             
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Last Name
               </label>
@@ -119,7 +119,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                 />
               </div>
             </div>
-            
+             */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Phone Number *
@@ -138,7 +138,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
               </div>
             </div>
             
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Company
               </label>
@@ -172,7 +172,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                   placeholder="CEO"
                 />
               </div>
-            </div>
+            </div> */}
           </div>
           
           <div className="mt-6 flex justify-end space-x-3">
