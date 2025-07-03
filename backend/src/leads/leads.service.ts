@@ -797,6 +797,7 @@ export class LeadsService {
           callParams.toNumber,
           // this.configService.get<string>('TO_PHONE_NUMBER'),
           id,
+          "master",
           callParams.override_agent_id,
           
         );
