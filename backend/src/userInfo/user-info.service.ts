@@ -57,7 +57,7 @@ export class UserInfoService {
         firstName: lead.firstName || '',
         lastName: lead.lastName || '',
         email: lead.zohoEmail || decoded.email,
-        phone: lead.phone || '',
+        phone: lead.zohoPhoneNumber  || '',
         leadId: lead.id,
         additionalDetails: '',
         contacted: false

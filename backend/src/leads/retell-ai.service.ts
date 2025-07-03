@@ -141,12 +141,12 @@ if (lead.lastCallRecord) {
   public async makeCallLeadZoho(userLead: any, fromNumber: string, formNotSubmit: boolean, linkClick: boolean, overrideAgentId: string): Promise<any> {
     try {
       if (!this.apiKey) throw new Error('RetellAI API key is not configured');
-      if (!userLead.phone) throw new Error('No phone number provided for the call');
+      if (!userLead.zohoPhoneNumber) throw new Error('No phone number provided for the call');
 
       await this.updateRetellLLM(this.llmId, 'reminder');  // Use 'reminder' prompt for this case
 
       const cleanFromNumber = this.cleanPhoneNumber(fromNumber);
-      const cleanToNumber = this.cleanPhoneNumber(userLead.phone);
+      const cleanToNumber = this.cleanPhoneNumber(userLead.zohoPhoneNumber);
 
       const response = await axios.post(
         this.apiUrl,
