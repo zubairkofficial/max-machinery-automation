@@ -53,7 +53,7 @@ export class ZohoSyncService {
     // Create a 60-second window around the scheduled time
     const windowStart = new Date(callReminderStartTime.getTime() - 30000); // 30 seconds before
     const windowEnd = new Date(callReminderStartTime.getTime() + 30000); // 30 seconds after
-
+ console.log('The times do not match',now,windowStart);
     if (now >= windowStart && now <= windowEnd) {
       const leads = await this.leadRepository
   .createQueryBuilder('lead')
