@@ -286,8 +286,8 @@ private retellRepository: Repository<Retell>
       }
 
       const transcript =
-       transcription;
-      //  call.transcript;
+      //  transcription;
+       call.transcript;
 
       // Create structured messages for the chat
       const messages = [
