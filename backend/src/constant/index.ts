@@ -154,14 +154,12 @@
 // User: (inaudible speech)
 // `
 
-export const transcription = `Agent: Hi, this is Alex from MachineryMax. May I speak to GregCamp?
-User: Yes.
-Agent: Great! Hi GregCamp, I see you’ve clicked the consultation link but haven’t completed the form. Would you like me to assist you with that?
-Agent: Hi GregCamp, I noticed you haven’t clicked the consultation link yet. Would you like me to resend it to you?
-User: Yes.
-User: (inaudible speech)
-Agent: Thank you! I’ll resend the consultation link to you.In the meantime, we help businesses like yours sell surplus machinery quickly. Are you currently looking to sell any unused equipment?
+export const transcription = `Agent: Hi, this is Alex from MachineryMax. May I speak to [John Connolly]?
+Agent: I understand you're busy! How many days and what time should we call you back?
+User: Five, please.
+Agent: Just to confirm, how about we call you back in five days? What time would work best for you?
+Agent: Just checking in! How about we call you back in five days? What time would work best for you?
+User: Nine PM.
+Agent: Perfect, we’ll call you back in five days at 9 PM. Thank you!
 User: Okay. Bye.
-Agent: No worries. Feel free to reach out anytime at machinerymax.com. Thank you and take care!
-Agent: Hi GregCamp, I noticed you haven’t clicked the consultation link yet. Would you like me to resend it to you?
-`
+Agent: Thank you for your time! We'll `

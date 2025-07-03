@@ -4,7 +4,6 @@ import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ScheduledCall } from './entities/scheduled-call.entity';
 import { RetellAiService } from './retell-ai.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LeadsService } from './leads.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -17,8 +16,7 @@ export class ScheduledCallsService {
     private scheduledCallRepository: Repository<ScheduledCall>,
     private readonly configService: ConfigService,
     private retellAiService: RetellAiService,
-    private eventEmitter: EventEmitter2,
-    @Inject(forwardRef(() => LeadsService))
+   @Inject(forwardRef(() => LeadsService))
     private leadsService: LeadsService,
   ) {}
 
@@ -127,6 +125,7 @@ export class ScheduledCallsService {
             this.logger.log(`End time passed for scheduledCall ${scheduledCall.id}, stopping calls.`);
             break;
           }
+          if(lead.phone){
           const callResult = await this.retellAiService.makeCall(
             this.configService.get<string>('FROM_PHONE_NUMBER'),
            lead.phone,
@@ -145,7 +144,7 @@ export class ScheduledCallsService {
 
          await this.scheduledCallRepository.softRemove(scheduledCall);
     
-          // Add a small delay between calls to avoid rate limiting
+       }   // Add a small delay between calls to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
           this.logger.error(

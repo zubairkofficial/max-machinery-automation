@@ -13,7 +13,7 @@ export interface RetellTool {
 }
 
 export interface RetellLLMResponse {
-  llm_id: string;
+  agentId: string;
   version: number;
   model: string;
   model_temperature: number;

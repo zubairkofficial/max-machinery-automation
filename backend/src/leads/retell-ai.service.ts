@@ -1,4 +1,4 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus, forwardRef, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,8 +14,10 @@ export class RetellAiService {
   private readonly retellBaseUrl = 'https://api.retellai.com';
 
   private readonly apiKey: string;
-private leadsService: LeadsService;
+  private readonly llmId: string;
   constructor(private configService: ConfigService,
+  @Inject(forwardRef(() => LeadsService)) // ✅ Use forwardRef
+    private leadsService: LeadsService,
     @InjectRepository(Lead)
     private readonly leadRepository: Repository<Lead>,
      @InjectRepository(LastCall) // ✅ Decorator for LastCall
@@ -23,6 +25,7 @@ private leadsService: LeadsService;
     // private readonly retellService: RetellService,
   ) {
     this.apiKey = this.configService.get<string>('RETELL_AI_API_KEY');
+    this.llmId = this.configService.get<string>('LLM_ID')|| "llm_bec730a8baacffdb13ec0cc522a4";
     
     if (!this.apiKey) {
       this.logger.warn('RETELL_AI_API_KEY is not set in environment variables');
@@ -32,8 +35,8 @@ private leadsService: LeadsService;
   /**
    * Makes a phone call using RetellAI API
    */
-private async updateRetellLLM(overrideAgentId: string, promptType: 'master' | 'reminder' | 'busy',lastCallTranscription?:string): Promise<void> {
-    const retell = await this.leadsService.getByRetellId(overrideAgentId);
+private async updateRetellLLM(llmId: string, promptType: 'master' | 'reminder' | 'busy',lastCallTranscription?:string): Promise<void> {
+    const retell = await this.leadsService.getByRetellId(llmId);
     let prompt = '';
 
     switch (promptType) {
@@ -50,7 +53,7 @@ private async updateRetellLLM(overrideAgentId: string, promptType: 'master' | 'r
 
     try {
       await axios.patch(
-        `${this.retellBaseUrl}/update-retell-llm/${overrideAgentId}`,
+        `${this.retellBaseUrl}/update-retell-llm/${llmId}`,
         { general_prompt: prompt },
         {
           headers: {
@@ -97,7 +100,7 @@ private async updateRetellLLM(overrideAgentId: string, promptType: 'master' | 'r
     }
       // Choose the prompt type based on the call type
       const promptType: 'master' | 'reminder' | 'busy' = type === 'rescheduled' ? 'busy' : 'master';
-      await this.updateRetellLLM(overrideAgentId, promptType,lastCallTranscription);
+      await this.updateRetellLLM(this.llmId, promptType,lastCallTranscription);
 
       // Make the call via RetellAI API
       const response = await axios.post(
@@ -137,7 +140,7 @@ private async updateRetellLLM(overrideAgentId: string, promptType: 'master' | 'r
       if (!this.apiKey) throw new Error('RetellAI API key is not configured');
       if (!userLead.phone) throw new Error('No phone number provided for the call');
 
-      await this.updateRetellLLM(overrideAgentId, 'reminder');  // Use 'reminder' prompt for this case
+      await this.updateRetellLLM(this.llmId, 'reminder');  // Use 'reminder' prompt for this case
 
       const cleanFromNumber = this.cleanPhoneNumber(fromNumber);
       const cleanToNumber = this.cleanPhoneNumber(userLead.phone);
