@@ -29,11 +29,11 @@ export class CronSettingsService implements OnModuleInit {
     if (settings.length === 0) {
         this.logger.log('No cron settings found. Seeding with default values.');
         const defaultSettings = [
-          { 
-              jobName: 'zohoCrmSync',  
-              description: 'Synchronizes data with Zoho CRM to ensure up-to-date information.', 
-              isEnabled: true 
-          },
+          // { 
+          //     jobName: 'zohoCrmSync',  
+          //     description: 'Synchronizes data with Zoho CRM to ensure up-to-date information.', 
+          //     isEnabled: true 
+          // },
           { 
               jobName: 'RescheduleCall',  
               description: 'Reschedules calls for users who did not pick up during the initial attempt.', 

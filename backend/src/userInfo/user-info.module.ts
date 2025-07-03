@@ -10,12 +10,15 @@ import { ZohoSyncService } from 'src/leads/zoho-sync.service';
 import { CallTranscript } from 'src/retell/entities/call-transcript.entity';
 import { RetellAiService } from 'src/leads/retell-ai.service';
 import { CronSettingsModule } from 'src/cron-settings/cron-settings.module';
+import { LeadsModule } from 'src/leads/leads.module';
+import { LastCall } from 'src/leads/entities/last-call.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserInfo, Lead,CallTranscript]),
+    TypeOrmModule.forFeature([UserInfo, Lead,CallTranscript,LastCall]),
     ConfigModule,
     CronSettingsModule,
+    LeadsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {

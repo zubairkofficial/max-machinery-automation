@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Lead } from './entities/lead.entity';
 import { LeadsService } from './leads.service';
+import { LastCall } from './entities/last-call.entity';
 
 @Injectable()
 export class RetellAiService {
@@ -17,7 +18,8 @@ private leadsService: LeadsService;
   constructor(private configService: ConfigService,
     @InjectRepository(Lead)
     private readonly leadRepository: Repository<Lead>,
-
+     @InjectRepository(LastCall) // ✅ Decorator for LastCall
+    private readonly lastCallRepository: Repository<LastCall>,
     // private readonly retellService: RetellService,
   ) {
     this.apiKey = this.configService.get<string>('RETELL_AI_API_KEY');
@@ -30,7 +32,7 @@ private leadsService: LeadsService;
   /**
    * Makes a phone call using RetellAI API
    */
-private async updateRetellLLM(overrideAgentId: string, promptType: 'master' | 'reminder' | 'busy'): Promise<void> {
+private async updateRetellLLM(overrideAgentId: string, promptType: 'master' | 'reminder' | 'busy',lastCallTranscription?:string): Promise<void> {
     const retell = await this.leadsService.getByRetellId(overrideAgentId);
     let prompt = '';
 
@@ -42,7 +44,7 @@ private async updateRetellLLM(overrideAgentId: string, promptType: 'master' | 'r
         prompt = retell.reminderPrompt;
         break;
       case 'busy':
-        prompt = retell.busyPrompt;
+        prompt = `${retell.busyPrompt}\n\nPrevious Call Transcription:\n${lastCallTranscription}`;
         break;
     }
 
@@ -74,9 +76,28 @@ private async updateRetellLLM(overrideAgentId: string, promptType: 'master' | 'r
       const cleanFromNumber = this.cleanPhoneNumber(fromNumber);
       const cleanToNumber = this.cleanPhoneNumber(toNumber);
 
+       let lastCallTranscription = '';
+    if (lead.lastCallRecord) {
+      const lastCall = await this.lastCallRepository.findOne({ where: { id: lead.lastCallRecord.id } });
+      if (lastCall) {
+         const call = await axios.get(
+        `${this.retellBaseUrl}/get-call/${lastCall.callId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      if (!call.data.transcript) {
+      return null;
+    }
+         lastCallTranscription = call.data.transcript || ''; // Assuming `transcription` is a field in `LastCall`
+      }
+    }
       // Choose the prompt type based on the call type
       const promptType: 'master' | 'reminder' | 'busy' = type === 'rescheduled' ? 'busy' : 'master';
-      await this.updateRetellLLM(overrideAgentId, promptType);
+      await this.updateRetellLLM(overrideAgentId, promptType,lastCallTranscription);
 
       // Make the call via RetellAI API
       const response = await axios.post(
