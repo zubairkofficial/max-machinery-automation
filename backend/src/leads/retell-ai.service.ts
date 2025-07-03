@@ -73,31 +73,34 @@ private async updateRetellLLM(llmId: string, promptType: 'master' | 'reminder' |
       if (!this.apiKey) throw new Error('RetellAI API key is not configured');
       if (!toNumber) throw new Error('No phone number provided for the call');
 
-      const lead = await this.leadRepository.findOne({ where: { id } });
-      if (!lead) throw new Error('Lead not found');
+     const lead = await this.leadRepository.findOne({ 
+  where: { id },
+  relations: ['lastCallRecord'] // ✅ Add this to load the relationship
+});
 
       const cleanFromNumber = this.cleanPhoneNumber(fromNumber);
       const cleanToNumber = this.cleanPhoneNumber(toNumber);
 
-       let lastCallTranscription = '';
-    if (lead.lastCallRecord) {
-      const lastCall = await this.lastCallRepository.findOne({ where: { id: lead.lastCallRecord.id } });
-      if (lastCall) {
-         const call = await axios.get(
-        `${this.retellBaseUrl}/get-call/${lastCall.callId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
-          }
+   let lastCallTranscription = '';
+if (lead.lastCallRecord) {
+  try {
+    const call = await axios.get(
+      `${this.retellBaseUrl}/v2/get-call/${lead.lastCallRecord.callId}`, // ✅ Use callId directly
+      {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
         }
-      );
-      if (!call.data.transcript) {
-      return null;
-    }
-         lastCallTranscription = call.data.transcript || ''; // Assuming `transcription` is a field in `LastCall`
       }
+    );
+    
+    if (call.data.transcript) {
+      lastCallTranscription = call.data.transcript;
     }
+  } catch (error) {
+    this.logger.error(`Error fetching call transcript: ${error.message}`);
+  }
+}
       // Choose the prompt type based on the call type
       const promptType: 'master' | 'reminder' | 'busy' = type === 'rescheduled' ? 'busy' : 'master';
       await this.updateRetellLLM(this.llmId, promptType,lastCallTranscription);

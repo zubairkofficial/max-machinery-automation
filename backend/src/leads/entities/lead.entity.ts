@@ -91,7 +91,10 @@ export class Lead {
   @OneToMany(() => CallHistory, callHistory => callHistory.lead)
   callHistoryRecords: CallHistory[];
 
-  @OneToOne(() => LastCall, lastCall => lastCall.lead)
+   @OneToOne(() => LastCall, lastCall => lastCall.lead, {
+    cascade: true, // ✅ Optional: auto-save related entities
+    eager: true    // ✅ Load automatically with lead
+  })
   lastCallRecord: LastCall;
 
  @OneToOne(() => UserInfo, userInfo => userInfo.lead, { onDelete: 'CASCADE', })

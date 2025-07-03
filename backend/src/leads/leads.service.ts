@@ -530,7 +530,10 @@ export class LeadsService {
       await this.callHistoryRepository.save(callHistory);
 
       // Update or create last call record
-      let lastCall = await this.lastCallRepository.findOne({ where: { lead_id: leadId } });
+     let lastCall = await this.lastCallRepository.findOne({ 
+  where: { lead_id: leadId },
+  order: { timestamp: 'DESC' } // Get the most recent call
+});
       
       if (!lastCall) {
         lastCall = this.lastCallRepository.create({
