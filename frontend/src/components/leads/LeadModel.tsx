@@ -31,7 +31,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
       setIsAddingLead(true);
       const createDto = {
         firstName: newLead.firstName,
-        lastName: "lead",
+        // lastName: "lead",
         phone: newLead.phone,
         // company: newLead.company,
         // jobTitle: newLead.jobTitle,
