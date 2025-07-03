@@ -357,7 +357,7 @@ export class LeadsService {
           // Add a summary of this lead to the search history
           searchHistory[syncDate].leads.push({
             id: lead.id,
-            name: `${lead.firstName} ${lead.lastName}`,
+            name: `${lead.firstName}`,
             email: lead.email,
             company: lead.company,
             jobTitle: lead.jobTitle,

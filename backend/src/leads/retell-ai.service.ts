@@ -113,7 +113,7 @@ if (lead.lastCallRecord) {
           to_number: cleanToNumber,
           override_agent_id: overrideAgentId,
           retell_llm_dynamic_variables: {
-            lead_name: `${lead.firstName}${lead.lastName}`,
+            lead_name: `${lead.firstName}`,
             follow_up_weeks: "2 weeks",
             consultation_link: "https://machinerymax.com/schedule",
             contact_info: "contact@machinerymax.com | (555) 123-4567",
@@ -155,7 +155,7 @@ if (lead.lastCallRecord) {
           to_number: cleanToNumber,
           override_agent_id: overrideAgentId,
           retell_llm_dynamic_variables: {
-            lead_name: `${userLead.firstName}${userLead.lastName}`,
+            lead_name: `${userLead.firstName}`,
             form_not_submit: formNotSubmit ? 'true' : 'false',
             link_click: linkClick ? 'true' : 'false',
           },
