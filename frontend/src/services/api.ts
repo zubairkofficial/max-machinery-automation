@@ -183,6 +183,10 @@ export const leadsApi = {
     const response = await apiClient.patch(`/leads/${id}`, data);
     return response.data;
   },
+  createLead: async ( data: Partial<Lead>): Promise<Lead> => {
+    const response = await apiClient.post(`/leads`, data);
+    return response.data;
+  },
 
   updateMachineryInfo: async (id: string, data: Partial<Lead>): Promise<Lead> => {
     const response = await apiClient.patch(`/leads/${id}/machinery-info`, data);

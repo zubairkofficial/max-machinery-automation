@@ -12,6 +12,7 @@ import {
   FaSort,
 } from 'react-icons/fa';
 import Pagination from '../components/common/Pagination';
+import AddLeadModal from '@/components/leads/LeadModel';
 
 // Add the props interface
 interface LeadsManagementProps {
@@ -62,6 +63,8 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
   const [filterVisible, setFilterVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('newest');
+    const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
+
   const [filters, setFilters] = useState({
     status: 'all',
     industry: 'all',
@@ -240,6 +243,11 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     setPage(1); // Reset to first page when changing page size
   };
 
+    const handleLeadAdded = (newLead: Lead) => {
+    // Optionally refetch or update your leads list here
+    queryClient.invalidateQueries(['leads']);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg mb-6 overflow-hidden">
@@ -252,6 +260,16 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Manage and track all your leads from Apollo.io
               </p>
+            </div>
+              <div className="mt-4 flex md:mt-0 md:ml-4 space-x-2">
+              {/* ...existing buttons... */}
+              <button
+                type="button"
+                onClick={() => setIsAddLeadModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                + Create Lead
+              </button>
             </div>
             <div className="mt-4 flex md:mt-0 md:ml-4 space-x-2">
               <button
@@ -463,7 +481,11 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
           )}
         </div>
       </div>
-
+ <AddLeadModal 
+        isOpen={isAddLeadModalOpen}
+        onClose={() => setIsAddLeadModalOpen(false)}
+        onLeadAdded={handleLeadAdded}
+      />
       <LeadDetailModal
         lead={selectedLead}
         isOpen={isModalOpen}
