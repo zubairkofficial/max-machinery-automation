@@ -14,6 +14,7 @@ import { LeadsService } from './leads.service';
 import { ScheduledCallsService } from './scheduled-calls.service';
 import { CallDataMigrationService } from './call-data-migration.service';
 import { RetellAiService } from './retell-ai.service';
+import { ZohoSyncService } from './zoho-sync.service';
 
 // Controllers
 import { LeadsController } from './leads.controller';
@@ -27,6 +28,7 @@ import { CronSettingsModule } from '../cron-settings/cron-settings.module';
 import { UserInfo } from 'src/userInfo/entities/user-info.entity';
 import { Retell } from 'src/retell/entities/retell.entity';
 import { ConfigModule } from '@nestjs/config';
+import { UserInfoModule } from 'src/userInfo/user-info.module';
 
 @Module({
   imports: [
@@ -34,30 +36,36 @@ import { ConfigModule } from '@nestjs/config';
       Lead, 
       CallHistory, 
       LastCall, 
-      ScheduledCall, // Make sure this is included
+      ScheduledCall,
       CallTranscript,
       UserInfo,
       Retell
     ]),
     forwardRef(() => RetellModule),
     forwardRef(() => CronSettingsModule),
+    forwardRef(() => UserInfoModule),
     ApolloModule,
     MailModule,
     SmsModule,
     EventEmitterModule.forRoot(),
-    ConfigModule.forRoot(), // Add this if ConfigService is needed
+    ConfigModule.forRoot(),
   ],
   controllers: [LeadsController],
   providers: [
     LeadsService,
     ScheduledCallsService,
     CallDataMigrationService,
-    RetellAiService,
+    {
+      provide: RetellAiService,
+      useClass: RetellAiService,
+    },
+    ZohoSyncService,
   ],
   exports: [
     LeadsService,
     RetellAiService,
-    ScheduledCallsService
+    ScheduledCallsService,
+    ZohoSyncService,
   ]
 })
 export class LeadsModule {}

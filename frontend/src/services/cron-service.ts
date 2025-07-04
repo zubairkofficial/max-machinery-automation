@@ -1,14 +1,15 @@
-import axios from 'axios';
+import { apiClient } from './api';
+import { JobName } from '../types/job-name.enum';
 
 export interface CronSetting {
   id: string;
-  jobName: string;
-  description: string | null;
+  jobName: JobName;
+  description: string;
   isEnabled: boolean;
-  createdAt: string;
-  updatedAt: string;
-  startTime?: string | null;
-  endTime?: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface UpdateCronSettingDto {
@@ -16,41 +17,20 @@ export interface UpdateCronSettingDto {
   startTime?: string;
   endTime?: string;
 }
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add request interceptor for auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 class CronService {
   async getCronSettings(): Promise<CronSetting[]> {
-    const response = await apiClient.get('/cron-settings');
+    const response = await apiClient.get<CronSetting[]>('/cron-settings');
     return response.data;
   }
 
-  async updateCronSetting(jobName: string, data: UpdateCronSettingDto): Promise<CronSetting> {
-    const response = await apiClient.patch(`/cron-settings/${jobName}`, data);
+  async updateCronSetting(jobName: JobName, updateDto: UpdateCronSettingDto): Promise<CronSetting> {
+    const response = await apiClient.patch<CronSetting>(`/cron-settings/${jobName}`, updateDto);
     return response.data;
   }
 
-  async createCronSetting(data: Omit<UpdateCronSettingDto, 'jobName'> & { jobName: string }): Promise<CronSetting> {
-    const response = await apiClient.post('/cron-settings', data);
+  async createCronSetting(createDto: { jobName: JobName } & UpdateCronSettingDto): Promise<CronSetting> {
+    const response = await apiClient.post<CronSetting>('/cron-settings', createDto);
     return response.data;
   }
 }

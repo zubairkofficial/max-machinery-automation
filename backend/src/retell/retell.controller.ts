@@ -91,4 +91,17 @@ export class RetellController {
       );
     }
   }
+
+  @Get('call-detail/:callId')
+  async getCallDetail(@Param('callId') callId: string) {
+    try {
+      return await this.retellService.getCallDetail(callId);
+    } catch (error) {
+      this.logger.error(`Error in getCallDetail: ${error.message}`);
+      throw new HttpException(
+        `Failed to get call detail: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 }

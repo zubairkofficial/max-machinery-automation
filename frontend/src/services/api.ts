@@ -3,7 +3,7 @@ import { CallHistory } from '../types/call-history';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
-const apiClient = axios.create({
+export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -339,6 +339,123 @@ export const api = {
       return response.data;
     } catch (error) {
       console.error('Error fetching call details:', error);
+      throw error;
+    }
+  },
+
+  // Get all call history with pagination
+  async getCallHistory(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    dateRange?: { start: string; end: string };
+  }): Promise<{ data: any[]; total: number; page: number; limit: number }> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params?.page) {
+        queryParams.append('page', params.page.toString());
+      }
+      
+      if (params?.limit) {
+        queryParams.append('limit', params.limit.toString());
+      }
+      
+      if (params?.status && params.status !== 'all') {
+        queryParams.append('status', params.status);
+      }
+      
+      if (params?.dateRange?.start) {
+        queryParams.append('startDate', params.dateRange.start);
+      }
+      
+      if (params?.dateRange?.end) {
+        queryParams.append('endDate', params.dateRange.end);
+      }
+
+      const response = await axios.get(
+        `${API_BASE_URL}/leads/call-history?${queryParams.toString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching call history:', error);
+      throw error;
+    }
+  },
+
+  // Get all call history in descending order with enhanced pagination
+  async getAllCallHistory(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ 
+    success: boolean;
+    data: CallHistory[]; 
+    pagination: { 
+      total: number; 
+      page: number; 
+      limit: number; 
+      totalPages: number; 
+    } 
+  }> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      // Set defaults and validate parameters
+      const page = Math.max(1, params?.page || 1);
+      const limit = Math.min(100, Math.max(1, params?.limit || 50));
+      
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', limit.toString());
+      
+      if (params?.status && params.status !== 'all' && params.status.trim() !== '') {
+        queryParams.append('status', params.status.trim());
+      }
+      
+      if (params?.startDate) {
+        queryParams.append('startDate', params.startDate);
+      }
+      
+      if (params?.endDate) {
+        queryParams.append('endDate', params.endDate);
+      }
+
+      const response = await apiClient.get(
+        `/leads/get/all-history?${queryParams.toString()}`
+      );
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching all call history:', error);
+      throw new Error(
+        error?.response?.data?.message || 'Failed to fetch call history'
+      );
+    }
+  },
+
+  // Get detailed call information from Retell AI
+  async getCallDetail(callId: string): Promise<any> {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/retell/call-detail/${callId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching call detail from Retell AI:', error);
       throw error;
     }
   }

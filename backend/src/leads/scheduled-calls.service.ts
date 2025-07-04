@@ -6,6 +6,8 @@ import { ScheduledCall } from './entities/scheduled-call.entity';
 import { RetellAiService } from './retell-ai.service';
 import { LeadsService } from './leads.service';
 import { ConfigService } from '@nestjs/config';
+import { CronSettingsService } from '../cron-settings/cron-settings.service';
+import { JobName } from 'src/cron-settings/enums/job-name.enum';
 
 @Injectable()
 export class ScheduledCallsService {
@@ -15,9 +17,12 @@ export class ScheduledCallsService {
     @InjectRepository(ScheduledCall)
     private scheduledCallRepository: Repository<ScheduledCall>,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => RetellAiService))
     private retellAiService: RetellAiService,
-   @Inject(forwardRef(() => LeadsService))
+    @Inject(forwardRef(() => LeadsService))
     private leadsService: LeadsService,
+    @Inject(forwardRef(() => CronSettingsService))
+    private cronSettingsService: CronSettingsService,
   ) {}
 
   async scheduleCall(data: {
@@ -63,6 +68,16 @@ export class ScheduledCallsService {
 
       this.logger.log(`Found ${scheduledCallsLeads.length} calls to process`);
 
+      if (scheduledCallsLeads.length > 0) {
+        // Update RetellAI LLM prompt once for this batch of calls
+        try {
+          await this.retellAiService.updateLLMPromptForCronJob(JobName.RESCHEDULE_CALL);
+          this.logger.log('Updated RetellAI LLM prompt for rescheduled calls');
+        } catch (error) {
+          this.logger.error(`Failed to update LLM prompt: ${error.message}`);
+        }
+      }
+
       for (const scheduledCallLead of scheduledCallsLeads) {
         try {
            
@@ -70,7 +85,7 @@ export class ScheduledCallsService {
             this.configService.get<string>('FROM_PHONE_NUMBER'),
             scheduledCallLead.phone,
             scheduledCallLead.id,
-            "rescheduled",
+            JobName.RESCHEDULE_CALL,
             this.configService.get<string>('AGENT_ID'),
           );
           
@@ -99,65 +114,156 @@ export class ScheduledCallsService {
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
-  async handleScheduledCalls() {
-    try {
-      const now = new Date();
+  // @Cron(CronExpression.EVERY_MINUTE)
+  // async handleScheduledCalls() {
+  //   try {
+  //     const now = new Date();
       
-      // Find all pending calls that are within their time window
-      const scheduledCalls = await this.scheduledCallRepository.find({
-        where: [
-          {
-            startTime: LessThanOrEqual(now),
-            // We don't exclude calls with endTime < now here because we check inside loop
-          },
-        ],
-      });
+  //     // Find all pending calls that are within their time window
+  //     const scheduledCalls = await this.scheduledCallRepository.find({
+  //       where: [
+  //         {
+  //           startTime: LessThanOrEqual(now),
+  //           // We don't exclude calls with endTime < now here because we check inside loop
+  //         },
+  //       ],
+  //     });
 
-      this.logger.log(`Found ${scheduledCalls.length} calls to process`);
+  //     this.logger.log(`Found ${scheduledCalls.length} calls to process`);
 
-      for (const scheduledCall of scheduledCalls) {
-        try {
-            const leads = await this.leadsService.findAllWithScheduledCalls()
-          // Make the scheduledCall using RetellAI
-        for(const lead of leads){
-          if (scheduledCall.endTime && scheduledCall.endTime < new Date()) {
-            this.logger.log(`End time passed for scheduledCall ${scheduledCall.id}, stopping calls.`);
-            break;
-          }
-          if(lead.phone){
-          const callResult = await this.retellAiService.makeCall(
-            this.configService.get<string>('FROM_PHONE_NUMBER'),
-           lead.phone,
-            lead.id,
-            "scheduled",
-            this.configService.get<string>('AGENT_ID'),
-          );
-          await this.leadsService.updateLeadCallHistory(lead.id, {
-            ...callResult,
-            fromNumber:this.configService.get<string>('FROM_PHONE_NUMBER'),
-            toNumber:lead.phone,
-            agent_id: scheduledCall.overrideAgentId
-          })
+  //     if (scheduledCalls.length > 0) {
+  //       // Update RetellAI LLM prompt once for this batch of calls
+  //       try {
+  //         await this.retellAiService.updateLLMPromptForCronJob(JobName.SCHEDULED_CALLS);
+  //         this.logger.log('Updated RetellAI LLM prompt for scheduled calls');
+  //       } catch (error) {
+  //         this.logger.error(`Failed to update LLM prompt: ${error.message}`);
+  //       }
+  //     }
+
+  //     for (const scheduledCall of scheduledCalls) {
+  //       try {
+  //           const leads = await this.leadsService.findAllWithScheduledCalls()
+  //         // Make the scheduledCall using RetellAI
+  //       for(const lead of leads){
+  //         if (scheduledCall.endTime && scheduledCall.endTime < new Date()) {
+  //           this.logger.log(`End time passed for scheduledCall ${scheduledCall.id}, stopping calls.`);
+  //           break;
+  //         }
+  //         if(lead.phone){
+  //         const callResult = await this.retellAiService.makeCall(
+  //           this.configService.get<string>('FROM_PHONE_NUMBER'),
+  //          lead.phone,
+  //           lead.id,
+  //           "scheduled",
+  //           this.configService.get<string>('AGENT_ID'),
+  //         );
+  //         await this.leadsService.updateLeadCallHistory(lead.id, {
+  //           ...callResult,
+  //           fromNumber:this.configService.get<string>('FROM_PHONE_NUMBER'),
+  //           toNumber:lead.phone,
+  //           agent_id: scheduledCall.overrideAgentId
+  //         })
          
-         }
+  //        }
 
-         await this.scheduledCallRepository.softRemove(scheduledCall);
+  //        await this.scheduledCallRepository.softRemove(scheduledCall);
     
-       }   // Add a small delay between calls to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (error) {
-          this.logger.error(
-            `Failed to process scheduled scheduledCall ${scheduledCall.id}: ${error.message}`,
-            error.stack,
-          );
+  //      }   // Add a small delay between calls to avoid rate limiting
+  //         await new Promise(resolve => setTimeout(resolve, 500));
+  //       } catch (error) {
+  //         this.logger.error(
+  //           `Failed to process scheduled scheduledCall ${scheduledCall.id}: ${error.message}`,
+  //           error.stack,
+  //         );
 
           
+  //       }
+  //     }
+  //   } catch (error) {
+  //     this.logger.error(
+  //       `Error processing scheduled calls: ${error.message}`,
+  //       error.stack,
+  //     );
+  //   }
+  // }
+
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleDailyScheduledCalls() {
+    try {
+      const scheduleCalls = await this.cronSettingsService.getByName(JobName.SCHEDULED_CALLS);
+      
+      if (!scheduleCalls?.isEnabled || !scheduleCalls?.startTime) {
+        return; // Job is not enabled or has no start time
+      }
+
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
+      const startTime = scheduleCalls.startTime;
+      const endTime = scheduleCalls.endTime;
+
+      // Check if current time matches the schedule
+      let shouldRun = false;
+      if (endTime) {
+        // If end time is specified, check if current time is within the window
+        shouldRun = currentTime >= startTime && currentTime <= endTime;
+      } else {
+        // If no end time, check if current time matches start time (within 1 minute)
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const [startHours, startMinutes] = startTime.split(':').map(Number);
+        const startTotalMinutes = startHours * 60 + startMinutes;
+        shouldRun = Math.abs(currentMinutes - startTotalMinutes) <= 1;
+      }
+
+      this.logger.log(`Daily calls - Current time: ${currentTime}, Schedule: ${startTime}${endTime ? ` - ${endTime}` : ''}, Should run: ${shouldRun}`);
+      
+      if (shouldRun) {
+        const leads = await this.leadsService.findAllWithScheduledCalls();
+        this.logger.log(`Found ${leads.length} leads for daily calling`);
+
+        if (leads.length > 0) {
+          // Update RetellAI LLM prompt once for this batch of calls
+          try {
+            await this.retellAiService.updateLLMPromptForCronJob(JobName.SCHEDULED_CALLS);
+            this.logger.log('Updated RetellAI LLM prompt for daily scheduled calls');
+          } catch (error) {
+            this.logger.error(`Failed to update LLM prompt: ${error.message}`);
+          }
+        }
+
+        for (const lead of leads) {
+          try {
+            if (lead.phone) {
+              const callResult = await this.retellAiService.makeCall(
+                this.configService.get<string>('FROM_PHONE_NUMBER'),
+                lead.phone,
+                lead.id,
+               JobName.SCHEDULED_CALLS,
+                this.configService.get<string>('AGENT_ID'),
+              );
+              
+              await this.leadsService.updateLeadCallHistory(lead.id, {
+                ...callResult,
+                fromNumber: this.configService.get<string>('FROM_PHONE_NUMBER'),
+                toNumber: lead.phone,
+                agent_id: callResult.agent_id
+              });
+            }
+          } catch (error) {
+            this.logger.error(
+              `Failed to process daily scheduled call for lead ${lead.id}: ${error.message}`,
+              error.stack,
+            );
+          }
+          
+          // Add a small delay between calls to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
     } catch (error) {
       this.logger.error(
-        `Error processing scheduled calls: ${error.message}`,
+        `Error processing daily scheduled calls: ${error.message}`,
         error.stack,
       );
     }
@@ -196,5 +302,113 @@ export class ScheduledCallsService {
 
     // scheduledCall.status = 'cancelled';
     return this.scheduledCallRepository.save(scheduledCall);
+  }
+
+  async handleRescheduleCalls() {
+    try {
+      const now = new Date();
+      
+      // Find leads that need rescheduling (those who didn't pick up)
+      const leads = await this.leadsService.findLeadsForReschedule();
+      
+      this.logger.log(`Found ${leads.length} leads to reschedule`);
+
+      if (leads.length > 0) {
+        try {
+          await this.retellAiService.updateLLMPromptForCronJob(JobName.RESCHEDULE_CALL);
+          this.logger.log('Updated RetellAI LLM prompt for rescheduled calls');
+        } catch (error) {
+          this.logger.error(`Failed to update LLM prompt: ${error.message}`);
+        }
+      }
+
+      for (const lead of leads) {
+        try {
+          if (lead.phone) {
+            const callResult = await this.retellAiService.makeCall(
+              this.configService.get<string>('FROM_PHONE_NUMBER'),
+              lead.phone,
+              lead.id,
+              JobName.RESCHEDULE_CALL,
+              this.configService.get<string>('AGENT_ID'),
+            );
+            
+            await this.leadsService.updateLeadCallHistory(lead.id, {
+              ...callResult,
+              fromNumber: this.configService.get<string>('FROM_PHONE_NUMBER'),
+              toNumber: lead.phone,
+              callType: 'reschedule'
+            });
+          }
+          
+          // Add a small delay between calls to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+          this.logger.error(
+            `Failed to process reschedule call for lead ${lead.id}: ${error.message}`,
+            error.stack,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error processing reschedule calls: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  async handleReminderCalls() {
+    try {
+      const now = new Date();
+      
+      // Find leads that need reminders (haven't completed form or clicked link)
+      const leads = await this.leadsService.findLeadsForReminder();
+      
+      this.logger.log(`Found ${leads.length} leads for reminder calls`);
+
+      if (leads.length > 0) {
+        try {
+          await this.retellAiService.updateLLMPromptForCronJob(JobName.REMINDER_CALL);
+          this.logger.log('Updated RetellAI LLM prompt for reminder calls');
+        } catch (error) {
+          this.logger.error(`Failed to update LLM prompt: ${error.message}`);
+        }
+      }
+
+      for (const lead of leads) {
+        try {
+          if (lead.phone) {
+            const callResult = await this.retellAiService.makeCall(
+              this.configService.get<string>('FROM_PHONE_NUMBER'),
+              lead.phone,
+              lead.id,
+              JobName.REMINDER_CALL,
+              this.configService.get<string>('AGENT_ID'),
+            );
+            
+            await this.leadsService.updateLeadCallHistory(lead.id, {
+              ...callResult,
+              fromNumber: this.configService.get<string>('FROM_PHONE_NUMBER'),
+              toNumber: lead.phone,
+              callType: 'reminder'
+            });
+          }
+          
+          // Add a small delay between calls to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+          this.logger.error(
+            `Failed to process reminder call for lead ${lead.id}: ${error.message}`,
+            error.stack,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error processing reminder calls: ${error.message}`,
+        error.stack,
+      );
+    }
   }
 } 

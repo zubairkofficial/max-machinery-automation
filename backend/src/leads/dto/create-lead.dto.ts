@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsObject, IsOptional, IsString, IsDateString } from 'class-validator';
 
 export class CreateLeadDto {
   @IsNotEmpty()
@@ -78,4 +78,8 @@ export class CreateLeadDto {
     age?: string;
     estimatedValue?: number;
   };
+
+  @IsOptional()
+  @IsDateString()
+  scheduledCallbackDate?: Date;
 } 

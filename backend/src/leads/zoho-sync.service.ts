@@ -14,11 +14,29 @@ import { ConfigService } from '@nestjs/config';
 import { UserInfo } from 'src/userInfo/entities/user-info.entity';
 import { RetellAiService } from './retell-ai.service';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
+import { JobName } from 'src/cron-settings/enums/job-name.enum';
+
+export interface ZohoLeadData {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+  company?: string;
+  industry?: string;
+  leadStatus?: string;
+  description?: string;
+  lastCalledAt?: string;
+  callType?: string;
+}
 
 @Injectable()
 export class ZohoSyncService {
   private readonly logger = new Logger(ZohoSyncService.name);
-  private accessToken: string = null;
+  private accessToken: string;
+  private readonly zohoApiUrl = 'https://www.zohoapis.com/crm/v2';
+  private readonly clientId: string;
+  private readonly clientSecret: string;
+  private readonly refreshToken: string;
   private tokenExpiry: Date = null;
   private openai: ChatOpenAI;
 
@@ -30,15 +48,18 @@ export class ZohoSyncService {
     @InjectRepository(CallTranscript)
     private readonly callTranscriptRepository: Repository<CallTranscript>,
     private readonly configService: ConfigService,
-    private readonly retellAiService:RetellAiService,
-    private readonly cronSettingService:CronSettingsService,
+    @Inject(forwardRef(() => RetellAiService))
+    private readonly retellAiService: RetellAiService,
+    private readonly cronSettingService: CronSettingsService,
   ) {
+    this.clientId = this.configService.get<string>('ZOHO_CLIENT_ID');
+    this.clientSecret = this.configService.get<string>('ZOHO_CLIENT_SECRET');
+    this.refreshToken = this.configService.get<string>('ZOHO_REFRESH_TOKEN');
     this.openai = new ChatOpenAI({
       openAIApiKey: this.configService.get('OPENAI_API_KEY'),
       temperature: 0,
       modelName: this.configService.get('OPENAI_MODEL_NAME')
     });
-    
   }
 
   
@@ -46,15 +67,34 @@ export class ZohoSyncService {
   async zohoLinkNoCall() {
     try {
       this.logger.log('Starting Zoho CRM sync');
-   const callReminder = await this.cronSettingService.getByName("ReminderCall");
-    const now = new Date();
-    const callReminderStartTime = callReminder.startTime;
+   const callReminder = await this.cronSettingService.getByName(JobName.REMINDER_CALL);
+    
+    if (!callReminder?.isEnabled || !callReminder?.startTime) {
+      console.log('ReminderCall job is not enabled or has no start time');
+      return;
+    }
 
-    // Create a 60-second window around the scheduled time
-    const windowStart = new Date(callReminderStartTime.getTime() - 30000); // 30 seconds before
-    const windowEnd = new Date(callReminderStartTime.getTime() + 30000); // 30 seconds after
- console.log('The times do not match',now,windowStart);
-    if (now >= windowStart && now <= windowEnd) {
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
+    const startTime = callReminder.startTime;
+    const endTime = callReminder.endTime;
+
+    // Check if current time matches the schedule
+    let shouldRun = false;
+    if (endTime) {
+      // If end time is specified, check if current time is within the window
+      shouldRun = currentTime >= startTime && currentTime <= endTime;
+    } else {
+      // If no end time, check if current time matches start time (within 1 minute)
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      const startTotalMinutes = startHours * 60 + startMinutes;
+      shouldRun = Math.abs(currentMinutes - startTotalMinutes) <= 1;
+    }
+
+    console.log(`Current time: ${currentTime}, Schedule: ${startTime}${endTime ? ` - ${endTime}` : ''}, Should run: ${shouldRun}`);
+    
+    if (shouldRun) {
       const leads = await this.leadRepository
   .createQueryBuilder('lead')
   .leftJoinAndSelect('lead.userInfo', 'userInfo') // Left join with userInfo
@@ -153,9 +193,9 @@ for(const lead of leads) {
       const response = await axios.post('https://accounts.zoho.com/oauth/v2/token', null, {
         params: {
           grant_type: 'refresh_token',
-          client_id: this.configService.get('ZOHO_CLIENT_ID'),
-          client_secret: this.configService.get('ZOHO_CLIENT_SECRET'),
-          refresh_token: this.configService.get('ZOHO_REFRESH_TOKEN')
+          client_id: this.clientId,
+          client_secret: this.clientSecret,
+          refresh_token: this.refreshToken
         }
       });
 
@@ -200,7 +240,7 @@ for(const lead of leads) {
       data: [
         {
           "First_Name": leadData.firstName,
-          "Last_Name": leadData.lastName,
+          // "Last_Name": leadData.lastName,
           "Email": leadData.zohoEmail,
           "Phone": leadData?.zohoPhoneNumber??leadData.phone,
           "Lead_Id": leadData.id,
@@ -219,6 +259,32 @@ for(const lead of leads) {
     console.error('Error creating lead in Zoho CRM:', error.message);
   }
 }
+
+  /**
+   * Check if lead exists in Zoho by phone number, create if not exists
+   */
+  async getOrCreateZohoLeadByPhone(phoneNumber: string, leadData: Lead, status: string = 'Called'): Promise<any> {
+    try {
+      await this.ensureValidAccessToken();
+      
+      // First, search for existing lead by phone number
+      const existingLead = await this.searchLeadInZohoByPhone(phoneNumber);
+      
+      if (existingLead) {
+        this.logger.log(`Found existing lead in Zoho CRM for phone: ${phoneNumber}`);
+        return existingLead;
+      }
+      
+      // Lead doesn't exist, create new one
+      this.logger.log(`Creating new lead in Zoho CRM for phone: ${phoneNumber}`);
+      const newLead = await this.createZohoLead(leadData, status);
+      return newLead;
+      
+    } catch (error) {
+      this.logger.error(`Error in getOrCreateZohoLeadByPhone: ${error.message}`);
+      throw error;
+    }
+  }
 
 
  async updateZohoLead(lead, leadData) {
@@ -383,73 +449,94 @@ for(const lead of leads) {
     }
   }
 
-  private async searchLeadInZohoByPhone(phone: string): Promise<any> {
+  public async searchLeadInZohoByPhone(phone: string): Promise<any> {
     try {
+      await this.ensureValidAccessToken();
+      
+      const searchCriteria = `(Phone:equals:${phone})`;
       const response = await axios.get(
-        `https://www.zohoapis.com/crm/v2/Leads/search`,
+        `${this.zohoApiUrl}/Leads/search?criteria=${encodeURIComponent(searchCriteria)}`,
         {
           headers: {
-            'Authorization': `Zoho-oauthtoken ${await this.getAccessToken()}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
           },
-          params: {
-            criteria: `(Phone:equals:${phone})`
-          }
         }
       );
 
       if (response.data?.data?.length > 0) {
         return response.data.data[0];
       }
-
       return null;
     } catch (error) {
-      this.logger.error(`Failed to search lead in Zoho by phone: ${error.message}`);
-      return null;
+      this.logger.error(`Error searching lead in Zoho by phone: ${error.message}`);
+      throw error;
     }
   }
 
-  private async createLeadInZoho(lead: Partial<Lead>): Promise<any> {
+  public async createLeadInZoho(leadData: ZohoLeadData): Promise<any> {
     try {
+      await this.ensureValidAccessToken();
+
+      const zohoData = {
+        First_Name: leadData.firstName,
+        Last_Name: leadData.lastName,
+        Phone: leadData.phone,
+        Email: leadData.email,
+        Company: leadData.company,
+        Industry: leadData.industry,
+        Lead_Status: leadData.leadStatus,
+        Description: leadData.description
+      };
+
       const response = await axios.post(
-        'https://www.zohoapis.com/crm/v2/Leads',
-        {
-          data: [{
-            First_Name: lead.firstName,
-            Last_Name: lead.lastName,
-            Email: lead.email,
-            Phone: lead.phone,
-            Company: lead.company,
-            Title: lead.jobTitle,
-            Industry: lead.industry,
-            Lead_Source: 'MaxMachinery',
-            Description: `Machinery Interest: ${lead.machineryInterest || 'N/A'}\nMachinery Notes: ${lead.machineryNotes || 'N/A'}`,
-            $custom_fields: {
-              Has_Surplus_Machinery: lead.hasSurplusMachinery,
-              Machinery_Types: lead.machineryDetails?.types?.join(', '),
-              Machinery_Brands: lead.machineryDetails?.brands?.join(', '),
-              Machinery_Condition: lead.machineryDetails?.condition,
-              Machinery_Age: lead.machineryDetails?.age,
-              Estimated_Value: lead.machineryDetails?.estimatedValue
-            }
-          }]
-        },
+        `${this.zohoApiUrl}/Leads`,
+        { data: [zohoData] },
         {
           headers: {
-            'Authorization': `Zoho-oauthtoken ${await this.getAccessToken()}`,
-            'Content-Type': 'application/json'
-          }
+            'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
         }
       );
 
-      if (response.data?.data?.length > 0) {
-        return response.data.data[0];
+      if (response.data?.data?.[0]?.details?.id) {
+        return response.data.data[0].details;
       }
-
-      return null;
+      throw new Error('Failed to create lead in Zoho CRM');
     } catch (error) {
-      this.logger.error(`Failed to create lead in Zoho: ${error.message}`);
-      return null;
+      this.logger.error(`Error creating lead in Zoho: ${error.message}`);
+      throw error;
+    }
+  }
+
+  public async updateLeadInZoho(leadId: string, leadData: Partial<ZohoLeadData>): Promise<any> {
+    try {
+      await this.ensureValidAccessToken();
+
+      const zohoData = {
+        Lead_Status: leadData.leadStatus,
+        Last_Called_At: leadData.lastCalledAt,
+        Call_Type: leadData.callType
+      };
+
+      const response = await axios.put(
+        `${this.zohoApiUrl}/Leads/${leadId}`,
+        { data: [zohoData] },
+        {
+          headers: {
+            'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.data?.data?.[0]?.details?.id) {
+        return response.data.data[0].details;
+      }
+      throw new Error('Failed to update lead in Zoho CRM');
+    } catch (error) {
+      this.logger.error(`Error updating lead in Zoho: ${error.message}`);
+      throw error;
     }
   }
 

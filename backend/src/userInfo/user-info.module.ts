@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserInfo } from './entities/user-info.entity';
 import { UserInfoService } from './user-info.service';
@@ -8,17 +8,16 @@ import { JwtModule } from '@nestjs/jwt';
 import { Lead } from '../leads/entities/lead.entity';
 import { ZohoSyncService } from 'src/leads/zoho-sync.service';
 import { CallTranscript } from 'src/retell/entities/call-transcript.entity';
-import { RetellAiService } from 'src/leads/retell-ai.service';
 import { CronSettingsModule } from 'src/cron-settings/cron-settings.module';
 import { LeadsModule } from 'src/leads/leads.module';
 import { LastCall } from 'src/leads/entities/last-call.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserInfo, Lead,CallTranscript,LastCall]),
+    TypeOrmModule.forFeature([UserInfo, Lead, CallTranscript, LastCall]),
     ConfigModule,
-    CronSettingsModule,
-    LeadsModule,
+    forwardRef(() => CronSettingsModule),
+    forwardRef(() => LeadsModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
@@ -34,7 +33,10 @@ import { LastCall } from 'src/leads/entities/last-call.entity';
     }),
   ],
   controllers: [UserInfoController],
-  providers: [UserInfoService,ZohoSyncService,RetellAiService],
+  providers: [
+    UserInfoService,
+    ZohoSyncService,
+  ],
   exports: [UserInfoService],
 })
 export class UserInfoModule {} 

@@ -12,7 +12,9 @@ import {
   UseGuards,
   NotFoundException,
   DefaultValuePipe,
-  ParseIntPipe
+  ParseIntPipe,
+  HttpException,
+  HttpStatus
 } from '@nestjs/common';
 import { LeadsService } from './leads.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
@@ -235,20 +237,80 @@ export class LeadsController {
     return this.leadsService.scheduleCallsToLeads(scheduleDto);
   }
 
-  @Post('call/single/:id')
-  async callSingleLead(
-    @Param('id') id: string,
-    @Body() callParams: { toNumber: string, startTime?: string, endTime?: string, override_agent_id?: string }
-  ) {
-    // Use the dedicated callSingleLead method
-    return this.leadsService.callSingleLead(id, callParams);
-  }
-
   @Get(':id/call-history')
   async getLeadCallHistory(@Param('id') id: string) {
     return {
       callHistory: await this.leadsService.getLeadCallHistory(id)
     };
+  }
+
+  @Post('call/single/:id')
+  async callSingleLead(
+    @Param('id') id: string,
+    @Body() callParams: { toNumber: string,  override_agent_id?: string }
+  ) {
+    // Use the dedicated callSingleLead method
+    return this.leadsService.callSingleLead(id, callParams);
+  }
+
+  @Get('call-history')
+  @ApiOperation({ summary: 'Get all call history with pagination' })
+  @ApiResponse({ status: 200, description: 'Returns paginated call history' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  async getAllCallHistory(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.leadsService.getAllCallHistory({ page, limit, status, startDate, endDate });
+  }
+
+  @Get('get/all-history')
+  @ApiOperation({ summary: 'Get all call history in descending order with pagination' })
+  @ApiResponse({ status: 200, description: 'Returns call history sorted by newest first' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 50)' })
+  @ApiQuery({ name: 'status', required: false, type: String, description: 'Filter by call status' })
+  @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Filter from date (ISO string)' })
+  @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Filter to date (ISO string)' })
+  async getAllCallHistoryDescending(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const result = await this.leadsService.getAllCallHistoryDescending({ 
+        page, 
+        limit, 
+        status, 
+        startDate, 
+        endDate 
+      });
+      
+      return {
+        success: true,
+        data: result.data,
+        pagination: {
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: Math.ceil(result.total / result.limit)
+        }
+      };
+    } catch (error) {
+      throw new HttpException(
+        'Failed to fetch call history',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   @Get('calls/list')

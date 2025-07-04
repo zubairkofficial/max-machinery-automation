@@ -224,6 +224,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   <PhoneCall className="w-4 h-4 mr-3" />
                   <span>Batch Calling</span>
                 </NavLink>
+                <NavLink
+                  to="/call-history"
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
+                      isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
+                    }`
+                  }
+                >
+                  <Clock className="w-4 h-4 mr-3" />
+                  <span>Call History</span>
+                </NavLink>
               </div>
             )}
 

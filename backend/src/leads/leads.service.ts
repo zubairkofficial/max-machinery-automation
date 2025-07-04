@@ -17,6 +17,8 @@ import { ScheduledCallsService } from './scheduled-calls.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { RetellService } from 'src/retell/retell.service';
+import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
+import { JobName } from 'src/cron-settings/enums/job-name.enum';
 
 @Injectable()
 export class LeadsService {
@@ -33,10 +35,9 @@ export class LeadsService {
     private lastCallRepository: Repository<LastCall>,
     private apolloService: ApolloService,
     private retellAiService: RetellAiService,
-    @Inject(forwardRef(() => ScheduledCallsService))
-    private scheduledCallsService: ScheduledCallsService,
     private readonly configService: ConfigService,
     private readonly retellService: RetellService,
+    private readonly cronSettingsService: CronSettingsService,
   ) {
     this.retellApiKey = this.configService.get<string>('RETELL_AI_API_KEY');
   }
@@ -397,78 +398,94 @@ export class LeadsService {
     message?: string;
   }> {
     try {
-      // Check if this is a scheduled call for future time
-      let message = '';
-      let scheduledTime: Date | null = null;
-      
-      if (scheduleDto.startTime) {
-        scheduledTime = new Date(scheduleDto.startTime);
-        message = `Calls scheduled for ${scheduledTime.toLocaleString()}`;
-        
-        // Add end time to message if provided
-        this.scheduledCallsService.scheduleCall({
-         
-          fromNumber: scheduleDto.fromNumber,
-          startTime: scheduledTime,
-          endTime: scheduleDto.endTime ? new Date(scheduleDto.endTime) : null,
-          overrideAgentId: scheduleDto.overrideAgentId
-        })
-        return {
-          success: true,
-          scheduled: 1,
-          skipped: 0,
-          errors: [],
-          callDetails: [],
-        }
-      }else{
-
-
-        scheduledTime = new Date();
-        message = `Calls scheduled for ${scheduledTime.toLocaleString()}`;
-        
-        // Add end time to message if provided
-        this.scheduledCallsService.scheduleCall({
-         
-          fromNumber: scheduleDto.fromNumber,
-          startTime: scheduledTime,
-          // endTime: scheduleDto.endTime ? new Date(scheduleDto.endTime) : null,
-          overrideAgentId: scheduleDto.overrideAgentId
-        })
-        return {
-          success: true,
-          scheduled: 1,
-          skipped: 0,
-          errors: [],
-          callDetails: [],
-        }
-      }
-      
-      // Determine which leads to schedule calls for
+      // Determine which leads would be called
       let leadIds: string[] = [];
       
-    if (scheduleDto.allLeads) {
+      if (scheduleDto.allLeads) {
         const result = await this.findAll({ page: 1, limit: 1000 });
         leadIds = result.data.map(lead => lead.id);
+      } else if (scheduleDto.leadIds && scheduleDto.leadIds.length > 0) {
+        leadIds = scheduleDto.leadIds;
       } else {
-        throw new Error('Please specify leadIds, priorityLeadsOnly, or allLeads');
+        throw new Error('Please specify leadIds or allLeads');
       }
-      
-      // Schedule the calls
-      // await this.scheduledCallsService.scheduleBatchCalls({
-      //   leadIds,
-      //   fromNumber: scheduleDto.fromNumber || "+14158436193",
-      //   toNumber: scheduleDto.toNumber,
-      //   overrideAgentId: scheduleDto.overrideAgentId,
-      // });
-      
-      return {
-        success: true,
-        scheduled: leadIds.length,
-        skipped: 0,
-        errors: [],
-        callDetails: [],
-        message
-      };
+
+      // Check if this is time-only scheduling (daily scheduling)
+      if (scheduleDto.startTime) {
+        // Update or create ScheduleCalls cron setting for daily execution
+        await this.cronSettingsService.updateCronSetting('ScheduleCalls', {
+          isEnabled: true,
+          startTime: scheduleDto.startTime,
+          endTime: scheduleDto.endTime
+        });
+
+        const message = `Daily calls scheduled for ${scheduleDto.startTime}${scheduleDto.endTime ? ` to ${scheduleDto.endTime}` : ''}`;
+        
+        return {
+          success: true,
+          scheduled: leadIds.length,
+          skipped: 0,
+          errors: [],
+          callDetails: [],
+          scheduledTime: scheduleDto.startTime,
+          endTime: scheduleDto.endTime,
+          message
+        };
+      } else {
+        // Immediate calling - execute now
+        const callResults = [];
+        const errors = [];
+        let scheduled = 0;
+        let skipped = 0;
+
+        for (const leadId of leadIds) {
+          try {
+            const lead = await this.findOne(leadId);
+            if (!lead || !lead.phone) {
+              skipped++;
+              continue;
+            }
+
+            const callResult = await this.retellAiService.makeCall(
+              scheduleDto.fromNumber || this.configService.get<string>('FROM_PHONE_NUMBER'),
+              lead.phone,
+              lead.id,
+             JobName.SCHEDULED_CALLS,
+              scheduleDto.overrideAgentId || this.configService.get<string>('AGENT_ID')
+            );
+
+            await this.updateLeadCallHistory(lead.id, {
+              ...callResult,
+              fromNumber: scheduleDto.fromNumber || this.configService.get<string>('FROM_PHONE_NUMBER'),
+              toNumber: lead.phone,
+              agent_id: scheduleDto.overrideAgentId || this.configService.get<string>('AGENT_ID')
+            });
+
+            callResults.push({
+              leadId: lead.id,
+              callId: callResult.call_id,
+              callResult
+            });
+            scheduled++;
+
+            // Add delay between calls to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (error) {
+            this.logger.error(`Failed to call lead ${leadId}: ${error.message}`);
+            errors.push({ leadId, error: error.message });
+            skipped++;
+          }
+        }
+
+        return {
+          success: true,
+          scheduled,
+          skipped,
+          errors,
+          callDetails: callResults,
+          message: `Successfully initiated ${scheduled} calls, skipped ${skipped}`
+        };
+      }
     } catch (error) {
       this.logger.error(`Failed to schedule calls: ${error.message}`, error.stack);
       throw error;
@@ -721,74 +738,199 @@ export class LeadsService {
     }
   }
 
+  async getAllCallHistory(options: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ data: CallHistory[]; total: number; page: number; limit: number }> {
+    try {
+      const page = options?.page || 1;
+      const limit = options?.limit || 20;
+
+      const queryBuilder = this.callHistoryRepository
+        .createQueryBuilder('callHistory')
+        .leftJoinAndSelect('callHistory.lead', 'lead')
+        .orderBy('callHistory.startTimestamp', 'DESC');
+
+      // Apply status filter
+      if (options.status && options.status !== 'all') {
+        queryBuilder.andWhere('callHistory.status = :status', { status: options.status });
+      }
+
+      // Apply date range filter
+      if (options.startDate) {
+        queryBuilder.andWhere('callHistory.startTimestamp >= :startDate', {
+          startDate: new Date(options.startDate).getTime()
+        });
+      }
+
+      if (options.endDate) {
+        queryBuilder.andWhere('callHistory.startTimestamp <= :endDate', {
+          endDate: new Date(options.endDate).getTime()
+        });
+      }
+
+      // Get total count
+      const total = await queryBuilder.getCount();
+
+      // Apply pagination
+      queryBuilder
+        .skip((page - 1) * limit)
+        .take(limit);
+
+      const callHistory = await queryBuilder.getMany();
+
+      return {
+        data: callHistory,
+        total,
+        page,
+        limit
+      };
+    } catch (error) {
+      this.logger.error('Error fetching all call history:', error.message);
+      throw new HttpException(
+        'Failed to fetch call history',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Get all call history in descending order with enhanced filtering and pagination
+   */
+  async getAllCallHistoryDescending(options: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ data: CallHistory[]; total: number; page: number; limit: number }> {
+    try {
+      const page = Math.max(1, options?.page || 1);
+      const limit = Math.min(100, Math.max(1, options?.limit || 50)); // Ensure reasonable limits
+
+      const queryBuilder = this.callHistoryRepository
+        .createQueryBuilder('callHistory')
+        .leftJoinAndSelect('callHistory.lead', 'lead')
+        .orderBy('callHistory.startTimestamp', 'DESC')
+        .addOrderBy('callHistory.createdAt', 'DESC'); // Secondary sort for consistency
+
+      // Apply status filter with validation
+      if (options.status && options.status !== 'all' && options.status.trim() !== '') {
+        queryBuilder.andWhere('LOWER(callHistory.status) = LOWER(:status)', { 
+          status: options.status.trim() 
+        });
+      }
+
+      // Apply date range filters with proper validation
+      if (options.startDate) {
+        const startDate = new Date(options.startDate);
+        if (!isNaN(startDate.getTime())) {
+          queryBuilder.andWhere('callHistory.startTimestamp >= :startDate', {
+            startDate: startDate.getTime()
+          });
+        }
+      }
+
+      if (options.endDate) {
+        const endDate = new Date(options.endDate);
+        if (!isNaN(endDate.getTime())) {
+          // Set end of day for end date
+          endDate.setHours(23, 59, 59, 999);
+          queryBuilder.andWhere('callHistory.startTimestamp <= :endDate', {
+            endDate: endDate.getTime()
+          });
+        }
+      }
+
+      // Get total count before pagination
+      const total = await queryBuilder.getCount();
+
+      // Apply pagination
+      queryBuilder
+        .skip((page - 1) * limit)
+        .take(limit);
+
+      const callHistory = await queryBuilder.getMany();
+
+      this.logger.log(`Fetched ${callHistory.length} call history records (page ${page}, limit ${limit}, total ${total})`);
+
+      return {
+        data: callHistory,
+        total,
+        page,
+        limit
+      };
+    } catch (error) {
+      this.logger.error('Error fetching call history in descending order:', {
+        message: error.message,
+        stack: error.stack,
+        options
+      });
+      throw new HttpException(
+        'Failed to fetch call history',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
   /**
    * Make a single call to a lead
    */
   async callSingleLead(
     id: string,
-    callParams: { toNumber: string, startTime?: string, endTime?: string, override_agent_id?: string }
+    callParams: { toNumber: string, override_agent_id?: string }
   ) {
     try {
       const fromNumber =  this.configService.get<string>('FROM_PHONE_NUMBER');
       
-      // If startTime is provided, handle scheduled call
-      if (callParams.startTime) {
-        const scheduledTime = new Date(callParams.startTime);
-        const now = new Date();
-        
-        if (scheduledTime > now) {
-          let message = `Call scheduled for ${scheduledTime.toLocaleString()}`;
-          
-          // Add end time to message if provided
-          if (callParams.endTime) {
-            const endTime = new Date(callParams.endTime);
-            if (endTime > scheduledTime) {
-              message += ` to ${endTime.toLocaleString()}`;
-            } else {
-              throw new Error('End time must be after start time');
-            }
-          }
-          
-          // Schedule the call using the scheduledCallsService
-          const scheduledCall = await this.scheduledCallsService.scheduleCall({
-           fromNumber,
-      
-            startTime: scheduledTime,
-            endTime: callParams.endTime ? new Date(callParams.endTime) : undefined,
-            overrideAgentId: callParams.override_agent_id
-          });
-          
-          const result = {
-            success: true,
-            scheduled: 1,
-            skipped: 0,
-            errors: [],
-            callDetails: [{
-              leadId: id,
-              name: 'Scheduled Call',
-              phone: callParams.toNumber,
-              callId: scheduledCall.id,
-              callResult: {
-                call_status: 'scheduled',
-                scheduled_time: scheduledTime.toISOString(),
-                end_time: callParams.endTime
-              }
-            }],
-            message
-          };
+      // // If startTime is provided, handle time-only daily scheduling
+      // if (callParams.startTime) {
+      //   // This is time-only scheduling (HH:MM format) for daily execution
+      //   const lead = await this.findOne(id);
+      //   if (!lead) {
+      //     throw new Error('Lead not found');
+      //   }
 
-          // Update lead call history for the scheduled call
-          await this.updateLeadCallHistory(id, {
-            ...result.callDetails[0].callResult,
-            callId: scheduledCall.id,
-            fromNumber,
-            toNumber: callParams.toNumber,
-            agent_id: callParams.override_agent_id
-          });
-          
-          return result;
-        }
-      }
+      //   // Set up individual reschedule for this lead with the given time
+      //   const today = new Date();
+      //   const [hours, minutes] = callParams.startTime.split(':').map(Number);
+      //   const scheduledDateTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes);
+        
+      //   // If the time has already passed today, schedule for tomorrow
+      //   if (scheduledDateTime <= new Date()) {
+      //     scheduledDateTime.setDate(scheduledDateTime.getDate() + 1);
+      //   }
+
+      //   // Update the lead's scheduledCallbackDate for the individual reschedule cron
+      //   await this.update(id, { 
+      //     scheduledCallbackDate: scheduledDateTime 
+      //   });
+
+      //   const message = `Call scheduled for daily execution at ${callParams.startTime}${callParams.endTime ? ` (until ${callParams.endTime})` : ''}`;
+        
+      //   const result = {
+      //     success: true,
+      //     scheduled: 1,
+      //     skipped: 0,
+      //     errors: [],
+      //     callDetails: [{
+      //       leadId: id,
+      //       name: 'Daily Scheduled Call',
+      //       phone: callParams.toNumber,
+      //       callResult: {
+      //         call_status: 'scheduled',
+      //         scheduled_time: callParams.startTime,
+      //         end_time: callParams.endTime
+      //       }
+      //     }],
+      //     message
+      //   };
+
+      //   return result;
+      // }
       
       // For immediate calls, use the RetellAI service directly
       try {
@@ -797,7 +939,7 @@ export class LeadsService {
           callParams.toNumber,
           // this.configService.get<string>('TO_PHONE_NUMBER'),
           id,
-          "master",
+         JobName.SCHEDULED_CALLS,
           callParams.override_agent_id,
           
         );
@@ -1109,5 +1251,45 @@ export class LeadsService {
       callSuccessRate: totalCalls > 0 ? (successfulCalls / totalCalls) * 100 : 0,
       contactRate: totalLeads > 0 ? (contactedLeads / totalLeads) * 100 : 0
     };
+  }
+
+  async findLeadsForReschedule(): Promise<Lead[]> {
+    // Find leads where:
+    // 1. Last call was not answered/failed
+    // 2. No call has been scheduled yet for rescheduling
+    // 3. Last call was at least 1 hour ago
+    const oneHourAgo = new Date();
+    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+
+    return this.leadRepository
+      .createQueryBuilder('lead')
+      .leftJoinAndSelect('lead.callHistoryRecords', 'callHistory')
+      .where('callHistory.status IN (:...failedStatuses)', { 
+        failedStatuses: ['no-answer', 'failed', 'busy'] 
+      })
+      .andWhere('callHistory.timestamp < :oneHourAgo', { oneHourAgo })
+      .andWhere('NOT EXISTS (SELECT 1 FROM scheduled_call sc WHERE sc.lead_id = lead.id)')
+      .orderBy('callHistory.timestamp', 'DESC')
+      .getMany();
+  }
+
+  async findLeadsForReminder(): Promise<Lead[]> {
+    // Find leads where:
+    // 1. Call was successful
+    // 2. No form submission or link click recorded
+    // 3. Last call was at least 24 hours ago
+    const oneDayAgo = new Date();
+    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+
+    return this.leadRepository
+      .createQueryBuilder('lead')
+      .leftJoinAndSelect('lead.callHistoryRecords', 'callHistory')
+      .where('callHistory.status = :status', { status: 'completed' })
+      .andWhere('callHistory.timestamp < :oneDayAgo', { oneDayAgo })
+      .andWhere('(lead.formSubmitted IS NULL OR lead.formSubmitted = false)')
+      .andWhere('(lead.linkClicked IS NULL OR lead.linkClicked = false)')
+      .andWhere('NOT EXISTS (SELECT 1 FROM scheduled_call sc WHERE sc.lead_id = lead.id)')
+      .orderBy('callHistory.timestamp', 'DESC')
+      .getMany();
   }
 } 

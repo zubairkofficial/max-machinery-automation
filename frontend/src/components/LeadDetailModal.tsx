@@ -124,7 +124,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   
   const handleCallComplete = (result: any) => {
     if (result.scheduled > 0) {
-      toast.success(`Successfully initiated call to ${lead.firstName} ${lead.lastName}`);
+      toast.success(`Successfully initiated call to ${lead.firstName} `);
       // Refresh the lead data to show updated call history
       leadsApi.getById(lead.id).then(updatedLead => {
         onLeadUpdated(updatedLead);
@@ -214,7 +214,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                     })
                       .then((result: { scheduled: number; callDetails?: any[] }) => {
                         if (result.scheduled > 0 || (result.callDetails && result.callDetails.length > 0)) {
-                          toast.success(`Successfully initiated call to ${lead.firstName} ${lead.lastName}`);
+                          toast.success(`Successfully initiated call to ${lead.firstName}`);
                           onLeadUpdated(lead);
                         } else {
                           toast.error('Failed to initiate call');

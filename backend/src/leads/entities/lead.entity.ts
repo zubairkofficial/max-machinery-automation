@@ -105,4 +105,16 @@ userInfo: UserInfo;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column({ default: false })
+  formSubmitted: boolean;
+
+  @Column({ default: false })
+  linkClicked: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  formSubmittedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  linkClickedAt: Date;
 } 

@@ -16,6 +16,7 @@ import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 import { Retell } from './entities/retell.entity';
+import { JobName } from 'src/cron-settings/enums/job-name.enum';
 
 @Injectable()
 export class RetellService {
@@ -255,56 +256,63 @@ private retellRepository: Repository<Retell>
     return tomorrow;
   }
 
-  private async getNextScheduleDay():Promise<Date> {
-    const cronSetting=   await this.cronSettingService.getByName("RescheduleCall")
-      console.log("cronSetting",cronSetting)
-       return cronSetting.startTime??this.getNextBusinessDay();
-     }
+  private async getNextScheduleDay(): Promise<Date> {
+    const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
+    console.log("cronSetting", cronSetting);
+    
+    if (cronSetting?.startTime) {
+      // Parse the time string (HH:MM format) and set it for tomorrow
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const [hours, minutes] = cronSetting.startTime.split(':').map(Number);
+      tomorrow.setHours(hours, minutes, 0, 0);
+      
+      return tomorrow;
+    }
+    
+    return this.getNextBusinessDay();
+  }
   /**
    * Process transcript for email or phone information
    */
   private async processTranscriptForContactInfo(call: any, leadId: string): Promise<void> {
     try {
-
-         const lead = await this.leadRepository.findOne({
+      const lead = await this.leadRepository.findOne({
         where: { id: leadId }
       });
 
       if (!call.transcript) {
         this.logger.warn(`No transcript found for call ${call.call_id}`);
-       lead.scheduledCallbackDate =await this.getNextScheduleDay();
-          await this.leadRepository.save(lead);  
+        lead.scheduledCallbackDate = await this.getNextScheduleDay();
+        await this.leadRepository.save(lead);  
         return;
       }
-
-      // Get lead info first to fail fast if not found
-   
 
       if (!lead) {
         this.logger.warn(`Lead not found for ID: ${leadId}`);
         return;
       }
 
-      const transcript =
-      //  transcription;
-       call.transcript;
+      const transcript = call.transcript;
 
       // Create structured messages for the chat
       const messages = [
         {
           role: "system",
-          content: `You are an information extractor. Extract contact information and scheduling details from conversations.`
+          content: `You are an information extractor. Extract contact information, scheduling details, and busy status from conversations.`
         },
         {
           role: "user",
           content: `Analyze this conversation and extract:
-1. The preferred contact method (must be "email", "phone", "both", "schedule", or "none")
+1. The preferred contact method (must be "email", "phone", "both", "schedule", "busy", or "none")
 2. The contact information (email address and/or phone number)
 3. If scheduling is mentioned, extract the number of days for callback 
 4. Convert any specific time mentioned for callback into a 24-hour format (e.g., "6 PM" to "18:00")
-5. Resent link 
+5. Resent link
+6. Is the person busy or wants to reschedule (look for phrases like "busy", "can't talk", "call back", "another time")
 Return ONLY a JSON object with these fields:
-- preferredMethod: "email", "phone", "both", "schedule", or "none"
+- preferredMethod: "email", "phone", "both", "schedule", "busy", or "none"
 - contactInfo: {
     email: the email address or null,
     phone: the phone number or null
@@ -312,9 +320,10 @@ Return ONLY a JSON object with these fields:
 - scheduleDays: number of days for callback or null
 - specificTime: the specific time mentioned for callback in 24-hour format or null
 - resentLink: boolean
+- isBusy: boolean (true if person indicates they are busy or want to reschedule)
 Conversation:
 ${transcript}`
-        }]
+        }];
 
       try {
         const response = await this.openai.invoke(messages);
@@ -342,35 +351,55 @@ ${transcript}`
             throw new Error('Failed to parse response as JSON');
           }
         }
-        if(contactInfo.resentLink){
-    if(lead.zohoEmail){
-          await this.mailService.sendVerificationLink(lead);
-          this.logger.log(`Sent verification email to ${lead.zohoEmail}`);
-      }
-          if(lead.zohoPhoneNumber){
-          await this.smsService.sendVerificationSMS(lead);
-          this.logger.log(`Sent verification SMS to ${lead.zohoPhoneNumber}`);
-          }
 
+        // Handle busy/reschedule case first
+        if (contactInfo.isBusy || contactInfo.preferredMethod === 'busy') {
+          // Get the next available time from cron settings
+          const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
+          if (cronSetting?.startTime) {
+            const scheduleDate = new Date();
+            scheduleDate.setDate(scheduleDate.getDate() + 1); // Default to next day if no specific days mentioned
+            
+            const [hours, minutes] = cronSetting.startTime.split(':').map(Number);
+            scheduleDate.setHours(hours, minutes, 0, 0);
+            
+            // If it's weekend, move to Monday
+            if (scheduleDate.getDay() === 0) { // Sunday
+              scheduleDate.setDate(scheduleDate.getDate() + 1);
+            } else if (scheduleDate.getDay() === 6) { // Saturday
+              scheduleDate.setDate(scheduleDate.getDate() + 2);
+            }
+            
+            lead.scheduledCallbackDate = scheduleDate;
+            await this.leadRepository.save(lead);
+            this.logger.log(`Lead is busy, rescheduled for next available time: ${scheduleDate.toISOString()}`);
+            return;
+          }
+        }
+
+        if (contactInfo.resentLink) {
+          if (lead.zohoEmail) {
+            await this.mailService.sendVerificationLink(lead);
+            this.logger.log(`Sent verification email to ${lead.zohoEmail}`);
+          }
+          if (lead.zohoPhoneNumber) {
+            await this.smsService.sendVerificationSMS(lead);
+            this.logger.log(`Sent verification SMS to ${lead.zohoPhoneNumber}`);
+          }
         }
 
         if (contactInfo.preferredMethod === 'schedule' && contactInfo.scheduleDays) {
           const scheduleDate = new Date();
           scheduleDate.setDate(scheduleDate.getDate() + contactInfo.scheduleDays);
           
-          // Set the specific time (18:00)
-          if(contactInfo.specificTime) {
-            const [hours, minutes] = contactInfo?.specificTime?.split(':').map(Number);
-            
-            // Set the hours and minutes
+          if (contactInfo.specificTime) {
+            const [hours, minutes] = contactInfo.specificTime.split(':').map(Number);
             scheduleDate.setHours(hours);
             scheduleDate.setMinutes(minutes);
-            scheduleDate.setSeconds(0); // Optional: set seconds to 0
+            scheduleDate.setSeconds(0);
           }
-          // Store the scheduled callback date
+
           lead.scheduledCallbackDate = scheduleDate;
-        // ZohoSyncService was removed - logging instead
-        this.logger.log(`Scheduled callback for ${scheduleDate.toISOString()} - Zoho sync disabled`);
           await this.leadRepository.save(lead);
           
           this.logger.log(`Scheduled callback for ${scheduleDate.toISOString()}`);
@@ -379,7 +408,6 @@ ${transcript}`
 
         // Handle both email and phone cases
         if (contactInfo.preferredMethod === 'both') {
-          // Store both email and phone
           if (contactInfo.contactInfo.email) {
             lead.zohoEmail = contactInfo.contactInfo.email;
             await this.mailService.sendVerificationLink(lead);
@@ -391,19 +419,13 @@ ${transcript}`
             await this.smsService.sendVerificationSMS(lead);
             this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
           }
-          // ZohoSyncService was removed - logging instead
-          this.logger.log(`Contact info updated - email: ${contactInfo.contactInfo.email}, phone: ${contactInfo.contactInfo.phone} - Zoho sync disabled`);
-        
           await this.leadRepository.save(lead);
         }
         // Handle email only
         else if (contactInfo.preferredMethod === 'email') {
           lead.zohoEmail = contactInfo.contactInfo.email;
           await this.leadRepository.save(lead);
-         
-          // ZohoSyncService was removed - logging instead
-          this.logger.log(`Email contact info updated: ${contactInfo.contactInfo.email} - Zoho sync disabled`);
-           await this.mailService.sendVerificationLink(lead);
+          await this.mailService.sendVerificationLink(lead);
           this.logger.log(`Sent verification email to ${contactInfo.contactInfo.email}`);
         } 
         // Handle phone only
@@ -411,20 +433,20 @@ ${transcript}`
           lead.zohoPhoneNumber = contactInfo.contactInfo.phone;
           await this.leadRepository.save(lead);
           await this.smsService.sendVerificationSMS(lead);
-          // ZohoSyncService was removed - logging instead
-          this.logger.log(`Phone contact info updated: ${contactInfo.contactInfo.phone} - Zoho sync disabled`);
           this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
         }
         else {
-          lead.scheduledCallbackDate =await this.getNextScheduleDay();
+          // Default rescheduling if no other method specified
+          lead.scheduledCallbackDate = await this.getNextScheduleDay();
           await this.leadRepository.save(lead);   
           this.logger.log(`No contact method specified, scheduled callback for next business day: ${lead.scheduledCallbackDate.toISOString()}`);
-          // ZohoSyncService was removed - logging instead
-          this.logger.log(`Scheduled callback for next business day: ${lead.scheduledCallbackDate.toISOString()} - Zoho sync disabled`);
         }
 
       } catch (error) {
         this.logger.error(`Error processing transcript: ${error.message}`, error.stack);
+        // On error, schedule for next business day
+        lead.scheduledCallbackDate = await this.getNextScheduleDay();
+        await this.leadRepository.save(lead);
       }
     } catch (error) {
       this.logger.error(`Error in processTranscriptForContactInfo: ${error.message}`, error.stack);
@@ -523,6 +545,80 @@ ${transcript}`
         `Failed to update Retell LLM: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
+    }
+  }
+
+  async getCallDetail(callId: string) {
+    try {
+      const response = await axios.get(`${this.retellBaseUrl}/v2/get-call/${callId}`, {
+        headers: {
+          'Authorization': `Bearer ${this.retellApiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Error getting call detail: ${error.message}`);
+      throw new HttpException(
+        `Failed to get call detail: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async updateLLMPrompt(prompt: string): Promise<void> {
+    try {
+      const response = await axios.post(
+        `${this.retellBaseUrl}/v2/update-llm-prompt`,
+        { prompt },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.retellApiKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      this.logger.log('Successfully updated LLM prompt');
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Error updating LLM prompt: ${error.message}`);
+      throw new HttpException(
+        `Failed to update LLM prompt: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async updateLLMPromptForCronJob(type: JobName): Promise<void> {
+    let prompt = '';
+    switch (type) {
+      case JobName.SCHEDULED_CALLS:
+        prompt = this.configService.get<string>('RETELL_MASTER_PROMPT');
+        break;
+      case JobName.RESCHEDULE_CALL:
+        prompt = this.configService.get<string>('RETELL_RESCHEDULE_PROMPT');
+        break;
+      case JobName.REMINDER_CALL:
+        prompt = this.configService.get<string>('RETELL_REMINDER_PROMPT');
+        break;
+      default:
+        this.logger.warn(`No prompt found for job type: ${type}`);
+        return;
+    }
+
+    if (!prompt) {
+      this.logger.warn(`No prompt configured for job type: ${type}`);
+      return;
+    }
+
+    try {
+      await this.updateLLMPrompt(prompt);
+      this.logger.log(`Successfully updated LLM prompt for job type: ${type}`);
+    } catch (error) {
+      this.logger.error(`Failed to update LLM prompt for job type: ${type}`, error.stack);
+      throw error;
     }
   }
 }

@@ -1,12 +1,13 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { JobName } from '../enums/job-name.enum';
 
 @Entity('cron_settings')
 export class CronSetting {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
-  jobName: string;
+  @Column({ type: 'enum', enum: JobName, unique: true })
+  jobName: JobName;
 
   @Column({ nullable: true })
   description: string;
@@ -14,11 +15,11 @@ export class CronSetting {
   @Column({ default: true })
   isEnabled: boolean;
 
-  @Column({ type: 'timestamp', nullable: true })
-  startTime: Date ;
+  @Column({ type: 'varchar', nullable: true })
+  startTime: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  endTime: Date ;
+  @Column({ type: 'varchar', nullable: true })
+  endTime: string;
 
   @CreateDateColumn()
   createdAt: Date;

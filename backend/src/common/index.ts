@@ -6,7 +6,7 @@ export async function updateZohoLead(leadId, leadData) {
       data: [
         {
           "First_Name": leadData.firstName,
-          "Last_Name": leadData.lastName,
+          // "Last_Name": leadData.lastName,
           "Email": leadData.email,
           "Phone": leadData.phone,
           "Lead_Status": 'Form Submitted',

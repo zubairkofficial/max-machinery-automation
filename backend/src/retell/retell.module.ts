@@ -11,8 +11,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { SmsService } from 'src/sms/sms.service';
 import { MessageTemplate } from 'src/message-templates/entities/message-template.entity';
 import { MessageTemplatesService } from 'src/message-templates/message-templates.service';
-import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
-import { CronSetting } from 'src/cron-settings/entities/cron-setting.entity';
+import { CronSettingsModule } from 'src/cron-settings/cron-settings.module';
 import { Retell } from './entities/retell.entity';
 import { LeadsModule } from '../leads/leads.module';
 
@@ -24,10 +23,10 @@ import { LeadsModule } from '../leads/leads.module';
       CallTranscript,
       LastCall,
       MessageTemplate,
-      CronSetting,
-      Retell // Make sure this is included
+      Retell
     ]),
     forwardRef(() => LeadsModule),
+    forwardRef(() => CronSettingsModule),
    
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'secret-key',
@@ -39,8 +38,7 @@ import { LeadsModule } from '../leads/leads.module';
     RetellService,
     MailService,
     SmsService,
-    MessageTemplatesService,
-    CronSettingsService
+    MessageTemplatesService
   ],
   exports: [RetellService],
 })

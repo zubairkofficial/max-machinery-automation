@@ -2,7 +2,7 @@ import { Controller, Get, Body, Patch, Param, UseGuards, Post } from '@nestjs/co
 import { CronSettingsService } from './cron-settings.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdateCronSettingDto } from './dto/update-cron-setting.dto';
-import { CreateCronSettingDto } from './dto/create-cron-setting.dto';
+import { JobName } from './enums/job-name.enum';
 
 @UseGuards(JwtAuthGuard)
 @Controller('cron-settings')
@@ -16,7 +16,7 @@ export class CronSettingsController {
 
   @Patch(':jobName')
   update(@Param('jobName') jobName: string, @Body() updateCronSettingDto: UpdateCronSettingDto) {
-    return this.cronSettingsService.update(jobName, updateCronSettingDto);
+    return this.cronSettingsService.update(jobName as JobName, updateCronSettingDto);
   }
 
 

@@ -6,7 +6,10 @@ import { CronSetting } from './entities/cron-setting.entity';
 import { LeadsModule } from '../leads/leads.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CronSetting]), forwardRef(() => LeadsModule)],
+  imports: [
+    TypeOrmModule.forFeature([CronSetting]), 
+    forwardRef(() => LeadsModule)
+  ],
   controllers: [CronSettingsController],
   providers: [CronSettingsService],
   exports: [CronSettingsService],

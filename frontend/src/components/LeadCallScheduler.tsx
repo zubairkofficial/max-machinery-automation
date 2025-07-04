@@ -3,6 +3,7 @@ import { FaPhone, FaSpinner, FaClock } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 import { api, CallResponse } from '../services/api';
 import toast from 'react-hot-toast';
+import { cronService } from '@/services/cron-service';
 
 interface LeadCallSchedulerProps {
   leadId?: string;
@@ -20,17 +21,11 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
   const [callPriorityLeads, setCallPriorityLeads] = useState(false);
   const [fromNumber, setFromNumber] = useState("+1415843-6193");
   const [callResults, setCallResults] = useState<CallResponse | null>(null);
-  const [showScheduleOptions, setShowScheduleOptions] = useState(true); // Default to true as per requirements
+  const [showScheduleOptions, setShowScheduleOptions] = useState(true);
   const [scheduledTime, setScheduledTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [timeError, setTimeError] = useState<string | null>(null);
   const { theme } = useTheme();
-
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + 5); // Add 5 minutes to current time
-    return now.toISOString().slice(0, 16); // Format as YYYY-MM-DDTHH:MM
-  };
 
   const validateTimes = () => {
     setTimeError(null);
@@ -40,21 +35,10 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
       return false;
     }
     
-    const startDate = new Date(scheduledTime);
-    const now = new Date();
-    
-    // Ensure start time is in the future
-    if (startDate <= now) {
-      setTimeError("Start time must be in the future");
-      return false;
-    }
-    
     // If end time is provided, validate it
     if (endTime) {
-      const endDate = new Date(endTime);
-      
       // Ensure end time is after start time
-      if (endDate <= startDate) {
+      if (endTime <= scheduledTime) {
         setTimeError("End time must be after start time");
         return false;
       }
@@ -87,24 +71,24 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
         fromNumber
       };
 
-      // Add scheduled time if set
+      // Add scheduled time if set (time only for daily scheduling)
       if (showScheduleOptions && scheduledTime) {
-        payload.startTime = new Date(scheduledTime).toISOString();
+        payload.startTime = scheduledTime;
         if (endTime) {
-          payload.endTime = new Date(endTime).toISOString();
+          payload.endTime = endTime;
         }
       }
 
       console.log('Scheduling calls with payload:', payload);
 
       // Make API call
-      const response = await api.scheduleLeadCalls(payload);
+      const response = await cronService.updateCronSetting("ScheduledCalls", payload);
      
       setCallResults(response);
 
       // Show success toast with details
-      const message = response.scheduledTime 
-        ? `Successfully scheduled ${response.scheduled} calls for ${new Date(response.scheduledTime).toLocaleString()}`
+      const message = scheduledTime 
+        ? `Successfully scheduled ${response.scheduled} calls for daily execution at ${scheduledTime}`
         : `Successfully scheduled ${response.scheduled} calls for immediate execution`;
       
       toast.success(message, {
@@ -152,11 +136,11 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
         override_agent_id: "agent_b6a6e23b739cde06fbe109a217" // Default agent
       };
       
-      // Add scheduled time if set
+      // Add scheduled time if set (time only for daily scheduling)
       if (showScheduleOptions && scheduledTime) {
-        payload.startTime = new Date(scheduledTime).toISOString();
+        payload.startTime = scheduledTime;
         if (endTime) {
-          payload.endTime = new Date(endTime).toISOString();
+          payload.endTime = endTime;
         }
       }
 
@@ -167,16 +151,8 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
 
       // Show success toast with details
       let message = '';
-      if (response.scheduledTime) {
-        const scheduledDate = new Date(response.scheduledTime);
-        const now = new Date();
-        const daysDiff = Math.ceil((scheduledDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (daysDiff > 0) {
-          message = `Successfully scheduled call for ${daysDiff} days from now (${scheduledDate.toLocaleString()})`;
-        } else {
-          message = `Successfully scheduled call for ${scheduledDate.toLocaleString()}`;
-        }
+      if (scheduledTime) {
+        message = `Successfully scheduled call for daily execution at ${scheduledTime}`;
       } else {
         message = 'Successfully initiated call';
       }
@@ -234,20 +210,19 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
 
           <div className="mb-4">
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Schedule Call
+              Schedule Call (Daily)
             </h4>
             
             <div className="space-y-4">
               <div>
                 <label htmlFor="scheduleTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Start Time*
+                  Start Time* (Will run daily at this time)
                 </label>
                 <input
-                  type="datetime-local"
+                  type="time"
                   id="scheduleTime"
                   value={scheduledTime || ''}
                   onChange={(e) => setScheduledTime(e.target.value)}
-                  min={getCurrentDateTime()}
                   className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
@@ -258,11 +233,10 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
                   End Time (Optional)
                 </label>
                 <input
-                  type="datetime-local"
+                  type="time"
                   id="endTime"
                   value={endTime || ''}
                   onChange={(e) => setEndTime(e.target.value)}
-                  min={scheduledTime || getCurrentDateTime()}
                   className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
@@ -313,20 +287,19 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
 
           <div className="mb-4">
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Schedule for Later
+              Schedule for Daily Execution
             </h4>
             
             <div className="space-y-4">
               <div>
                 <label htmlFor="scheduleTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Start Time*
+                  Start Time* (Will run daily at this time)
                 </label>
                 <input
-                  type="datetime-local"
+                  type="time"
                   id="scheduleTime"
                   value={scheduledTime || ''}
                   onChange={(e) => setScheduledTime(e.target.value)}
-                  min={getCurrentDateTime()}
                   className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
@@ -337,11 +310,10 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
                   End Time (Optional)
                 </label>
                 <input
-                  type="datetime-local"
+                  type="time"
                   id="endTime"
                   value={endTime || ''}
                   onChange={(e) => setEndTime(e.target.value)}
-                  min={scheduledTime || getCurrentDateTime()}
                   className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
@@ -393,7 +365,7 @@ const LeadCallScheduler: React.FC<LeadCallSchedulerProps> = ({
             </p>
             {scheduledTime && (
               <p>
-                <span className="font-medium">Start Time:</span> {new Date(scheduledTime).toLocaleString()}
+                <span className="font-medium">Daily Start Time:</span> {scheduledTime}
               </p>
             )}
             {callResults.errors && callResults.errors.length > 0 && (

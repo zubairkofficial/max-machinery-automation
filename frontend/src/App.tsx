@@ -22,6 +22,7 @@ import FormPage from './pages/FormPage';
 import InitialContactForm from './components/leads/InitialContactForm';
 import RetellLLMPage from "./pages/RetellLLMPage";
 import CronSettings from './pages/CronSettings';
+import CallHistory from './pages/CallHistory';
 
 // Import or create route placeholders (these components can be implemented later)
 // const PriorityLeads = () => <LeadsManagement currentTab="priority" />;
@@ -77,6 +78,7 @@ function App() {
                             
                             {/* Leads Management Routes */}
                             <Route path="/leads" element={<LeadsManagement currentTab="all" />} />
+                            <Route path="/leads/all-history" element={<CallHistory />} />
                             {/* <Route path="/leads/priority" element={<PriorityLeads />} />
                             <Route path="/leads/new" element={<AddNewLead />} />
                             <Route path="/leads/search" element={<LeadSearch />} /> */}
@@ -89,6 +91,7 @@ function App() {
                             {/* <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} /> */}
                             <Route path="/calls" element={<CallDashboard />} />
                             <Route path="/calls/dashboard" element={<CallDashboard />} />
+                            <Route path="/call-history" element={<CallHistory />} />
                             <Route path="/templates" element={<ProtectedRoute><MessageTemplates /></ProtectedRoute>} />
                             <Route path="/retell-llm" element={<RetellLLMPage />} />
                             <Route path="/cron-settings" element={<CronSettings />} />
