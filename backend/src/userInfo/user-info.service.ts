@@ -37,6 +37,7 @@ export class UserInfoService {
       if (!lead) {
         throw new UnauthorizedException('Lead not found');
       }
+      await this.leadRepository.update(lead.id, { linkClicked: true });
 
      const getUserInfo = await this.userInfoRepository.findOne({where:{email:lead.zohoEmail}})
      if(getUserInfo){
