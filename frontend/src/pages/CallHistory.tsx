@@ -26,6 +26,21 @@ interface CallDetail {
     user_sentiment: string;
     call_successful: boolean;
   };
+  lead?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    status: string;
+    contacted: boolean;
+    zohoEmail: string;
+    zohoPhoneNumber: string;
+    scheduledCallbackDate: string;
+    company: string;
+    industry: string;
+    linkClicked: boolean;
+  };
 }
 
 interface CallHistoryResponse {
@@ -383,6 +398,50 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
             ) : selectedCall ? (
               <div className="p-4 max-h-96 overflow-y-auto">
                 <div className="space-y-4">
+                  {/* Lead Information */}
+                  {selectedCall.lead && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-3">Lead Information</h3>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Name:</p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {selectedCall.lead.firstName} {selectedCall.lead.lastName}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Status:</p>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.status)}`}>
+                            {selectedCall.lead.linkClicked?"Link Clicked": selectedCall.lead.status}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Phone:</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{selectedCall.lead.phone}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Contacted:</p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {selectedCall.lead.contacted ? 'Yes' : 'No'}
+                          </p>
+                        </div>
+                        {selectedCall.lead.company && (
+                          <div>
+                            <p className="text-gray-600 dark:text-gray-400">Company:</p>
+                            <p className="font-medium text-gray-900 dark:text-white">{selectedCall.lead.company}</p>
+                          </div>
+                        )}
+                        {selectedCall.lead.industry && (
+                          <div>
+                            <p className="text-gray-600 dark:text-gray-400">Industry:</p>
+                            <p className="font-medium text-gray-900 dark:text-white">{selectedCall.lead.industry}</p>
+                          </div>
+                        )}
+                       
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <h3 className="font-medium text-gray-900 dark:text-white mb-2">Call Info</h3>

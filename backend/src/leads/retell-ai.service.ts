@@ -198,6 +198,7 @@ if (lead.lastCallRecord) {
 
       // Update lead status
       lead.status = 'CALLING';
+      
       await this.leadRepository.save(lead);
       return response.data;
     } catch (error) {

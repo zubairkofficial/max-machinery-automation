@@ -552,6 +552,7 @@ ${transcript}`
 
   async getCallDetail(callId: string) {
     try {
+      // Get call details from Retell API
       const response = await axios.get(`${this.retellBaseUrl}/v2/get-call/${callId}`, {
         headers: {
           'Authorization': `Bearer ${this.retellApiKey}`,
@@ -559,7 +560,32 @@ ${transcript}`
         },
       });
       
-      return response.data;
+      // Get call history to find lead information
+      const callHistory = await this.callHistoryRepository.findOne({
+        where: { callId },
+        relations: ['lead']
+      });
+
+      // Combine Retell API data with lead information
+      const callDetail = {
+        ...response.data,
+        lead: callHistory?.lead ? {
+          id: callHistory.lead.id,
+          firstName: callHistory.lead.firstName,
+          lastName: callHistory.lead.lastName,
+          phone: callHistory.lead.phone,
+          email: callHistory.lead.email,
+          status: callHistory.lead.status,
+          contacted: callHistory.lead.contacted,
+          zohoEmail: callHistory.lead.zohoEmail,
+          zohoPhoneNumber: callHistory.lead.zohoPhoneNumber,
+          scheduledCallbackDate: callHistory.lead.scheduledCallbackDate,
+          company: callHistory.lead.company,
+          industry: callHistory.lead.industry
+        } : null
+      };
+      
+      return callDetail;
     } catch (error) {
       this.logger.error(`Error getting call detail: ${error.message}`);
       throw new HttpException(

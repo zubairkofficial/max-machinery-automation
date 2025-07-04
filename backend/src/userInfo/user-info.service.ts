@@ -50,6 +50,7 @@ export class UserInfoService {
           await this.zohoSyncService.createZohoLead(lead, "Zoho Crm link click again");
         }
       });
+      await this.leadRepository.update(lead.id, { linkClicked: true });
       return { redirectUrl: this.machineryMaxUrl };
      }
       // Create user info from lead data
@@ -75,7 +76,7 @@ this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
       });
       // Save the user info
       await this.userInfoRepository.save(userInfo);
-
+      await this.leadRepository.update(lead.id, { linkClicked: true });
       // Return redirect URL
       return { redirectUrl: this.machineryMaxUrl };
     } catch (error) {

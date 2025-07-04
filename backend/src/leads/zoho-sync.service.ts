@@ -255,6 +255,7 @@ for(const lead of leads) {
             userInfo.contacted = true;
             await this.leadRepository.update(userInfo.leadId, {
               status: 'completed',
+              formSubmitted:true,
               contacted: true
             });
             await this.userInfoRepository.save(userInfo);
