@@ -42,8 +42,9 @@ export class UserInfoService {
      if(getUserInfo){
       this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
         if (zohoLead) {
-          zohoLead.zohoEmail = lead.zohoEmail;
-          await this.zohoSyncService.updateZohoLead(zohoLead, "Zoho Crm link click again");
+      // if(zohoLead.zohoEmail)    zohoLead.zohoEmail = lead.zohoEmail;
+      // if(zohoLead.phone) zohoLead.phone=lead.phone
+          // await this.zohoSyncService.updateZohoLead(zohoLead, "Zoho Crm link click again");
 
           this.logger.log(`Updated Zoho lead with email: ${lead.zohoEmail}`);
        return { redirectUrl: this.machineryMaxUrl };
