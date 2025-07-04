@@ -43,13 +43,14 @@ export class UserInfoService {
       this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
         if (zohoLead) {
           zohoLead.zohoEmail = lead.zohoEmail;
-          await this.leadRepository.update(lead.id, { linkClicked: true });
           await this.zohoSyncService.updateZohoLead(zohoLead, "Zoho Crm link click again");
+
           this.logger.log(`Updated Zoho lead with email: ${lead.zohoEmail}`);
+       return { redirectUrl: this.machineryMaxUrl };
         } else {
           this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
-          await this.leadRepository.update(lead.id, { linkClicked: true });
           await this.zohoSyncService.createZohoLead(lead, "Zoho Crm link click again");
+      return { redirectUrl: this.machineryMaxUrl };
         }
       });
       // await this.leadRepository.update(lead.id, { linkClicked: true });
@@ -58,9 +59,9 @@ export class UserInfoService {
       // Create user info from lead data
       const userInfo = this.userInfoRepository.create({
         firstName: lead.firstName || '',
-        lastName: lead.lastName || '',
-        email: lead.zohoEmail || decoded.email,
-        phone: lead.zohoPhoneNumber  || '',
+        lastName: lead.lastName || lead.firstName,
+        email: lead.zohoEmail || lead.email,
+        phone: lead.zohoPhoneNumber  || lead.phone,
         leadId: lead.id,
         additionalDetails: '',
         contacted: false
