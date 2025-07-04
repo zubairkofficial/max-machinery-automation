@@ -40,6 +40,8 @@ interface CallDetail {
     company: string;
     industry: string;
     linkClicked: boolean;
+    formSubmitted
+    : boolean;
   };
 }
 
@@ -147,6 +149,10 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
       case 'registered':
       case 'in_progress':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      case 'link clicked':  
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'form submitted':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
@@ -412,7 +418,20 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                         <div>
                           <p className="text-gray-600 dark:text-gray-400">Status:</p>
                           <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.status)}`}>
-                            {selectedCall.lead.linkClicked?"Link Clicked": selectedCall.lead.status}
+                            { selectedCall.lead.status}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Clicked Status:</p>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.linkClicked?"Link Clicked":"Not Clicked")}`}>
+                            { selectedCall.lead.linkClicked?"Link Clicked":"Not Clicked"}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Form Submitted:</p>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.formSubmitted?"Form Submitted":"Not Submitted")}`}>
+                         
+                            {selectedCall.lead.formSubmitted ? 'Form Submitted' : 'Not Submitted'}
                           </span>
                         </div>
                         <div>

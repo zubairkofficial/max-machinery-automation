@@ -581,7 +581,9 @@ ${transcript}`
           zohoPhoneNumber: callHistory.lead.zohoPhoneNumber,
           scheduledCallbackDate: callHistory.lead.scheduledCallbackDate,
           company: callHistory.lead.company,
-          industry: callHistory.lead.industry
+          industry: callHistory.lead.industry,
+          linkClicked: callHistory.lead.linkClicked,
+          formSubmitted: callHistory.lead.formSubmitted
         } : null
       };
       
