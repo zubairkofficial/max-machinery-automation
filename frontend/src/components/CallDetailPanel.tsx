@@ -128,7 +128,7 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
   const retellDynamicVars = call.retell_llm_dynamic_variables || {};
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+      setIsPlaying(!isPlaying);
   };
 
   const handleDownload = () => {
@@ -151,7 +151,7 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-4">
             <FaPhone className="h-6 w-6 text-blue-600" />
-            <div>
+        <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {formatTimestamp(call.startTimestamp)} {call.call_type || 'phone_call'}
               </h2>
@@ -159,14 +159,14 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                 Agent: {call.agent_name || 'Unknown'} | Version {call.agent_version} | Call ID: {call.call_id?.substring(0, 20)}...
               </p>
             </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            ✕
-          </button>
         </div>
+        <button
+          onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        >
+            ✕
+        </button>
+      </div>
 
         <div className="overflow-y-auto max-h-[calc(90vh-100px)]">
           <div className="p-6 space-y-6">
@@ -200,15 +200,15 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
             </div>
 
             {/* Audio Player */}
-            {call.recording_url && (
+      {call.recording_url && (
               <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={handlePlayPause}
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={handlePlayPause}
                     className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full hover:bg-blue-700"
-                  >
+            >
                     {isPlaying ? <FaPause /> : <FaPlay />}
-                  </button>
+            </button>
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -220,22 +220,22 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                       <span className="text-sm text-gray-600 dark:text-gray-400">{totalDuration}</span>
                     </div>
                   </div>
-                  <button
-                    onClick={handleDownload}
+            <button
+              onClick={handleDownload}
                     className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                  >
+            >
                     <FaDownload />
-                  </button>
-                </div>
-              </div>
-            )}
+            </button>
+          </div>
+        </div>
+      )}
 
             {/* Conversation Analysis */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
                 <FaChartLine className="mr-2 text-green-600" />
                 Conversation Analysis
-              </h3>
+          </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="flex items-center space-x-2">
@@ -250,16 +250,16 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                     <span className="text-sm font-medium">
                       {callAnalysis.call_successful ? 'Successful' : 'Failed'}
                     </span>
-                  </div>
-                </div>
+          </div>
+        </div>
 
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-blue-400"></div>
                   <span className="text-sm text-gray-600 dark:text-gray-400">Call Status</span>
                   <div className="ml-auto">
                     <span className="text-sm font-medium capitalize">{call.status || 'Ended'}</span>
-                  </div>
-                </div>
+          </div>
+        </div>
 
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
@@ -268,15 +268,15 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                     {getSentimentIcon(callAnalysis.user_sentiment || '')}
                     <span className="text-sm font-medium">{callAnalysis.user_sentiment || 'Neutral'}</span>
                   </div>
-                </div>
+            </div>
 
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-purple-400"></div>
                   <span className="text-sm text-gray-600 dark:text-gray-400">Disconnection Reason</span>
                   <div className="ml-auto">
                     <span className="text-sm font-medium">{call.disconnection_reason || 'User hangup'}</span>
-                  </div>
-                </div>
+            </div>
+            </div>
 
                 {latency.e2e && (
                   <div className="flex items-center space-x-2">
@@ -284,10 +284,10 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                     <span className="text-sm text-gray-600 dark:text-gray-400">End to End Latency</span>
                     <div className="ml-auto">
                       <span className="text-sm font-medium">{latency.e2e.p50}ms</span>
-                    </div>
-                  </div>
+            </div>
+          </div>
                 )}
-              </div>
+        </div>
             </div>
 
             {/* Summary */}
@@ -312,11 +312,11 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                     <span className="text-blue-700 dark:text-blue-300 font-medium">Agent ID:</span>
                     <p className="text-blue-800 dark:text-blue-200">{call.agent_id}</p>
                   </div>
-                  <div>
+            <div>
                     <span className="text-blue-700 dark:text-blue-300 font-medium">Agent Name:</span>
                     <p className="text-blue-800 dark:text-blue-200">{call.agent_name}</p>
-                  </div>
-                  <div>
+            </div>
+              <div>
                     <span className="text-blue-700 dark:text-blue-300 font-medium">Version:</span>
                     <p className="text-blue-800 dark:text-blue-200">{call.agent_version}</p>
                   </div>
@@ -363,8 +363,8 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                           <span>Max:</span>
                           <span>{latency.llm.max}ms</span>
                         </div>
-                      </div>
-                    </div>
+          </div>
+        </div>
                   )}
                   
                   {latency.tts && (
@@ -404,9 +404,9 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                           <span>{latency.e2e.max}ms</span>
                         </div>
                       </div>
-                    </div>
+              </div>
                   )}
-                </div>
+              </div>
               </div>
             )}
 
@@ -520,8 +520,8 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
                                   Response ID: {entry.metadata.response_id}
                                 </span>
-                              )}
-                            </div>
+            )}
+          </div>
                             {entry.words && entry.words.length > 0 && (
                               <button
                                 onClick={() => toggleWordDetails(index)}

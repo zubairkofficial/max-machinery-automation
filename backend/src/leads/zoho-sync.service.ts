@@ -107,7 +107,7 @@ export class ZohoSyncService {
     })
   )
   .andWhere('userInfo.id IS NULL') // Ensure userInfo does not exist
-  .select(['lead.id', 'lead.zohoEmail', 'lead.zohoPhoneNumber']) // Only select needed fields
+  .select(['lead.id','lead.phone', 'lead.zohoEmail', 'lead.zohoPhoneNumber']) // Only select needed fields
   .getMany(); // Use getMany() to return the results as an array
 
 // Now, `leads` will contain only leads that satisfy the given conditions and do not have an associated UserInfo
@@ -128,11 +128,16 @@ for(const lead of leads) {
       // Get all leads that need to be checked
       const userInfo = await this.userInfoRepository.find({
         where: [
-          { email: Not(IsNull()) },
-          { email: Not('') },
-          { contacted: false }
+          {
+            email: Not(IsNull()),
+            contacted: false
+          },
+          {
+            phone: Not(IsNull()),
+            contacted: false
+          }
         ],
-        select: ['id', 'email', 'contacted','leadId'], // Only select fields we need      
+        select: ['id', 'email', 'phone', 'contacted', 'leadId'],
       });
 
       for (const userLeadInfo of userInfo) {
@@ -140,32 +145,47 @@ for(const lead of leads) {
           // Check if we need to refresh the token
           await this.ensureValidAccessToken();
           
-            // If userLeadInfo not found, check call transcripts for contact info
-            const leadRes = await this.leadRepository.findOne({where:{id:userLeadInfo.leadId}});
+          // Get the lead information
+          const leadRes = await this.leadRepository.findOne({where:{id:userLeadInfo.leadId}});
+          
+          if (leadRes) {
+            // Try searching Zoho with available contact info
+            let foundLead = null;
             
-            if (leadRes) {
+            // First try with email if available
+            if (userLeadInfo.email) {
+              foundLead = await this.searchLeadInZoho(userLeadInfo.email);
+            }
             
-              // Try searching Zoho again with the new contact info
-              let foundLead = null;
-              
-              if (leadRes.zohoEmail) {
-                foundLead = await this.searchLeadInZoho(leadRes.zohoEmail);
-              }
-              
-              if (!foundLead && leadRes.zohoPhoneNumber) {
-                foundLead = await this.searchLeadInZohoByPhone(leadRes.zohoPhoneNumber);
-              }
-                // await this.retellAiService.makeCallLeadZoho(leadRes,this.configService.get<string>('FROM_PHONE_NUMBER'), false,true,this.configService.get<string>('AGENT_ID'));
-              
-              if (!foundLead?.Email ) {
-                const formSumbit=false
-                const linkClick=true
-                // Update our lead with Zoho data
-                await this.retellAiService.makeCallLeadZoho(leadRes,this.configService.get<string>('FROM_PHONE_NUMBER'), formSumbit,linkClick,this.configService.get<string>('AGENT_ID'));
-              }else {
-            // Update our lead with Zoho data
-            await this.updateLeadWithZohoData(userLeadInfo);
-          }
+            // If not found with email, try with phone
+            if (!foundLead && userLeadInfo.phone) {
+              foundLead = await this.searchLeadInZohoByPhone(userLeadInfo.phone);
+            }
+            
+            // If still not found, try with lead's contact info
+            if (!foundLead && leadRes.zohoEmail) {
+              foundLead = await this.searchLeadInZoho(leadRes.zohoEmail);
+            }
+            
+            if (!foundLead && leadRes.zohoPhoneNumber) {
+              foundLead = await this.searchLeadInZohoByPhone(leadRes.zohoPhoneNumber);
+            }
+            
+            if (!foundLead?.Email) {
+              const formSubmit = false;
+              const linkClick = true;
+              // Make reminder call if lead not found in Zoho
+              await this.retellAiService.makeCallLeadZoho(
+                leadRes,
+                this.configService.get<string>('FROM_PHONE_NUMBER'), 
+                formSubmit,
+                linkClick,
+                this.configService.get<string>('AGENT_ID')
+              );
+            } else {
+              // Update our lead with Zoho data
+              await this.updateLeadWithZohoData(userLeadInfo);
+            }
           }   
         } catch (error) {
           this.logger.error(`Error processing lead ${userLeadInfo.id}: ${error.message}`);
@@ -181,6 +201,72 @@ for(const lead of leads) {
       this.logger.error(`Error in Zoho sync: ${error.message}`);
     }
     
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async checkUserInfoInZoho() {
+    try {
+      this.logger.log('Starting UserInfo Zoho check');
+      
+      // Get all userInfo records that haven't been contacted yet
+      const userInfoList = await this.userInfoRepository.find({
+        where: [
+          {
+            email: Not(IsNull()),
+            contacted: false
+          },
+          {
+            phone: Not(IsNull()),
+            contacted: false
+          }
+        ],
+        select: ['id', 'email', 'phone', 'contacted', 'leadId'],
+      });
+
+      this.logger.log(`Found ${userInfoList.length} userInfo records to check`);
+
+      for (const userInfo of userInfoList) {
+        try {
+          // Check if we need to refresh the token
+          await this.ensureValidAccessToken();
+          
+          let foundInZoho = false;
+          
+          // Try searching Zoho with email if available
+          if (userInfo.email) {
+            const foundLead = await this.searchLeadInZoho(userInfo.email);
+            if (foundLead?.Email) {
+              foundInZoho = true;
+              this.logger.log(`Found user in Zoho by email: ${userInfo.email}`);
+            }
+          }
+          
+          // If not found with email, try with phone
+          if (!foundInZoho && userInfo.phone) {
+            const foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
+            if (foundLead?.Phone) {
+              foundInZoho = true;
+              this.logger.log(`Found user in Zoho by phone: ${userInfo.phone}`);
+            }
+          }
+          
+          // If found in Zoho, update the status
+          if (foundInZoho) {
+            userInfo.contacted = true;
+            await this.userInfoRepository.save(userInfo);
+            this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
+          }
+          
+        } catch (error) {
+          this.logger.error(`Error checking userInfo ${userInfo.id} in Zoho: ${error.message}`);
+          continue; // Continue with next user even if one fails
+        }
+      }
+      
+      this.logger.log('Completed UserInfo Zoho check');
+    } catch (error) {
+      this.logger.error(`Error in UserInfo Zoho check: ${error.message}`);
+    }
   }
 
   private async ensureValidAccessToken(): Promise<void> {
@@ -240,7 +326,7 @@ for(const lead of leads) {
       data: [
         {
           "First_Name": leadData.firstName,
-          // "Last_Name": leadData.lastName,
+          "Last_Name": leadData.lastName??leadData.firstName,
           "Email": leadData.zohoEmail,
           "Phone": leadData?.zohoPhoneNumber??leadData.phone,
           "Lead_Id": leadData.id,
@@ -252,7 +338,8 @@ for(const lead of leads) {
         Authorization: `Zoho-oauthtoken ${this.accessToken}`,
       }
     });
-
+leadData.status=status
+await this.leadRepository.save(leadData)
     console.log('Lead created in Zoho CRM:', response.data);
     return response.data;
   } catch (error) {
@@ -479,7 +566,7 @@ for(const lead of leads) {
 
       const zohoData = {
         First_Name: leadData.firstName,
-        Last_Name: leadData.lastName,
+        Last_Name: leadData.lastName??leadData.firstName,
         Phone: leadData.phone,
         Email: leadData.email,
         Company: leadData.company,

@@ -476,9 +476,9 @@ export class LeadsService {
             skipped++;
           }
         }
-
-        return {
-          success: true,
+      
+      return {
+        success: true,
           scheduled,
           skipped,
           errors,

@@ -109,34 +109,34 @@ private async updateRetellLLM(llmId:string, promptType:JobName,lastCallTranscrip
       if (!this.apiKey) throw new Error('RetellAI API key is not configured');
       if (!toNumber) throw new Error('No phone number provided for the call');
 
-      const lead = await this.leadRepository.findOne({ 
-        where: { id },
+     const lead = await this.leadRepository.findOne({ 
+  where: { id },
         relations: ['lastCallRecord']
-      });
+});
 
       const cleanFromNumber = this.cleanPhoneNumber(fromNumber);
       const cleanToNumber = this.cleanPhoneNumber(toNumber);
 
-      let lastCallTranscription = '';
-      if (lead.lastCallRecord) {
-        try {
-          const call = await axios.get(
+   let lastCallTranscription = '';
+if (lead.lastCallRecord) {
+  try {
+    const call = await axios.get(
             `${this.retellBaseUrl}/v2/get-call/${lead.lastCallRecord.callId}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${this.apiKey}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-          
-          if (call.data.transcript) {
-            lastCallTranscription = call.data.transcript;
-          }
-        } catch (error) {
-          this.logger.error(`Error fetching call transcript: ${error.message}`);
+      {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
         }
       }
+    );
+    
+    if (call.data.transcript) {
+      lastCallTranscription = call.data.transcript;
+    }
+  } catch (error) {
+    this.logger.error(`Error fetching call transcript: ${error.message}`);
+  }
+}
 
       // Update Zoho CRM status based on call type
       try {
@@ -222,7 +222,7 @@ private async updateRetellLLM(llmId:string, promptType:JobName,lastCallTranscrip
   public async makeCallLeadZoho(lead: Lead, fromNumber: string, formSubmit: boolean, linkClick: boolean, overrideAgentId?: string): Promise<any> {
     try {
       if (!this.apiKey) throw new Error('RetellAI API key is not configured');
-      if (!lead.phone) throw new Error('No phone number provided for the call');
+      if (lead.phone){
 
       const cleanFromNumber = this.cleanPhoneNumber(fromNumber);
       const cleanToNumber = this.cleanPhoneNumber(lead.phone);
@@ -236,7 +236,7 @@ private async updateRetellLLM(llmId:string, promptType:JobName,lastCallTranscrip
           // If this is a first-time call and lead doesn't exist in Zoho, create it
           zohoLead = await this.zohoSyncService.createLeadInZoho({
             firstName: lead.firstName || '',
-            lastName: lead.lastName || 'Unknown',
+            lastName: lead.lastName ?? lead.firstName,
             phone: cleanToNumber,
             email: lead.zohoEmail || '',
             company: lead.company || '',
@@ -294,7 +294,7 @@ private async updateRetellLLM(llmId:string, promptType:JobName,lastCallTranscrip
       // Update lead status
       lead.status = 'CALLING';
       await this.leadRepository.save(lead);
-      return response.data;
+      return response.data;}
     } catch (error) {
       throw new HttpException(`Failed to make call: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }

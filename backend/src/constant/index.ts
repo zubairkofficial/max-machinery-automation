@@ -154,48 +154,6 @@
 // User: (inaudible speech)
 // `
 
-export const transcription = `Agent: Hi, this is Alex from MachineryMax. May I speak to John Connolly?
-User: Yes.
-Agent: Great! We help businesses like yours sell surplus machinery quickly. Are you currently looking to sell any unused equipment?
-User: Yes. Yes.
-Agent: That's awesome! We offer free valuations and handle pickup logistics. May I send you a link to schedule a consultation?
-User: Yes. Of course.
-Agent: Please say your full phone number, including the country code, or email so I can send you the consultation link.
-User: Both.
-Agent: Sure! Please start by saying your full phone number, including the country code.
-User: Month. Two one three eight one eight zero three one eight. I believe I repeat again. Last one, two, one, three, eight, one, eight, zero, three, one, eight,
-Agent: For "two one three," do you mean the numbers 2 1 3, or are you spelling letters?
-User: Number.
-Agent: Got it! So for your phone number, you said: +[Month] 2138180318. Is that correct? Please say ‘yes’ or ‘no’.
-User: 1 x 1. Pardon me?
-User: again.
-Agent: Okay, please say your full phone number, including the country code, again.
-User: Last month, two months. Three eight one eight zero three one eight.
-Agent: Just to clarify, for "two months," do you mean the numbers 2 0, or are you spelling letters?
-User: Number.
-Agent: Thanks for clarifying! So for your phone number, you said: +[Last Month] +12138180318. Is that correct? Please say ‘yes’ or ‘no’.
-User: Yes.
-Agent: Great! Now, please provide your email address so I can send you the consultation link.
-User: No.
-User: Amna Panguki Amin
-User: mail dot com. One two three. Numbers. No letter.
-User: Only number. I want to pay his number.
-Agent: Just to clarify, for "one two three," do you mean the numbers 1 2 3?
-User: Numbers.
-Agent: Thank you for confirming! So for your email, you said: amnapanguki123@mail.com. Is that correct? Please say ‘yes’ or ‘no’.
-User: (inaudible speech)
-Agent: It seems like I 
-User: at g mail dot com.
-Agent: Got 
-User: Amla one two three 
-Agent: it! So for your email, you said: 
-User: amin at direct of g mail dot com.
-Agent: Just to clarify, for "one two three," do you mean the numbers 1 2 3?
-User: Number. Yes.
-Agent: Thank you for confirming! So for your email, you said: hamza123ameen@gmail.com. Is that correct? Please say ‘yes’ or ‘no’.
-User: Yes.
-User: m w n I mean,
-Agent: It seems like you want to clarify something. Could you please repeat what you meant?
-Agent: If there's anything else you'd like to clarify or if you have more information to share, I'm here to help!
-User: Bye.
-Agent: Thank you for your`
+export const transcription = `Agent: "Hi, this is Alex from MachineryMax. May I speak to John?"
+User: Can you call me I'm busy.
+Agent: I understand you're busy. I'll call you back later. Thanks for your time, John!`

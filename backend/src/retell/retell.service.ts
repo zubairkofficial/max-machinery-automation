@@ -294,7 +294,8 @@ private retellRepository: Repository<Retell>
         return;
       }
 
-      const transcript = call.transcript;
+      const transcript = transcription
+      //  call.transcript;
 
       // Create structured messages for the chat
       const messages = [
@@ -430,7 +431,7 @@ ${transcript}`
         } 
         // Handle phone only
         else if (contactInfo.preferredMethod === 'phone') {
-          lead.zohoPhoneNumber = contactInfo.contactInfo.phone;
+          lead.zohoPhoneNumber = contactInfo.contactInfo.phone??lead.phone;
           await this.leadRepository.save(lead);
           await this.smsService.sendVerificationSMS(lead);
           this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
