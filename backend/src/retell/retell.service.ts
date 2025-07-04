@@ -294,8 +294,9 @@ private retellRepository: Repository<Retell>
         return;
       }
 
-      const transcript = transcription
-      //  call.transcript;
+      const transcript =
+      //  transcription
+       call.transcript;
 
       // Create structured messages for the chat
       const messages = [
