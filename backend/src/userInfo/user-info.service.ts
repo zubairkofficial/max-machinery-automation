@@ -42,9 +42,10 @@ export class UserInfoService {
      if(getUserInfo){
       this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
         if (zohoLead) {
-          zohoLead.zohoEmail = lead.zohoEmail;
+          // Use lead.phone if zohoEmail is not available
+          zohoLead.zohoEmail = lead.zohoEmail || lead.phone;
           await this.zohoSyncService.updateZohoLead(zohoLead, "Zoho Crm link click again");
-          this.logger.log(`Updated Zoho lead with email: ${lead.zohoEmail}`);
+          this.logger.log(`Updated Zoho lead with email: ${lead.zohoEmail || lead.phone}`);
         } else {
           this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
           await this.zohoSyncService.createZohoLead(lead, "Zoho Crm link click again");

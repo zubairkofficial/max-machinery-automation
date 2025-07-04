@@ -577,8 +577,8 @@ ${transcript}`
           email: callHistory.lead.email,
           status: callHistory.lead.status,
           contacted: callHistory.lead.contacted,
-          zohoEmail: callHistory.lead.zohoEmail,
-          zohoPhoneNumber: callHistory.lead.zohoPhoneNumber,
+          zohoEmail: callHistory.lead.zohoEmail || callHistory.lead.phone, // Use phone as fallback
+          zohoPhoneNumber: callHistory.lead.zohoPhoneNumber || callHistory.lead.phone, // Use phone as fallback
           scheduledCallbackDate: callHistory.lead.scheduledCallbackDate,
           company: callHistory.lead.company,
           industry: callHistory.lead.industry,

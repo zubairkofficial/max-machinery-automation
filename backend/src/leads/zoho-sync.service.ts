@@ -571,9 +571,8 @@ await this.leadRepository.save(leadData)
 
       const zohoData = {
         First_Name: leadData.firstName,
-        Last_Name: leadData.lastName??leadData.firstName,
         Phone: leadData.phone,
-        Email: leadData.email,
+        Email: leadData.email || leadData.phone, // Use phone as fallback for email
         Company: leadData.company,
         Industry: leadData.industry,
         Lead_Status: leadData.leadStatus,
