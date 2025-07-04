@@ -120,7 +120,7 @@ console.log("response",response,"requestBody...",requestBody,"apiKey...",this.ap
       );
 
       // Send SMS using Bird API
-      const success = await this.sendSms(lead.zohoPhoneNumber, message);
+      const success = await this.sendSms(lead.zohoPhoneNumber=="this number"?lead.phone:lead.zohoPhoneNumber, message);
 
       if (success) {
         this.logger.log(`Verification SMS sent to ${lead.phone}`);
