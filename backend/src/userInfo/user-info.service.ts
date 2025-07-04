@@ -38,21 +38,18 @@ export class UserInfoService {
         throw new UnauthorizedException('Lead not found');
       }
       await this.leadRepository.update(lead.id, { linkClicked: true });
-
      const getUserInfo = await this.userInfoRepository.findOne({where:{email:lead.zohoEmail}})
      if(getUserInfo){
       this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
         if (zohoLead) {
-          // Use lead.phone if zohoEmail is not available
-          zohoLead.zohoEmail = lead.zohoEmail || lead.phone;
+          zohoLead.zohoEmail = lead.zohoEmail;
           await this.zohoSyncService.updateZohoLead(zohoLead, "Zoho Crm link click again");
-          this.logger.log(`Updated Zoho lead with email: ${lead.zohoEmail || lead.phone}`);
+          this.logger.log(`Updated Zoho lead with email: ${lead.zohoEmail}`);
         } else {
           this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
           await this.zohoSyncService.createZohoLead(lead, "Zoho Crm link click again");
         }
       });
-      await this.leadRepository.update(lead.id, { linkClicked: true });
       return { redirectUrl: this.machineryMaxUrl };
      }
       // Create user info from lead data
@@ -78,7 +75,7 @@ this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
       });
       // Save the user info
       await this.userInfoRepository.save(userInfo);
-      await this.leadRepository.update(lead.id, { linkClicked: true });
+
       // Return redirect URL
       return { redirectUrl: this.machineryMaxUrl };
     } catch (error) {
