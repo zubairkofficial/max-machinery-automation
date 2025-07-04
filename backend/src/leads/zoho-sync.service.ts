@@ -253,6 +253,10 @@ for(const lead of leads) {
           // If found in Zoho, update the status
           if (foundInZoho) {
             userInfo.contacted = true;
+            await this.leadRepository.update(userInfo.leadId, {
+              status: 'completed',
+              contacted: true
+            });
             await this.userInfoRepository.save(userInfo);
             this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
           }

@@ -64,7 +64,7 @@ export class SmsService {
           },
           body: JSON.stringify(requestBody)
         });
-
+console.log("response",response,"requestBody...",requestBody,"apiKey...",this.apiKey)
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
