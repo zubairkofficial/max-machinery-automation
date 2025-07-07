@@ -263,7 +263,7 @@ private retellRepository: Repository<Retell>
     if (cronSetting?.startTime) {
       // Parse the time string (HH:MM format) and set it for tomorrow
       const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setDate(tomorrow.getDate() + 2);
       
       const [hours, minutes] = cronSetting.startTime.split(':').map(Number);
       tomorrow.setHours(hours, minutes, 0, 0);
@@ -360,7 +360,7 @@ ${transcript}`
           const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
           if (cronSetting?.startTime) {
             const scheduleDate = new Date();
-            scheduleDate.setDate(scheduleDate.getDate() + 1); // Default to next day if no specific days mentioned
+            scheduleDate.setDate(scheduleDate.getDate() + 2); // Default to next day if no specific days mentioned
             
             const [hours, minutes] = cronSetting.startTime.split(':').map(Number);
             scheduleDate.setHours(hours, minutes, 0, 0);
@@ -388,6 +388,8 @@ ${transcript}`
             await this.smsService.sendVerificationSMS(lead);
             this.logger.log(`Sent verification SMS to ${lead.zohoPhoneNumber}`);
           }
+          
+          await this.leadRepository.update({id:lead.id},{linkSend:true})
         }
 
         if (contactInfo.preferredMethod === 'schedule' && contactInfo.scheduleDays) {
@@ -421,11 +423,13 @@ ${transcript}`
             await this.smsService.sendVerificationSMS(lead);
             this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
           }
+          lead.linkSend=true
           await this.leadRepository.save(lead);
         }
         // Handle email only
         else if (contactInfo.preferredMethod === 'email') {
           lead.zohoEmail = contactInfo.contactInfo.email;
+          lead.linkSend=true
           await this.leadRepository.save(lead);
           await this.mailService.sendVerificationLink(lead);
           this.logger.log(`Sent verification email to ${contactInfo.contactInfo.email}`);
@@ -433,6 +437,7 @@ ${transcript}`
         // Handle phone only
         else if (contactInfo.preferredMethod === 'phone') {
           lead.zohoPhoneNumber = contactInfo.contactInfo.phone??lead.phone;
+          lead.linkSend=true
           await this.leadRepository.save(lead);
           await this.smsService.sendVerificationSMS(lead);
           this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);

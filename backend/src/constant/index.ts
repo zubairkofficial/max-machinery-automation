@@ -154,6 +154,36 @@
 // User: (inaudible speech)
 // `
 
-export const transcription = `Agent: "Hi, this is Alex from MachineryMax. May I speak to John?"
-User: Can you call me I'm busy.
-Agent: I understand you're busy. I'll call you back later. Thanks for your time, John!`
+export const transcription = `Agent: Hello Zubair khan, this is Alex from MachineryMax. We help businesses sell surplus industrial machinery quickly and for top value. Is now a good time to chat?
+User: Yes.
+Agent: Great! Do you have any surplus 
+User: Yes. 
+Agent: equipment you're considering selling?
+User: Hello?
+Agent: I can hear you, Zubair khan! Could you tell me more about the equipment you have available? For example, how many pieces do you have, and are they currently in use or decommissioned?
+User: No. The two extension and the New condition.
+Agent: Got it! So, you have two extension pieces, and they are in new condition. That's great to hear!Could you share a bit more about the type of equipment it is? This will help me understand how we can assist you in selling them effectively.
+User: Not by any.
+Agent: I understand, Zubair khan. If you're not ready to provide more details right now, that's perfectly fine. Would you like me to send you some information about our services and how we can help you when you're ready?
+User: Send my email More detail. Yes. Not on my email.
+Agent: No problem at all! Just to confirm, what’s the best email address for me to send the information to?
+User: No. Hamzah one fifteen a m w m at the end of June, dot
+User: And not my email. At a m zed a one twenty a m e e n at g mail dot com.
+Agent: Thank you for providing that, Zubair khan! I’ll send the information to hamzah115amwm@gmail.com. You can expect to receive more details about our services shortly.If you have any other 
+User: O 
+Agent: questions or 
+User: three a m a e n, and direct at g mail dot com.
+Agent: Thank you for clarifying, Zubair khan! I’ll send the information to o3aem.direct@gmail.com. You can expect to receive more details about our services shortly. If you have any other 
+User: My name 
+Agent: questions or 
+User: is s m z e. One two three a m e e n at g mail dot com.
+Agent: Thank you for that, Zubair khan! I’ll send the information to smze123ameen@gmail.com. You can expect to receive more details about our services shortly. If you 
+User: Email 
+Agent: have any other 
+User: is Hamza one two three, t a m e e n at g mail dot com.
+Agent: Thank you for the correction, Zubair khan! I’ll send the information to hamza123tameen@gmail.com. You can expect to receive more details about our services shortly. If you have any other questions or need assistance, feel free to reach out!
+User: Me
+Agent: I apologize for the mix-up, Zubair khan! Just to confirm, could you please provide the correct email address one more time? I want to make sure I send the information to the right place.
+User: H e n zed a one two three a n e e n at letter dot g mail dot com.
+Agent: Thank you for your patience, Zubair khan! I’ll send the information to hamza123ameen@gmail.com. You can expect to receive more details about our services shortly. If you have any further questions or need assistance, just let me know!
+🎵 Play Recording`

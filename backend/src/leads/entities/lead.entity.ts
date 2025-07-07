@@ -111,6 +111,12 @@ userInfo: UserInfo;
 
   @Column({ default: false })
   linkClicked: boolean;
+  
+  @Column({ default: false })
+  linkSend: boolean;
+
+ @Column({ type: 'timestamp', nullable: true })
+  reminder: Date;
 
   @Column({ type: 'timestamp', nullable: true })
   formSubmittedAt: Date;

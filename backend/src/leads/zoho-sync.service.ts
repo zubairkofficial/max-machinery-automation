@@ -95,21 +95,36 @@ export class ZohoSyncService {
     console.log(`Current time: ${currentTime}, Schedule: ${startTime}${endTime ? ` - ${endTime}` : ''}, Should run: ${shouldRun}`);
     
     if (shouldRun) {
-      const leads = await this.leadRepository
+      const currentDate = new Date();
+currentDate.setDate(currentDate.getDate() - 1); // Previous day
+
+     const leads = await this.leadRepository
   .createQueryBuilder('lead')
-  .leftJoinAndSelect('lead.userInfo', 'userInfo') // Left join with userInfo
-  .where(
+  .leftJoin('lead.userInfo', 'userInfo')
+  .where('lead.contacted = true')
+  .andWhere('userInfo.id IS NULL')
+ .andWhere(
     new Brackets(qb => {
-      qb.where('lead.contacted = :contacted', { contacted: true })
-        .andWhere('lead.zohoEmail IS NOT NULL AND lead.zohoPhoneNumber IS NULL') // First condition
-        .orWhere('lead.contacted = :contacted AND lead.zohoEmail IS NULL AND lead.zohoPhoneNumber IS NOT NULL') // Second condition
-        .orWhere('lead.contacted = :contacted AND lead.zohoEmail IS NOT NULL AND lead.zohoPhoneNumber IS NOT NULL'); // Third condition
+      // کم از کم ایک رابطے کی تفصیل موجود ہو،
+      // یا دونوں خالی ہوں مگر lead.phone موجود ہو
+      qb.where('lead.zohoEmail IS NOT NULL OR lead.zohoPhoneNumber IS NOT NULL')
+        .orWhere('lead.zohoEmail IS NULL AND lead.zohoPhoneNumber IS NULL AND lead.phone IS NOT NULL');
+    }),
+  )
+    .andWhere(
+    new Brackets(qb => {
+      qb.where('lead.reminder < :currentDate', { currentDate: currentDate.toISOString() }) // Previous day check
+        .orWhere('lead.reminder IS NULL'); // OR reminderDateTime can be NULL
     })
   )
-  .andWhere('userInfo.id IS NULL') // Ensure userInfo does not exist
-  .select(['lead.id','lead.phone', 'lead.zohoEmail', 'lead.zohoPhoneNumber']) // Only select needed fields
-  .getMany(); // Use getMany() to return the results as an array
-
+   .andWhere('lead.linkSend = :linkSend', { linkSend: true })
+  .select([
+    'lead.id',
+    'lead.zohoEmail',
+    // پہلے zohoPhoneNumber، ورنہ lead.phone
+    'COALESCE(lead.zohoPhoneNumber, lead.phone) AS phone',
+  ])
+  .getRawMany();
 // Now, `leads` will contain only leads that satisfy the given conditions and do not have an associated UserInfo
 
 
@@ -256,7 +271,8 @@ for(const lead of leads) {
             await this.leadRepository.update(userInfo.leadId, {
               status: 'completed',
               formSubmitted:true,
-              contacted: true
+              contacted: true,
+              formSubmittedAt:new Date()
             });
             await this.userInfoRepository.save(userInfo);
             this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
@@ -379,6 +395,38 @@ await this.leadRepository.save(leadData)
   }
 
 
+ async updateZohoLeadByPhon(lead, leadData) {
+  try {
+    await this.ensureValidAccessToken();
+
+      const searchResponse = await axios.get(`https://www.zohoapis.com/crm/v2/Leads/search?criteria=(Phone:equals:${lead.phone})`, {
+      headers: {
+        Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+      }
+    });
+
+     if (searchResponse.data.data && searchResponse.data.data.length > 0) {
+    const leadId = searchResponse.data.data[0].id; // Get the first matching lead
+
+      // Step 2: Update the lead with new data (PUT request)
+      const updateResponse = await axios.put(`https://www.zohoapis.com/crm/v2/Leads/${leadId}`, {
+        data: [
+          {
+           
+            "Lead_Status": leadData || 'Link Clicked', // Default to 'Form Submitted' if no status provided
+          }
+        ]
+      }, {
+        headers: {
+          Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+        }
+      });
+      console.log('Lead updated in Zoho CRM:', updateResponse.data);
+      return updateResponse.data;
+    }
+} catch (error) {
+    console.error('Error updating lead in Zoho CRM:', error.message);
+  }}
  async updateZohoLead(lead, leadData) {
   try {
     await this.ensureValidAccessToken();
@@ -431,96 +479,9 @@ await this.leadRepository.save(leadData)
     }
   }
 
-  private async extractContactInfoFromTranscripts(leadId: string): Promise<{ 
-    email?: string; 
-    phone?: string;
-    preference?: 'email' | 'phone' | 'none';
-  } | null> {
-    try {
-      // Get all transcripts for this lead
-      const transcripts = await this.callTranscriptRepository.find({
-        where: { 
-          callHistory: { lead_id: leadId } 
-        },
-        relations: ['callHistory']
-      });
 
-      if (!transcripts.length) {
-        return null;
-      }
 
-      // Combine all transcripts
-      const combinedTranscript = transcripts.map(t => t.transcript).join('\n\n');
-
-      // Create prompt template for contact info and preference extraction
-      const promptTemplate = PromptTemplate.fromTemplate(`
-        Analyze this conversation and extract:
-        1. Any email addresses mentioned
-        2. Any phone numbers mentioned
-        3. The person's preferred contact method (email/phone/none)
-
-        Only respond in this exact JSON format:
-        {
-          "email": "email@example.com or null if none found",
-          "phone": "phone number in E.164 format or null if none found",
-          "preference": "email" or "phone" or "none" based on what they want to receive information through,
-          "confidence": "high/medium/low based on context certainty"
-        }
-
-        Conversation: {transcript}
-      `);
-
-      // Create chain
-      const chain = RunnableSequence.from([
-        promptTemplate,
-        this.openai,
-        new StringOutputParser()
-      ]);
-
-      // Run analysis
-      const result = await chain.invoke({ transcript: combinedTranscript });
-      
-      try {
-        const parsed = JSON.parse(result);
-        
-        // Only return high/medium confidence results
-        if (parsed.confidence !== 'low') {
-          return {
-            email: parsed.email === 'null' ? undefined : parsed.email,
-            phone: parsed.phone === 'null' ? undefined : parsed.phone,
-            preference: parsed.preference === 'none' ? undefined : parsed.preference
-          };
-        }
-      } catch (e) {
-        this.logger.error('Failed to parse LLM response:', e);
-      }
-    } catch (error) {
-      this.logger.error(`Error extracting contact info from transcripts: ${error.message}`);
-    }
-
-    return null;
-  }
-
-  private async handleContactPreference(userInfo:UserInfo, contactInfo: { 
-    email?: string; 
-    phone?: string;
-    preference?: 'email' | 'phone' | 'none';
-  }): Promise<void> {
-    try {
-      // Update lead with new contact info if found
-      if (contactInfo.email) {
-        userInfo.email = contactInfo.email;
-      }
-      if (contactInfo.phone) {
-        userInfo.phone = contactInfo.phone;
-      }
-      await this.leadRepository.save(userInfo);
-
-     
-    } catch (error) {
-      this.logger.error(`Error handling contact preference: ${error.message}`);
-    }
-  }
+ 
 
   private async updateLeadWithZohoData(userInfo: UserInfo): Promise<void> {
     try {

@@ -220,7 +220,7 @@ if (lead.lastCallRecord) {
   }
 
   // Lead call reminder handling method
-  public async makeCallLeadZoho(lead: Lead, fromNumber: string, formSubmit: boolean, linkClick: boolean, overrideAgentId?: string): Promise<any> {
+  public async makeCallLeadZoho(lead, fromNumber: string, formSubmit: boolean, linkClick: boolean, overrideAgentId?: string): Promise<any> {
     try {
       if (!this.apiKey) throw new Error('RetellAI API key is not configured');
       if (lead.phone){
@@ -233,19 +233,19 @@ if (lead.lastCallRecord) {
         // Check if lead exists in Zoho
         let zohoLead = await this.zohoSyncService.searchLeadInZohoByPhone(cleanToNumber);
         
-        if (!zohoLead) {
-          // If this is a first-time call and lead doesn't exist in Zoho, create it
-          zohoLead = await this.zohoSyncService.createLeadInZoho({
-            firstName: lead.firstName || '',
-            lastName: lead.lastName ?? lead.firstName,
-            phone: cleanToNumber,
-            email: lead.zohoEmail || '',
-            company: lead.company || '',
-            industry: lead.industry || '',
-            leadStatus: 'Initial Call',
-            description: `Lead created during initial call attempt on ${new Date().toISOString()}`
-          });
-        }
+        // if (!zohoLead) {
+        //   // If this is a first-time call and lead doesn't exist in Zoho, create it
+        //   zohoLead = await this.zohoSyncService.createLeadInZoho({
+        //     firstName: lead.firstName || '',
+        //     lastName: lead.lastName ?? lead.firstName,
+        //     phone: cleanToNumber,
+        //     email: lead.zohoEmail || '',
+        //     company: lead.company || '',
+        //     industry: lead.industry || '',
+        //     leadStatus: 'Initial Call',
+        //     description: `Lead created during initial call attempt on ${new Date().toISOString()}`
+        //   });
+        // }
 
         // Update Zoho lead status based on form submission and link click
         let status = 'Contact Attempted';
@@ -254,8 +254,13 @@ if (lead.lastCallRecord) {
         } else if (linkClick) {
           status = 'Link Clicked';
         }
-
-        await this.zohoSyncService.updateLeadInZoho(zohoLead.id, {
+await this.leadRepository.update(
+  { id: lead.lead_id }, // Condition for selecting the lead
+  { reminder: new Date(),
+    status:'Reminder'
+   } // Field to be updated
+);  
+ await this.zohoSyncService.updateLeadInZoho(zohoLead.id, {
           leadStatus: status,
           lastCalledAt: new Date().toISOString(),
           callType: 'reminder'
@@ -293,8 +298,8 @@ if (lead.lastCallRecord) {
       );
 
       // Update lead status
-      lead.status = 'CALLING';
-      await this.leadRepository.save(lead);
+      // lead.status = 'CALLING';
+      // await this.leadRepository.save(lead);
       return response.data;}
     } catch (error) {
       throw new HttpException(`Failed to make call: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
