@@ -15,16 +15,16 @@ export class UserInfo {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({nullable:true})
   firstName: string;
 
-  @Column()
+  @Column({nullable:true})
   lastName: string;
 
-  @Column()
+  @Column({nullable:true})
   email: string;
 
-  @Column()
+  @Column({nullable:true})
   phone: string;
 
   @Column({ type: 'text', nullable: true })
