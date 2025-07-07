@@ -444,6 +444,17 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                             {selectedCall.lead.contacted ? 'Yes' : 'No'}
                           </p>
                         </div>
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">ReSchedule:</p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                         {
+    (selectedCall.lead.linkClicked && selectedCall.lead.formSubmitted) 
+      ? 'No Schedule' 
+      : (selectedCall.lead.scheduledCallbackDate 
+          ? new Date(selectedCall.lead.scheduledCallbackDate).toLocaleString() 
+          : 'No Schedule')
+  }    </p>
+                        </div>
                         {selectedCall.lead.company && (
                           <div>
                             <p className="text-gray-600 dark:text-gray-400">Company:</p>
