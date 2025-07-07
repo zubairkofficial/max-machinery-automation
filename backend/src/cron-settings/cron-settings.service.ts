@@ -73,10 +73,10 @@ export class CronSettingsService implements OnModuleInit {
         jobCallback = () => this.scheduledCallsService.handleDailyScheduledCalls();
         break;
       case JobName.RESCHEDULE_CALL:
-        jobCallback = () => this.scheduledCallsService.handleRescheduleCalls();
+        // jobCallback = () => this.scheduledCallsService.handleRescheduleCalls();
         break;
       case JobName.REMINDER_CALL:
-        jobCallback = () => this.scheduledCallsService.handleReminderCalls();
+        // jobCallback = () => this.scheduledCallsService.handleReminderCalls();
         break;
       default:
         this.logger.warn(`No callback defined for cron job: ${jobName}`);
