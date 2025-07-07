@@ -62,7 +62,7 @@ export class ScheduledCallsService {
   @Cron(CronExpression.EVERY_MINUTE)
   async handleIndivitualReScheduledCall() {
     try {
-    
+    console.log("running====================")
       // Find all pending calls that are within their time window
       const scheduledCallsLeads = await this.leadsService.findAllWithIndivitualScheduledCalls()
 
