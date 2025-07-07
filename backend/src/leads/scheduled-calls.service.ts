@@ -189,7 +189,7 @@ export class ScheduledCallsService {
   // }
 
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  // @Cron(CronExpression.EVERY_MINUTE)
   async handleDailyScheduledCalls() {
     try {
       const scheduleCalls = await this.cronSettingsService.getByName(JobName.SCHEDULED_CALLS);
