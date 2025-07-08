@@ -931,7 +931,8 @@ export class LeadsService {
   ) {
     try {
       const fromNumber =  this.configService.get<string>('FROM_PHONE_NUMBER');
-      
+      await this.retellAiService.updateLLMPromptForCronJob(JobName.SCHEDULED_CALLS);
+         
       // // If startTime is provided, handle time-only daily scheduling
       // if (callParams.startTime) {
       //   // This is time-only scheduling (HH:MM format) for daily execution

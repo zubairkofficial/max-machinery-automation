@@ -118,7 +118,7 @@ private async updateRetellLLM(llmId:string, promptType:JobName,lastCallTranscrip
       const cleanToNumber = this.cleanPhoneNumber(toNumber);
 
    let lastCallTranscription = '';
-if (lead.lastCallRecord) {
+if (type===JobName.RESCHEDULE_CALL && lead.lastCallRecord) {
   try {
     const call = await axios.get(
             `${this.retellBaseUrl}/v2/get-call/${lead.lastCallRecord.callId}`,
