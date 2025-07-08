@@ -20,17 +20,13 @@ export class RetellController {
       
       // Handle different webhook events
       switch (event) {
-        // case 'call_started':
-        //   await this.retellService.handleCallStarted(call);
-        //   break;
+        
         
         case 'call_ended':
           await this.retellService.handleCallEnded(call);
           break;
         
-        // case 'call_analyzed':
-        //   await this.retellService.handleCallAnalyzed(call);
-        //   break;
+       
 
         default:
           this.logger.log(`Unhandled event type: ${event}`);
