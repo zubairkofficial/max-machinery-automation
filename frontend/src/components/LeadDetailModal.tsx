@@ -1,15 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Lead, leadsApi } from '../services/api';
 import { FaPhone, FaEnvelope, FaLinkedin, FaBuilding, FaMapMarkerAlt, FaEdit, FaTimes, FaSave, FaUserTie, FaHistory, FaFileAlt, FaMoneyBill } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
-interface CallHistoryItem {
-  id: string;
-  callId: string;
-  status: string;
-  timestamp: string;
-  lead_id: string;
-}
 
 interface CallDetail {
   call_id: string;
@@ -150,6 +143,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
 
   React.useEffect(() => {
     if (lead) {
+      setSelectedCallDetail(null)
       setMachineryInfo({
         hasSurplusMachinery: lead.hasSurplusMachinery || false,
         machineryInterest: lead.machineryInterest || '',
