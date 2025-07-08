@@ -9,41 +9,67 @@ interface CallHistoryPageProps {}
 interface CallDetail {
   call_id: string;
   call_type: string;
+  agent_id: string;
+  agent_version: number;
   agent_name: string;
+  retell_llm_dynamic_variables: {
+    lead_name: string;
+    contact_info: string;
+    follow_up_weeks: string;
+    consultation_link: string;
+  };
   call_status: string;
   start_timestamp: number;
   end_timestamp: number;
   duration_ms: number;
+  public_log_url: string;
   disconnection_reason: string;
-  transcript: string;
-  recording_url?: string;
+  transcript?: string;
   call_cost: {
-    combined_cost: number;
     total_duration_unit_price: number;
+    product_costs: any[];
+    combined_cost: number;
+    total_duration_seconds: number;
   };
   call_analysis: {
+    in_voicemail: boolean;
     call_summary: string;
     user_sentiment: string;
+    custom_analysis_data: any;
     call_successful: boolean;
+  };
+  from_number: string;
+  to_number: string;
+  direction: string;
+  telephony_identifier: {
+    twilio_call_sid: string;
   };
   lead?: {
     id: string;
     firstName: string;
-    lastName: string;
+    lastName: string | null;
     phone: string;
-    email: string;
+    email: string | null;
     status: string;
     contacted: boolean;
     zohoEmail: string;
     zohoPhoneNumber: string;
     scheduledCallbackDate: string;
-    company: string;
-    industry: string;
+    company: string | null;
+    industry: string | null;
     linkClicked: boolean;
-    linkSend: boolean;
-    formSubmitted
-    : boolean;
+    formSubmitted: boolean;
   };
+  recording_url?: string;
+  transcript_object?: {
+    role: 'agent' | 'user';
+    content: string;
+    words: {
+      start: number;
+      end: number;
+      text: string;
+    }[];
+  }[];
 }
 
 interface CallHistoryResponse {
@@ -230,6 +256,134 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
       </div>
     );
   }
+
+  const renderCallDetail = (selectedCall: CallDetail) => {
+    return (
+      <div className="space-y-6">
+        {/* Lead Status */}
+        <div className="bg-white dark:bg-gray-700 p-4 rounded-lg">
+          <h3 className="font-medium text-gray-900 dark:text-white mb-3">Lead Status</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-gray-600 dark:text-gray-400">Link Status:</p>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                selectedCall.lead?.linkClicked 
+                  ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                  : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+              }`}>
+                {selectedCall.lead?.linkClicked ? 'Link Clicked' : 'Not Clicked'}
+              </span>
+            </div>
+            <div>
+              <p className="text-gray-600 dark:text-gray-400">Form Status:</p>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                selectedCall.lead?.formSubmitted 
+                  ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                  : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+              }`}>
+                {selectedCall.lead?.formSubmitted ? 'Form Submitted' : 'Not Submitted'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Call Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-gray-700 p-4 rounded-lg">
+            <h3 className="font-medium text-gray-900 dark:text-white mb-3">Duration</h3>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {formatDuration(selectedCall.duration_ms)}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-gray-700 p-4 rounded-lg">
+            <h3 className="font-medium text-gray-900 dark:text-white mb-3">Cost</h3>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {formatCurrency(selectedCall.call_cost.combined_cost)}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-gray-700 p-4 rounded-lg">
+            <h3 className="font-medium text-gray-900 dark:text-white mb-3">Status</h3>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {selectedCall.call_status}
+            </p>
+          </div>
+        </div>
+
+        {/* Transcript */}
+        {selectedCall.transcript_object && (
+          <div className="bg-white dark:bg-gray-700 p-4 rounded-lg">
+            <h3 className="font-medium text-gray-900 dark:text-white mb-3">Detailed Transcript</h3>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {selectedCall.transcript_object.map((item, index) => (
+                <div 
+                  key={index}
+                  className={`p-3 rounded-lg ${
+                    item.role === 'agent' 
+                      ? 'bg-blue-50 dark:bg-blue-900/20' 
+                      : 'bg-gray-50 dark:bg-gray-800/50'
+                  }`}
+                >
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    {item.role === 'agent' ? 'Agent' : 'User'}
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    {item.content}
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    {new Date(item.words[0]?.start * 1000).toISOString().substr(11, 8)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Call Analysis */}
+        <div className="bg-white dark:bg-gray-700 p-4 rounded-lg">
+          <h3 className="font-medium text-gray-900 dark:text-white mb-3">Call Analysis</h3>
+          <div className="space-y-3">
+            <div>
+              <p className="text-gray-600 dark:text-gray-400">Summary:</p>
+              <p className="text-sm text-gray-900 dark:text-white">
+                {selectedCall.call_analysis.call_summary}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-600 dark:text-gray-400">Sentiment:</p>
+              <p className="text-sm text-gray-900 dark:text-white">
+                {selectedCall.call_analysis.user_sentiment}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-600 dark:text-gray-400">Success:</p>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                selectedCall.call_analysis.call_successful
+                  ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                  : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+              }`}>
+                {selectedCall.call_analysis.call_successful ? 'Successful' : 'Not Successful'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Recording */}
+        {selectedCall.recording_url && (
+          <div className="mt-4">
+            <a
+              href={selectedCall.recording_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              <FaFileAlt className="mr-2 h-4 w-4" />
+              Listen to Recording
+            </a>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -505,20 +659,19 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                         <div>
                           <p className="text-gray-600 dark:text-gray-400">Status:</p>
                           <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.status)}`}>
-                            { selectedCall.lead.status}
+                            {selectedCall.lead.status}
                           </span>
                         </div>
                         <div>
-                          <p className="text-gray-600 dark:text-gray-400">Clicked Status:</p>
-                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.linkClicked?"Link Clicked":"Not Clicked")}`}>
-                            { selectedCall.lead.linkClicked?"Link Clicked":"Not Clicked"}
+                          <p className="text-gray-600 dark:text-gray-400">Link Status:</p>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.linkClicked ? "Link Clicked" : "Not Clicked")}`}>
+                            {selectedCall.lead.linkClicked ? "Link Clicked" : "Not Clicked"}
                           </span>
                         </div>
                         <div>
-                          <p className="text-gray-600 dark:text-gray-400">Form Submitted:</p>
-                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.formSubmitted?"Form Submitted":"Not Submitted")}`}>
-                         
-                            {selectedCall.lead.formSubmitted ? 'Form Submitted' : 'Not Submitted'}
+                          <p className="text-gray-600 dark:text-gray-400">Form Status:</p>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.formSubmitted ? "Form Submitted" : "Not Submitted")}`}>
+                            {selectedCall.lead.formSubmitted ? "Form Submitted" : "Not Submitted"}
                           </span>
                         </div>
                         <div>
@@ -526,19 +679,16 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                           <p className="font-medium text-gray-900 dark:text-white">{selectedCall.lead.phone}</p>
                         </div>
                         <div>
-                          <p className="text-gray-600 dark:text-gray-400">Contacted:</p>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {selectedCall.lead.contacted ? 'Yes' : 'No'}
-                          </p>
+                          <p className="text-gray-600 dark:text-gray-400">Email:</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{selectedCall.lead.zohoEmail || "Not available"}</p>
                         </div>
                         <div>
-                          <p className="text-gray-600 dark:text-gray-400">ReSchedule:</p>
+                          <p className="text-gray-600 dark:text-gray-400">Callback Date:</p>
                           <p className="font-medium text-gray-900 dark:text-white">
-                         {
-    selectedCall.lead.scheduledCallbackDate 
-          ? new Date(selectedCall.lead.scheduledCallbackDate).toLocaleString() 
-          : 'No Schedule'
-  }    </p>
+                            {selectedCall.lead.scheduledCallbackDate 
+                              ? new Date(selectedCall.lead.scheduledCallbackDate).toLocaleString() 
+                              : "Not scheduled"}
+                          </p>
                         </div>
                         {selectedCall.lead.company && (
                           <div>
@@ -552,70 +702,143 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                             <p className="font-medium text-gray-900 dark:text-white">{selectedCall.lead.industry}</p>
                           </div>
                         )}
-                       
                       </div>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">Call Info</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Agent: {selectedCall.agent_name}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Status: {selectedCall.call_status}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Duration: {formatDuration(selectedCall.duration_ms)}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Disconnection Reason: {selectedCall.disconnection_reason}
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">Cost</h3>
-                      <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                        {formatCurrency((selectedCall.call_cost?.combined_cost/100) || 0)}
-                      </p>
+                  {/* Call Information */}
+                  <div className="bg-white dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-3">Call Information</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Agent Name:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{selectedCall.agent_name}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Direction:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{selectedCall.direction}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">From:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{selectedCall.from_number}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">To:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{selectedCall.to_number}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Start Time:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {new Date(selectedCall.start_timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">End Time:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {new Date(selectedCall.end_timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Duration:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{formatDuration(selectedCall.duration_ms)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Cost:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {formatCurrency((selectedCall.call_cost?.combined_cost || 0) / 100)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Status:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{selectedCall.call_status}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Disconnection:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{selectedCall.disconnection_reason}</p>
+                      </div>
                     </div>
                   </div>
 
-                  {selectedCall.call_analysis && (
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">Analysis</h3>
-                      <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg space-y-2">
-                        <p className="text-sm">
-                          <span className="font-medium">Sentiment:</span> {selectedCall.call_analysis.user_sentiment}
-                        </p>
-                        <p className="text-sm">
-                          <span className="font-medium">Successful:</span> {selectedCall.call_analysis.call_successful ? 'Yes' : 'No'}
-                        </p>
-                        <p className="text-sm">
-                          <span className="font-medium">Summary:</span> {selectedCall.call_analysis.call_summary}
+                  {/* Dynamic Variables */}
+                  <div className="bg-white dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-3">Dynamic Variables</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Lead Name:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {selectedCall.retell_llm_dynamic_variables?.lead_name}
                         </p>
                       </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Contact Info:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {selectedCall.retell_llm_dynamic_variables?.contact_info}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Follow Up:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {selectedCall.retell_llm_dynamic_variables?.follow_up_weeks}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Consultation Link:</p>
+                        <a 
+                          href={selectedCall.retell_llm_dynamic_variables?.consultation_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+                        >
+                          Schedule Consultation
+                        </a>
+                      </div>
                     </div>
-                  )}
+                  </div>
 
-                  <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">Transcript</h3>
-                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg max-h-32 overflow-y-auto">
-                      <pre className="text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300">
-                        {selectedCall.transcript || 'No transcript available'}
+                  {/* Call Analysis */}
+                  <div className="bg-white dark:bg-gray-700 p-4 rounded-lg">
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-3">Call Analysis</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Sentiment:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{selectedCall.call_analysis.user_sentiment}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Call Success:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {selectedCall.call_analysis.call_successful ? "Yes" : "No"}
+                        </p>
+                      </div>
+                      {selectedCall.call_analysis.call_summary && (
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Summary:</p>
+                          <p className="font-medium text-gray-900 dark:text-white">{selectedCall.call_analysis.call_summary}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Transcript */}
+                  {selectedCall.transcript && (
+                    <div className="bg-white dark:bg-gray-700 p-4 rounded-lg">
+                      <h3 className="font-medium text-gray-900 dark:text-white mb-3">Transcript</h3>
+                      <pre className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                        {selectedCall.transcript}
                       </pre>
                     </div>
-                  </div>
+                  )}
 
-                  {selectedCall.recording_url && (
-                    <div>
+                  {/* Public Log */}
+                  {selectedCall.public_log_url && (
+                    <div className="mt-4">
                       <a
-                        href={selectedCall.recording_url}
+                        href={selectedCall.public_log_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
                       >
-                        🎵 Play Recording
+                        <FaFileAlt className="mr-2 h-4 w-4" />
+                        View Call Log
                       </a>
                     </div>
                   )}

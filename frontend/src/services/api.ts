@@ -232,6 +232,16 @@ export const leadsApi = {
     const response = await apiClient.post(`/leads/call/single/${leadId}`, params);
     return response.data;
   },
+
+  getCallDetail: async (callId: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/retell/call-detail/${callId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching call detail:', error);
+      throw error;
+    }
+  },
 };
 
 // Apollo Config API
