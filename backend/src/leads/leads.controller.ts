@@ -24,43 +24,10 @@ import { PaginateLeadsDto } from './dto/paginate-leads.dto';
 import { ScheduleCallsDto } from './dto/schedule-calls.dto';
 import { CallDataMigrationService } from './call-data-migration.service';
 import { ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber } from 'class-validator';
-import { Type } from 'class-transformer';
 
-export class CallDashboardFilterDto {
-  @ApiProperty({ required: false, enum: ['all', 'ended', 'error', 'in_progress'] })
-  @IsOptional()
-  @IsString()
-  status?: string;
+import { CallDashboardFilterDto } from './dto/call-filter.dto';
 
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  startDate?: string;
 
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  endDate?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  search?: string;
-
-  @ApiProperty({ required: false, minimum: 1, default: 1 })
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  page: number = 1;
-
-  @ApiProperty({ required: false, minimum: 1, default: 10 })
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  limit: number = 10;
-}
 
 @Controller('leads')
 // @UseGuards(AuthGuard)
@@ -279,12 +246,20 @@ export class LeadsController {
   @ApiQuery({ name: 'status', required: false, type: String, description: 'Filter by call status' })
   @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Filter from date (ISO string)' })
   @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Filter to date (ISO string)' })
+  @ApiQuery({ name: 'name', required: false, type: String, description: 'Search by lead name (firstName or lastName)' })
+  @ApiQuery({ name: 'reschedule', required: false, type: String, description: 'Filter by reschedule status (scheduled/not_scheduled)' })
+  @ApiQuery({ name: 'linkClicked', required: false, type: String, description: 'Filter by link click status (clicked/not_clicked)' })
+  @ApiQuery({ name: 'formSubmitted', required: false, type: String, description: 'Filter by form submission status (submitted/not_submitted)' })
   async getAllCallHistoryDescending(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
     @Query('status') status?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('name') name?: string,
+    @Query('reschedule') reschedule?: string,
+    @Query('linkClicked') linkClicked?: string,
+    @Query('formSubmitted') formSubmitted?: string,
   ) {
     try {
       const result = await this.leadsService.getAllCallHistoryDescending({ 
@@ -292,7 +267,11 @@ export class LeadsController {
         limit, 
         status, 
         startDate, 
-        endDate 
+        endDate,
+        name,
+        reschedule,
+        linkClicked,
+        formSubmitted
       });
       
       return {

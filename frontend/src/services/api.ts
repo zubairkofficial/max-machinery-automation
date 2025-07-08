@@ -396,6 +396,10 @@ export const api = {
     status?: string;
     startDate?: string;
     endDate?: string;
+    name?: string;
+    reschedule?: string;
+    linkClicked?: string;
+    formSubmitted?: string;
   }): Promise<{ 
     success: boolean;
     data: CallHistory[]; 
@@ -426,6 +430,22 @@ export const api = {
       
       if (params?.endDate) {
         queryParams.append('endDate', params.endDate);
+      }
+
+      if (params?.name && params.name.trim() !== '') {
+        queryParams.append('name', params.name.trim());
+      }
+
+      if (params?.reschedule && params.reschedule !== 'all') {
+        queryParams.append('reschedule', params.reschedule);
+      }
+
+      if (params?.linkClicked && params.linkClicked !== 'all') {
+        queryParams.append('linkClicked', params.linkClicked);
+      }
+
+      if (params?.formSubmitted && params.formSubmitted !== 'all') {
+        queryParams.append('formSubmitted', params.formSubmitted);
       }
 
       const response = await apiClient.get(

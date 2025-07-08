@@ -137,7 +137,7 @@ const BatchCallPage: React.FC = () => {
           
           const mostRecent = calledLeads[0];
           const lastCallTime = new Date(Number(mostRecent.lastCallRecord?.timestamp));
-          lastCalled = `${mostRecent.firstName} ${mostRecent.lastName} at ${lastCallTime.toLocaleString()}`;
+          lastCalled = `${mostRecent.firstName}  at ${lastCallTime.toLocaleString()}`;
         }
         
         setCallStats({

@@ -619,7 +619,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                 >
                   Machinery Information
                 </button>
-                <button
+                {/* <button
                   onClick={() => setActiveTab('call')}
                   className={`${
                     activeTab === 'call'
@@ -628,7 +628,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                   } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm mr-8`}
                 >
                   Call Lead
-                </button>
+                </button> */}
                 <button
                   onClick={() => setActiveTab('additional')}
                   className={`${

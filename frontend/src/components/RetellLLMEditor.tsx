@@ -4,14 +4,7 @@ import { FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import retellService from '@/services/retell-service';
 
-interface RetellLLMResponse {
-  llm_id: string;
-  masterPrompt: string;
-  reminderPrompt: string;
-  busyPrompt: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+
 
 interface RetellLLMEditorProps {
   llmId: string;
@@ -33,6 +26,7 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
     'form_not_submit',
     'lead_name', 
     'contact_info',
+    'lead_phone_number',
   ];
 
   const [showMasterVars, setShowMasterVars] = useState(false);

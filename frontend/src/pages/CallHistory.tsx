@@ -72,7 +72,11 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
   const [filters, setFilters] = useState({
     status: 'all',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    name: '',
+    reschedule: 'all',
+    linkClicked: 'all',
+    formSubmitted: 'all'
   });
 
   useEffect(() => {
@@ -87,7 +91,11 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
         limit: pagination.limit,
         ...(filters.status !== 'all' && { status: filters.status }),
         ...(filters.startDate && { startDate: filters.startDate }),
-        ...(filters.endDate && { endDate: filters.endDate })
+        ...(filters.endDate && { endDate: filters.endDate }),
+        ...(filters.name && { name: filters.name }),
+        ...(filters.reschedule !== 'all' && { reschedule: filters.reschedule }),
+        ...(filters.linkClicked !== 'all' && { linkClicked: filters.linkClicked }),
+        ...(filters.formSubmitted !== 'all' && { formSubmitted: filters.formSubmitted })
       };
 
       const response: CallHistoryResponse = await api.getAllCallHistory(params);
@@ -135,9 +143,25 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
     setFilters({
       status: 'all',
       startDate: '',
-      endDate: ''
+      endDate: '',
+      name: '',
+      reschedule: 'all',
+      linkClicked: 'all',
+      formSubmitted: 'all'
     });
     setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filters.status !== 'all') count++;
+    if (filters.startDate) count++;
+    if (filters.endDate) count++;
+    if (filters.name) count++;
+    if (filters.reschedule !== 'all') count++;
+    if (filters.linkClicked !== 'all') count++;
+    if (filters.formSubmitted !== 'all') count++;
+    return count;
   };
 
   const getStatusColor = (status: string) => {
@@ -221,53 +245,115 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
 
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 p-4">
-          <div className="flex flex-wrap gap-4 items-center">
+          <div className="space-y-4">
             <div className="flex items-center gap-2">
               <FaFilter className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters:</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filters{getActiveFiltersCount() > 0 && ` (${getActiveFiltersCount()} active)`}:
+              </span>
             </div>
             
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">Status:</label>
-              <select
-                value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            {/* First Row - Search and Main Status */}
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">Name:</label>
+                <input
+                  type="text"
+                  placeholder="Search by name..."
+                  value={filters.name}
+                  onChange={(e) => handleFilterChange('name', e.target.value)}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm min-w-[150px]"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">Call Status:</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="ended">Ended</option>
+                  <option value="not_connected">Not Connected</option>
+                  <option value="error">Error</option>
+                  <option value="registered">Registered</option>
+                  <option value="in_progress">In Progress</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Second Row - Lead Status Filters */}
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">ReSchedule:</label>
+                <select
+                  value={filters.reschedule}
+                  onChange={(e) => handleFilterChange('reschedule', e.target.value)}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="not_scheduled">Not Scheduled</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">Link Status:</label>
+                <select
+                  value={filters.linkClicked}
+                  onChange={(e) => handleFilterChange('linkClicked', e.target.value)}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="clicked">Clicked</option>
+                  <option value="not_clicked">Not Clicked</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">Form Status:</label>
+                <select
+                  value={filters.formSubmitted}
+                  onChange={(e) => handleFilterChange('formSubmitted', e.target.value)}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="not_submitted">Not Submitted</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Third Row - Date Filters and Clear Button */}
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">From:</label>
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">To:</label>
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md text-sm transition-colors"
               >
-                <option value="all">All Statuses</option>
-                <option value="ended">Ended</option>
-                <option value="error">Error</option>
-                <option value="registered">Registered</option>
-                <option value="in_progress">In Progress</option>
-              </select>
+                Clear All Filters
+              </button>
             </div>
-
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">From:</label>
-              <input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">To:</label>
-              <input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-              />
-            </div>
-
-            <button
-              onClick={clearFilters}
-              className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-md text-sm transition-colors"
-            >
-              Clear
-            </button>
           </div>
         </div>
 

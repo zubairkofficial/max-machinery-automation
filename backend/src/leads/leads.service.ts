@@ -12,13 +12,13 @@ import { In } from 'typeorm';
 import { RetellAiService } from './retell-ai.service';
 import { ScheduleCallsDto } from './dto/schedule-calls.dto';
 import axios from 'axios';
-import { CallDashboardFilterDto } from './leads.controller';
 import { ScheduledCallsService } from './scheduled-calls.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { RetellService } from 'src/retell/retell.service';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
+import { CallDashboardFilterDto } from './dto/call-filter.dto';
 
 @Injectable()
 export class LeadsService {
@@ -800,16 +800,20 @@ export class LeadsService {
   /**
    * Get all call history in descending order with enhanced filtering and pagination
    */
-  async getAllCallHistoryDescending(options: {
+  async getAllCallHistoryDescending(filters: {
     page?: number;
     limit?: number;
     status?: string;
     startDate?: string;
     endDate?: string;
+    name?: string;
+    reschedule?: string;
+    linkClicked?: string;
+    formSubmitted?: string;
   }): Promise<{ data: CallHistory[]; total: number; page: number; limit: number }> {
     try {
-      const page = Math.max(1, options?.page || 1);
-      const limit = Math.min(100, Math.max(1, options?.limit || 50)); // Ensure reasonable limits
+      const page = Math.max(1, filters?.page || 1);
+      const limit = Math.min(100, Math.max(1, filters?.limit || 50)); // Ensure reasonable limits
 
       const queryBuilder = this.callHistoryRepository
         .createQueryBuilder('callHistory')
@@ -818,15 +822,15 @@ export class LeadsService {
         .addOrderBy('callHistory.createdAt', 'DESC'); // Secondary sort for consistency
 
       // Apply status filter with validation
-      if (options.status && options.status !== 'all' && options.status.trim() !== '') {
+      if (filters.status && filters.status !== 'all' && filters.status.trim() !== '') {
         queryBuilder.andWhere('LOWER(callHistory.status) = LOWER(:status)', { 
-          status: options.status.trim() 
+          status: filters.status.trim() 
         });
       }
 
       // Apply date range filters with proper validation
-      if (options.startDate) {
-        const startDate = new Date(options.startDate);
+      if (filters.startDate) {
+        const startDate = new Date(filters.startDate);
         if (!isNaN(startDate.getTime())) {
           queryBuilder.andWhere('callHistory.startTimestamp >= :startDate', {
             startDate: startDate.getTime()
@@ -834,14 +838,50 @@ export class LeadsService {
         }
       }
 
-      if (options.endDate) {
-        const endDate = new Date(options.endDate);
+      if (filters.endDate) {
+        const endDate = new Date(filters.endDate);
         if (!isNaN(endDate.getTime())) {
           // Set end of day for end date
           endDate.setHours(23, 59, 59, 999);
           queryBuilder.andWhere('callHistory.startTimestamp <= :endDate', {
             endDate: endDate.getTime()
           });
+        }
+      }
+
+      // Apply name search filter (search in firstName and lastName)
+      if (filters.name && filters.name.trim() !== '') {
+        const searchTerm = filters.name.trim();
+        queryBuilder.andWhere(
+          '(LOWER(lead.firstName) LIKE LOWER(:searchTerm) OR LOWER(lead.lastName) LIKE LOWER(:searchTerm) OR LOWER(CONCAT(lead.firstName, \' \', lead.lastName)) LIKE LOWER(:searchTerm))',
+          { searchTerm: `%${searchTerm}%` }
+        );
+      }
+
+      // Apply reschedule filter
+      if (filters.reschedule && filters.reschedule !== 'all') {
+        if (filters.reschedule === 'scheduled') {
+          queryBuilder.andWhere('lead.scheduledCallbackDate IS NOT NULL');
+        } else if (filters.reschedule === 'not_scheduled') {
+          queryBuilder.andWhere('lead.scheduledCallbackDate IS NULL');
+        }
+      }
+
+      // Apply link clicked filter
+      if (filters.linkClicked && filters.linkClicked !== 'all') {
+        if (filters.linkClicked === 'clicked') {
+          queryBuilder.andWhere('lead.linkClicked = :linkClicked', { linkClicked: true });
+        } else if (filters.linkClicked === 'not_clicked') {
+          queryBuilder.andWhere('(lead.linkClicked = :linkClicked OR lead.linkClicked IS NULL)', { linkClicked: false });
+        }
+      }
+
+      // Apply form submitted filter
+      if (filters.formSubmitted && filters.formSubmitted !== 'all') {
+        if (filters.formSubmitted === 'submitted') {
+          queryBuilder.andWhere('lead.formSubmitted = :formSubmitted', { formSubmitted: true });
+        } else if (filters.formSubmitted === 'not_submitted') {
+          queryBuilder.andWhere('(lead.formSubmitted = :formSubmitted OR lead.formSubmitted IS NULL)', { formSubmitted: false });
         }
       }
 
@@ -855,7 +895,13 @@ export class LeadsService {
 
       const callHistory = await queryBuilder.getMany();
 
-      this.logger.log(`Fetched ${callHistory.length} call history records (page ${page}, limit ${limit}, total ${total})`);
+      // Create filter summary for logging
+      const activeFilters = Object.entries(filters)
+        .filter(([key, value]) => value && value !== 'all' && value !== '')
+        .map(([key, value]) => `${key}=${value}`)
+        .join(', ');
+
+      this.logger.log(`Call history query: ${callHistory.length}/${total} records (page ${page}/${Math.ceil(total/limit)}) ${activeFilters ? `with filters: ${activeFilters}` : 'no filters'}`);
 
       return {
         data: callHistory,
@@ -867,10 +913,10 @@ export class LeadsService {
       this.logger.error('Error fetching call history in descending order:', {
         message: error.message,
         stack: error.stack,
-        options
+        filters
       });
       throw new HttpException(
-        'Failed to fetch call history',
+        `Failed to fetch call history: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }

@@ -182,6 +182,7 @@ if (lead.lastCallRecord) {
             follow_up_weeks: "2 weeks",
             consultation_link: "https://machinerymax.com/schedule",
             contact_info: "contact@machinerymax.com | (555) 123-4567",
+            lead_phone_number: lead.phone,
           },
           metadata: { 
             lead_id: lead.id,
@@ -283,6 +284,7 @@ await this.leadRepository.update(
             follow_up_weeks: "2 weeks",
             consultation_link: "https://machinerymax.com/schedule",
             contact_info: "contact@machinerymax.com | (555) 123-4567",
+            lead_phone_number: lead.phone,
           },
           metadata: { 
             lead_id: lead.id,

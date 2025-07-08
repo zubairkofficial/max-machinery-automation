@@ -28,54 +28,6 @@ interface TranscriptEntry {
   };
 }
 
-interface CallAnalysis {
-  call_successful?: boolean;
-  user_sentiment?: string;
-  call_summary?: string;
-  in_voicemail?: boolean;
-  custom_analysis_data?: any;
-}
-
-interface LatencyData {
-  llm?: {
-    p50: number;
-    p90: number;
-    p95: number;
-    p99: number;
-    min: number;
-    max: number;
-    num: number;
-    values: number[];
-  };
-  tts?: {
-    p50: number;
-    p90: number;
-    p95: number;
-    p99: number;
-    min: number;
-    max: number;
-    num: number;
-    values: number[];
-  };
-  e2e?: {
-    p50: number;
-    p90: number;
-    p95: number;
-    p99: number;
-    min: number;
-    max: number;
-    num: number;
-    values: number[];
-  };
-}
-
-interface CallCost {
-  total_duration_seconds?: number;
-  total_duration_unit_price?: number;
-  combined_cost?: number;
-  product_costs?: ProductCost[];
-}
-
 const formatTimestamp = (timestamp: string | number): string => {
   try {
     const date = new Date(typeof timestamp === 'string' ? parseInt(timestamp) : timestamp);
@@ -120,12 +72,9 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
   const [showDetailedTranscript, setShowDetailedTranscript] = useState(false);
   const [expandedWordIndex, setExpandedWordIndex] = useState<number | null>(null);
 
-  // Parse additional call data
-  const callAnalysis: CallAnalysis = call.call_analysis || {};
-  const latency: LatencyData = call.latency || {};
-  const callCost: CallCost = call.call_cost || {};
+  // Parse additional call data safely
+  const latency = call.latency || {};
   const transcriptObject: TranscriptEntry[] = call.transcript_object || [];
-  const retellDynamicVars = call.retell_llm_dynamic_variables || {};
 
   const handlePlayPause = () => {
       setIsPlaying(!isPlaying);
@@ -141,7 +90,7 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
     setExpandedWordIndex(expandedWordIndex === index ? null : index);
   };
 
-  const duration = call.duration_ms || (call.endTimestamp - call.startTimestamp);
+  const duration = call.duration_ms || (call.endTimestamp ? call.endTimestamp - call.startTimestamp : 0);
   const totalDuration = formatDuration(duration);
 
   return (
@@ -153,10 +102,10 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
             <FaPhone className="h-6 w-6 text-blue-600" />
         <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {formatTimestamp(call.startTimestamp)} {call.call_type || 'phone_call'}
+                {formatTimestamp(call.startTimestamp)} {call.callType || 'phone_call'}
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Agent: {call.agent_name || 'Unknown'} | Version {call.agent_version} | Call ID: {call.call_id?.substring(0, 20)}...
+                Call ID: {call.call_id?.substring(0, 20)}...
               </p>
             </div>
         </div>
@@ -175,15 +124,15 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500 dark:text-gray-400">Phone Call</span>
+                  <span className="text-gray-500 dark:text-gray-400">Phone Numbers</span>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {call.from_number} → {call.to_number}
+                    {call.fromNumber} → {call.toNumber}
                   </p>
                 </div>
                 <div>
-                  <span className="text-gray-500 dark:text-gray-400">Duration</span>
+                  <span className="text-gray-500 dark:text-gray-400">Call Time</span>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {formatTimestamp(call.startTimestamp)} - {formatTimestamp(call.endTimestamp)}
+                    {formatTimestamp(call.startTimestamp)} - {call.endTimestamp ? formatTimestamp(call.endTimestamp) : 'Ongoing'}
                   </p>
                 </div>
                 <div>
@@ -191,13 +140,49 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                   <p className="font-medium text-gray-900 dark:text-white">{totalDuration}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500 dark:text-gray-400">Cost</span>
+                  <span className="text-gray-500 dark:text-gray-400">Total Cost</span>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {callCost.combined_cost ? formatCurrency(callCost.combined_cost) : 'N/A'}
+                    {call.callCost?.combined_cost ? formatCurrency(call.callCost.combined_cost) : 'N/A'}
                   </p>
                 </div>
               </div>
             </div>
+
+            {/* Lead Information */}
+            {call.leadName && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <h3 className="text-lg font-medium text-green-900 dark:text-green-100 mb-3 flex items-center">
+                  <FaUsers className="mr-2" />
+                  Lead Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-green-700 dark:text-green-300 font-medium">Name:</span>
+                    <p className="text-green-800 dark:text-green-200">{call.leadName}</p>
+                  </div>
+                  <div>
+                    <span className="text-green-700 dark:text-green-300 font-medium">Company:</span>
+                    <p className="text-green-800 dark:text-green-200">{call.leadCompany || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-green-700 dark:text-green-300 font-medium">Phone:</span>
+                    <p className="text-green-800 dark:text-green-200">{call.leadPhone || 'N/A'}</p>
+                  </div>
+                  {call.leadEmail && (
+                    <div>
+                      <span className="text-green-700 dark:text-green-300 font-medium">Email:</span>
+                      <p className="text-green-800 dark:text-green-200">{call.leadEmail}</p>
+                    </div>
+                  )}
+                  {call.leadJobTitle && (
+                    <div>
+                      <span className="text-green-700 dark:text-green-300 font-medium">Job Title:</span>
+                      <p className="text-green-800 dark:text-green-200">{call.leadJobTitle}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Audio Player */}
       {call.recording_url && (
@@ -230,78 +215,75 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
         </div>
       )}
 
-            {/* Conversation Analysis */}
+            {/* Call Status and Analytics */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
                 <FaChartLine className="mr-2 text-green-600" />
-                Conversation Analysis
+                Call Details
           </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Preset</span>
-                  <div className="ml-auto flex items-center space-x-1">
-                    {callAnalysis.call_successful ? (
-                      <FaCheckCircle className="text-green-500" />
-                    ) : (
-                      <FaTimesCircle className="text-red-500" />
-                    )}
-                    <span className="text-sm font-medium">
-                      {callAnalysis.call_successful ? 'Successful' : 'Failed'}
-                    </span>
+                  <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                  <div className="ml-auto">
+                    <span className="text-sm font-medium capitalize">{call.status}</span>
           </div>
         </div>
 
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Call Status</span>
+                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Direction</span>
                   <div className="ml-auto">
-                    <span className="text-sm font-medium capitalize">{call.status || 'Ended'}</span>
+                    <span className="text-sm font-medium capitalize">{call.direction || 'N/A'}</span>
           </div>
         </div>
 
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">User Sentiment</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Sentiment</span>
                   <div className="ml-auto flex items-center space-x-1">
-                    {getSentimentIcon(callAnalysis.user_sentiment || '')}
-                    <span className="text-sm font-medium">{callAnalysis.user_sentiment || 'Neutral'}</span>
+                    {getSentimentIcon(call.sentiment?.overall || '')}
+                    <span className="text-sm font-medium">{call.sentiment?.overall || 'N/A'}</span>
                   </div>
             </div>
 
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-purple-400"></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Disconnection Reason</span>
+                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Disconnection</span>
                   <div className="ml-auto">
-                    <span className="text-sm font-medium">{call.disconnection_reason || 'User hangup'}</span>
+                    <span className="text-sm font-medium">{call.disconnection_reason?.replace(/_/g, ' ') || 'Unknown'}</span>
             </div>
             </div>
-
-                {latency.e2e && (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">End to End Latency</span>
-                    <div className="ml-auto">
-                      <span className="text-sm font-medium">{latency.e2e.p50}ms</span>
-            </div>
-          </div>
-                )}
         </div>
-            </div>
 
-            {/* Summary */}
-            {callAnalysis.call_summary && (
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Summary</h3>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {callAnalysis.call_summary}
-                </p>
-              </div>
-            )}
+              {/* Analytics if available */}
+              {call.analytics && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {call.analytics.talkTime && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+                      <span className="text-sm text-blue-700 dark:text-blue-300">Talk Time:</span>
+                      <p className="font-medium text-blue-900 dark:text-blue-100">{call.analytics.talkTime}s</p>
+                    </div>
+                  )}
+                  {call.analytics.leadTalkPercentage && (
+                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded">
+                      <span className="text-sm text-green-700 dark:text-green-300">Lead Talk %:</span>
+                      <p className="font-medium text-green-900 dark:text-green-100">{call.analytics.leadTalkPercentage}%</p>
+                    </div>
+                  )}
+                  {call.analytics.interruptions !== undefined && (
+                    <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded">
+                      <span className="text-sm text-red-700 dark:text-red-300">Interruptions:</span>
+                      <p className="font-medium text-red-900 dark:text-red-100">{call.analytics.interruptions}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Agent Information */}
-            {call.agent_name && (
+            {call.agentId && (
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <h3 className="text-lg font-medium text-blue-900 dark:text-blue-100 mb-3 flex items-center">
                   <FaRobot className="mr-2" />
@@ -310,32 +292,13 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-blue-700 dark:text-blue-300 font-medium">Agent ID:</span>
-                    <p className="text-blue-800 dark:text-blue-200">{call.agent_id}</p>
+                    <p className="text-blue-800 dark:text-blue-200">{call.agentId}</p>
                   </div>
-            <div>
-                    <span className="text-blue-700 dark:text-blue-300 font-medium">Agent Name:</span>
-                    <p className="text-blue-800 dark:text-blue-200">{call.agent_name}</p>
-            </div>
-              <div>
-                    <span className="text-blue-700 dark:text-blue-300 font-medium">Version:</span>
-                    <p className="text-blue-800 dark:text-blue-200">{call.agent_version}</p>
+                  <div>
+                    <span className="text-blue-700 dark:text-blue-300 font-medium">Call Type:</span>
+                    <p className="text-blue-800 dark:text-blue-200">{call.callType || 'phone_call'}</p>
                   </div>
                 </div>
-
-                {/* Dynamic Variables */}
-                {Object.keys(retellDynamicVars).length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Dynamic Variables</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                      {Object.entries(retellDynamicVars).map(([key, value]) => (
-                        <div key={key} className="bg-blue-100 dark:bg-blue-800/30 p-2 rounded">
-                          <span className="text-blue-700 dark:text-blue-300 font-medium">{key}:</span>
-                          <p className="text-blue-800 dark:text-blue-200">{String(value)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -411,14 +374,14 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
             )}
 
             {/* Cost Breakdown */}
-            {callCost && callCost.product_costs && callCost.product_costs.length > 0 && (
+            {call.callCost && call.callCost.product_costs && call.callCost.product_costs.length > 0 && (
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                 <h3 className="text-lg font-medium text-green-900 dark:text-green-100 mb-3 flex items-center">
                   <FaChartLine className="mr-2" />
                   Cost Breakdown
                 </h3>
                 <div className="space-y-2">
-                  {callCost.product_costs.map((cost, index) => (
+                  {call.callCost.product_costs.map((cost, index) => (
                     <div key={index} className="flex justify-between items-center bg-green-100 dark:bg-green-800/30 p-2 rounded">
                       <span className="text-green-800 dark:text-green-200 capitalize">
                         {cost.product.replace(/_/g, ' ')}
@@ -430,7 +393,10 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                   ))}
                   <div className="flex justify-between items-center font-medium text-green-900 dark:text-green-100 border-t border-green-200 dark:border-green-700 pt-2">
                     <span>Total Cost:</span>
-                    <span>{formatCurrency(callCost.combined_cost || 0)}</span>
+                    <span>{formatCurrency(call.callCost.combined_cost || 0)}</span>
+                  </div>
+                  <div className="text-xs text-green-700 dark:text-green-300 mt-2">
+                    <p>Duration: {call.callCost.total_duration_seconds}s | Unit Price: {formatCurrency(call.callCost.total_duration_unit_price || 0)}/minute</p>
                   </div>
                 </div>
               </div>
@@ -450,7 +416,7 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                       ? 'bg-blue-600 text-white' 
                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
                   >
-                    Data
+                    Simple
                   </button>
                   <button
                     onClick={() => setShowDetailedTranscript(true)}
@@ -458,7 +424,7 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                       ? 'bg-blue-600 text-white' 
                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
                   >
-                    Detail Logs
+                    Detailed
                   </button>
                 </div>
               </div>
@@ -493,7 +459,10 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                       );
                     })
                   ) : (
-                    <p className="text-gray-500 dark:text-gray-400">No transcript available</p>
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                      <FaFileAlt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No transcript available for this call</p>
+                    </div>
                   )
                 ) : (
                   // Detailed transcript view with word-level timing
@@ -555,9 +524,39 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                       );
                     })
                   ) : (
-                    <p className="text-gray-500 dark:text-gray-400">No detailed transcript available</p>
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                      <FaFileAlt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No detailed transcript data available</p>
+                    </div>
                   )
                 )}
+              </div>
+            </div>
+
+            {/* Technical Details */}
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Technical Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400 font-medium">Call ID:</span>
+                  <p className="text-gray-800 dark:text-gray-200 font-mono">{call.call_id}</p>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400 font-medium">Lead ID:</span>
+                  <p className="text-gray-800 dark:text-gray-200 font-mono">{call.leadId || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400 font-medium">Data Storage:</span>
+                  <p className="text-gray-800 dark:text-gray-200">
+                    {call.opt_out_sensitive_data_storage ? 'Opted out' : 'Standard'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400 font-medium">Signed URL:</span>
+                  <p className="text-gray-800 dark:text-gray-200">
+                    {call.opt_in_signed_url ? 'Enabled' : 'Disabled'}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -571,7 +570,7 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                   className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   <FaExternalLinkAlt className="h-4 w-4" />
-                  <span>View in Playground</span>
+                  <span>Download Recording</span>
                 </a>
               )}
               {call.public_log_url && (

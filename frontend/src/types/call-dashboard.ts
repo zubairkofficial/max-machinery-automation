@@ -28,6 +28,7 @@ export interface CallRecord {
   fromNumber: string;
   toNumber: string;
   callCost?: CallCost;
+  timestamp: string;
 }
 
 export interface CallDashboardLead {
