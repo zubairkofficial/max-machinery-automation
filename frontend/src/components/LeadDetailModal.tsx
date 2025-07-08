@@ -806,7 +806,7 @@ const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Cost</span>
                 </div>
                 <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
-                  {formatCost(selectedCallDetail.call_cost.combined_cost)}
+                  {formatCost(selectedCallDetail.call_cost.combined_cost/100) || 0}
                 </p>
               </div>
 

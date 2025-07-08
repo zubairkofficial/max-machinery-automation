@@ -51,8 +51,16 @@ const formatDuration = (durationMs: number): string => {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
-const formatCurrency = (amount: number): string => {
-  return `$${amount.toFixed(2)}`;
+const formatCurrency = (amount: number) => {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(amount);
+  } catch {
+    return '$0.00';
+  }
 };
 
 const getSentimentIcon = (sentiment: string) => {
@@ -142,7 +150,7 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">Total Cost</span>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {call.callCost?.combined_cost ? formatCurrency(call.callCost.combined_cost) : 'N/A'}
+                    {call.callCost?.combined_cost ? formatCurrency(call.callCost.combined_cost/100) : 0}
                   </p>
                 </div>
               </div>
@@ -373,34 +381,7 @@ const CallDetailPanel: React.FC<CallDetailPanelProps> = ({ call, onClose }) => {
               </div>
             )}
 
-            {/* Cost Breakdown */}
-            {call.callCost && call.callCost.product_costs && call.callCost.product_costs.length > 0 && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-green-900 dark:text-green-100 mb-3 flex items-center">
-                  <FaChartLine className="mr-2" />
-                  Cost Breakdown
-                </h3>
-                <div className="space-y-2">
-                  {call.callCost.product_costs.map((cost, index) => (
-                    <div key={index} className="flex justify-between items-center bg-green-100 dark:bg-green-800/30 p-2 rounded">
-                      <span className="text-green-800 dark:text-green-200 capitalize">
-                        {cost.product.replace(/_/g, ' ')}
-                      </span>
-                      <span className="text-green-900 dark:text-green-100 font-medium">
-                        {formatCurrency(cost.cost)}
-                      </span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between items-center font-medium text-green-900 dark:text-green-100 border-t border-green-200 dark:border-green-700 pt-2">
-                    <span>Total Cost:</span>
-                    <span>{formatCurrency(call.callCost.combined_cost || 0)}</span>
-                  </div>
-                  <div className="text-xs text-green-700 dark:text-green-300 mt-2">
-                    <p>Duration: {call.callCost.total_duration_seconds}s | Unit Price: {formatCurrency(call.callCost.total_duration_unit_price || 0)}/minute</p>
-                  </div>
-                </div>
-              </div>
-            )}
+           
 
             {/* Transcript Section */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
