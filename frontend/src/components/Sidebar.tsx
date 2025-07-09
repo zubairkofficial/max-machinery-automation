@@ -201,7 +201,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             
             {callsExpanded && (
               <div className="ml-6 pl-3 border-l border-gray-700 space-y-1 pt-1">
-                <NavLink
+                {/* <NavLink
                   to="/calls"
                   className={({ isActive }) =>
                     `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -212,7 +212,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 >
                   <Phone className="w-4 h-4 mr-3" />
                   <span>Call Dashboard</span>
-                </NavLink>
+                </NavLink> */}
                 <NavLink
                   to="/calls/batch"
                   className={({ isActive }) =>
