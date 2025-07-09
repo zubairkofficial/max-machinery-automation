@@ -15,7 +15,7 @@ export class ApolloConfigService implements OnModuleInit {
     @InjectRepository(ApolloConfig)
     private apolloConfigRepository: Repository<ApolloConfig>,
   ) {
-    this.apiKey = process.env.APOLLO_API_KEY || '';
+    this.apiKey = process.env.APOLLO_API_KEY || 'B2MpQzi5b-vpG4WDKHyk-w';
     
     if (!this.apiKey) {
       this.logger.warn('APOLLO_API_KEY is not set in environment variables');

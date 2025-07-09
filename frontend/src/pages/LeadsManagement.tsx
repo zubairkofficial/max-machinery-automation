@@ -10,9 +10,12 @@ import {
   FaSyncAlt, 
   FaSearch,
   FaSort,
+  FaTrash,
+  FaTimes, // Add this for clear icon
 } from 'react-icons/fa';
 import Pagination from '../components/common/Pagination';
 import AddLeadModal from '@/components/leads/LeadModel';
+import { toast } from 'react-hot-toast';
 
 // Add the props interface
 interface LeadsManagementProps {
@@ -25,17 +28,24 @@ const TABS = {
   SURPLUS: 'surplus',
 };
 
+// Add type for sort fields
+type SortableField = keyof Pick<Lead, 'createdAt' | 'company' | 'firstName'>;
+
+// Update SORT_OPTIONS with proper typing
 const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest First' },
-  { value: 'oldest', label: 'Oldest First' },
-  { value: 'companyAZ', label: 'Company (A-Z)' },
-  { value: 'companyZA', label: 'Company (Z-A)' },
+  { value: 'newest', label: 'Newest First', field: 'createdAt' as SortableField, direction: 'DESC' as const },
+  { value: 'oldest', label: 'Oldest First', field: 'createdAt' as SortableField, direction: 'ASC' as const },
+  { value: 'companyAZ', label: 'Company (A-Z)', field: 'company' as SortableField, direction: 'ASC' as const },
+  { value: 'companyZA', label: 'Company (Z-A)', field: 'company' as SortableField, direction: 'DESC' as const },
+  { value: 'nameAZ', label: 'Name (A-Z)', field: 'firstName' as SortableField, direction: 'ASC' as const },
+  { value: 'nameZA', label: 'Name (Z-A)', field: 'firstName' as SortableField, direction: 'DESC' as const },
 ];
 
 const FILTER_OPTIONS = {
   STATUS: [
     { value: 'all', label: 'All Statuses' },
     { value: 'new', label: 'New' },
+    { value: 'registered', label: 'Registered' },
     { value: 'contacted', label: 'Contacted' },
     { value: 'ended', label: 'Ended' },
     // { value: 'qualified', label: 'Qualified' },
@@ -64,6 +74,9 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('newest');
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [filters, setFilters] = useState({
     status: 'all',
@@ -100,7 +113,18 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     }
   );
 
-  // Apply client-side filtering and sorting to the current page data
+  // Add clearFilters function
+  const clearFilters = () => {
+    setFilters({
+      status: 'all',
+      industry: 'all',
+    });
+    setSearchTerm('');
+    setSortOption('newest');
+    setPage(1);
+  };
+
+  // Update sorting logic with proper typing
   const processedLeads = React.useMemo(() => {
     if (!leadsData?.data) return [];
     
@@ -118,20 +142,28 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
       );
     }
     
-    // Apply sorting to the current page data
-    return leads.sort((a, b) => {
-      switch (sortOption) {
-        case 'oldest':
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case 'companyAZ':
-          return (a.company || '').localeCompare(b.company || '');
-        case 'companyZA':
-          return (b.company || '').localeCompare(a.company || '');
-        case 'newest':
-        default:
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
-    });
+    // Find the selected sort option
+    const selectedSort = SORT_OPTIONS.find(option => option.value === sortOption);
+    if (selectedSort) {
+      leads.sort((a, b) => {
+        const aValue = String(a[selectedSort.field] || '');
+        const bValue = String(b[selectedSort.field] || '');
+        
+        if (selectedSort.field === 'createdAt') {
+          // Handle date comparison
+          return selectedSort.direction === 'ASC' 
+            ? new Date(aValue).getTime() - new Date(bValue).getTime()
+            : new Date(bValue).getTime() - new Date(aValue).getTime();
+        }
+        
+        // Handle string comparison
+        return selectedSort.direction === 'ASC'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      });
+    }
+    
+    return leads;
   }, [leadsData?.data, searchTerm, sortOption]);
 
   // Mutation for searching and importing leads
@@ -248,6 +280,33 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     queryClient.invalidateQueries(['leads']);
   };
 
+  // Add delete lead function
+  const handleDeleteLead = async (lead: Lead) => {
+    setLeadToDelete(lead);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!leadToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await leadsApi.delete(leadToDelete.id);
+      // Refetch leads after deletion
+      queryClient.invalidateQueries(['leads']);
+      // Show success message
+      toast.success('Lead deleted successfully');
+      // Close modal
+      setDeleteConfirmOpen(false);
+      setLeadToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete lead:', error);
+      toast.error('Failed to delete lead. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg mb-6 overflow-hidden">
@@ -357,16 +416,43 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                 value={searchTerm}
                 onChange={handleSearchTermChange}
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  <FaTimes className="h-4 w-4 text-gray-400 hover:text-gray-500" />
+                </button>
+              )}
             </div>
             
             <div className="flex space-x-3">
               <button
                 onClick={() => setFilterVisible(!filterVisible)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className={`inline-flex items-center px-3 py-2 border rounded-md shadow-sm text-sm font-medium ${
+                  filters.status !== 'all' || filters.industry !== 'all'
+                    ? 'border-indigo-500 text-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-300'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700'
+                }`}
               >
-                <FaFilter className="mr-2 h-4 w-4 text-gray-500 dark:text-gray-400" />
-                Filters {(filters.status !== 'all' || filters.industry !== 'all') && '(Active)'}
+                <FaFilter className="mr-2 h-4 w-4" />
+                Filters
+                {(filters.status !== 'all' || filters.industry !== 'all') && (
+                  <span className="ml-1 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full px-2 py-0.5">
+                    {(filters.status !== 'all' ? 1 : 0) + (filters.industry !== 'all' ? 1 : 0)}
+                  </span>
+                )}
               </button>
+
+              {(filters.status !== 'all' || filters.industry !== 'all' || searchTerm || sortOption !== 'newest') && (
+                <button
+                  onClick={clearFilters}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  <FaTimes className="mr-2 h-4 w-4" />
+                  Clear All
+                </button>
+              )}
               
               <div className="relative flex-shrink-0">
                 <div className="flex items-center">
@@ -464,6 +550,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                 leads={processedLeads || []}
                 isLoading={isLoading || isRefreshing}
                 onViewDetails={handleViewLeadDetails}
+                onDeleteLead={handleDeleteLead}
               />
 
               {/* Pagination */}
@@ -492,6 +579,60 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
         onClose={() => setIsModalOpen(false)}
         onLeadUpdated={handleLeadUpdated}
       />
+      
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmOpen && leadToDelete && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+            </div>
+
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 sm:mx-0 sm:h-10 sm:w-10">
+                    <FaTrash className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                      Delete Lead
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Are you sure you want to delete {leadToDelete.firstName} {leadToDelete.lastName}'s lead? This action cannot be undone and will also delete all related call history.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteConfirmOpen(false);
+                    setLeadToDelete(null);
+                  }}
+                  disabled={isDeleting}
+                  className={`mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

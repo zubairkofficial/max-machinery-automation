@@ -68,24 +68,26 @@ export class LeadsService {
 
     // Apply status filter
     if (options.status) {
-      switch (options.status) {
-        case 'contacted':
-          queryBuilder.andWhere('lead.contacted = :contacted', { contacted: true });
-          break;
-        case 'not-contacted':
-          queryBuilder.andWhere('lead.contacted = :contacted', { contacted: false });
-          break;
-        case 'qualified':
-          queryBuilder.andWhere('lead.status = :status', { status: 'qualified' });
-          break;
-        case 'not-interested':
-          queryBuilder.andWhere('lead.status = :status', { status: 'not-interested' });
-          break;
-        default:
-          if (options.status !== 'all') {
-            queryBuilder.andWhere('lead.status = :status', { status: options.status });
-          }
-      }
+      // switch (options.status) {
+      //   case 'contacted':
+      //     queryBuilder.andWhere('lead.contacted = :contacted', { contacted: true });
+      //     break;
+      //   case 'not-contacted':
+      //     queryBuilder.andWhere('lead.contacted = :contacted', { contacted: false });
+      //     break;
+      //   case 'qualified':
+      //     queryBuilder.andWhere('lead.status = :status', { status: 'qualified' });
+      //     break;
+      //   case 'not-interested':
+      //     queryBuilder.andWhere('lead.status = :status', { status: 'not-interested' });
+      //     break;
+      //   default:
+      //     if (options.status !== 'all') {
+      //       queryBuilder.andWhere('lead.status = :status', { status: options.status });
+      //     }
+      // }
+      queryBuilder.andWhere('lead.status = :status', { status: options.status });
+      
     }
 
     // Apply industry filter
@@ -211,7 +213,22 @@ export class LeadsService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.leadRepository.delete(id);
+    try {
+      // First, delete all related call history records
+      await this.callHistoryRepository.delete({ lead_id: id });
+      
+      // Delete the last call record if it exists
+      await this.lastCallRepository.delete({ lead_id: id });
+      
+      // Finally, delete the lead
+      await this.leadRepository.delete(id);
+    } catch (error) {
+      this.logger.error(`Failed to delete lead ${id}: ${error.message}`);
+      throw new HttpException(
+        'Failed to delete lead and related records',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   async fetchLeadsFromApollo(searchParams: SearchLeadsDto): Promise<{ leads: Lead[]; stats: any }> {
