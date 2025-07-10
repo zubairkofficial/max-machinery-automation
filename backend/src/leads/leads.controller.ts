@@ -54,8 +54,11 @@ export class LeadsController {
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('status') status?: string,
     @Query('industry') industry?: string,
+    @Query('linkClicked') linkClicked?: string,
+    @Query('formSubmitted') formSubmitted?: string,
+    @Query('reschedule') reschedule?: string,
   ) {
-    return this.leadsService.findAll({ page, limit, status, industry });
+    return this.leadsService.findAll({ page, limit, status, industry, linkClicked, formSubmitted, reschedule });
   }
 
   @Get('surplus-machinery')

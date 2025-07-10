@@ -86,6 +86,10 @@ export interface Lead {
   };
   createdAt: string;
   updatedAt: string;
+  // Added fields for UI and backend compatibility
+  scheduledCallbackDate?: string | null;
+  linkClicked?: boolean;
+  formSubmitted?: boolean;
 }
 
 export interface SearchParams {
@@ -137,6 +141,9 @@ export const leadsApi = {
     filters?: { 
       status?: string;
       industry?: string;
+      linkClicked?: string;
+      formSubmitted?: string;
+      reschedule?: string;
     }
   ): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> => {
     const params = new URLSearchParams({
@@ -150,6 +157,15 @@ export const leadsApi = {
     }
     if (filters?.industry) {
       params.append('industry', filters.industry);
+    }
+    if (filters?.linkClicked) {
+      params.append('linkClicked', filters.linkClicked);
+    }
+    if (filters?.formSubmitted) {
+      params.append('formSubmitted', filters.formSubmitted);
+    }
+    if (filters?.reschedule) {
+      params.append('reschedule', filters.reschedule);
     }
     
     const response = await apiClient.get(`/leads?${params.toString()}`);

@@ -57,6 +57,9 @@ export class LeadsService {
     limit?: number;
     status?: string;
     industry?: string;
+    linkClicked?: string;
+    formSubmitted?: string;
+    reschedule?: string;
   }): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> {
     const page = options?.page || 1;
     const limit = options?.limit || 10;
@@ -93,6 +96,23 @@ export class LeadsService {
     // Apply industry filter
     if (options.industry && options.industry !== 'all') {
       queryBuilder.andWhere('lead.industry = :industry', { industry: options.industry });
+    }
+
+    // Apply linkClicked filter
+    if (options.linkClicked && options.linkClicked !== 'all') {
+      queryBuilder.andWhere('lead.linkClicked = :linkClicked', { linkClicked: options.linkClicked === 'clicked' });
+    }
+    // Apply formSubmitted filter
+    if (options.formSubmitted && options.formSubmitted !== 'all') {
+      queryBuilder.andWhere('lead.formSubmitted = :formSubmitted', { formSubmitted: options.formSubmitted === 'submitted' });
+    }
+    // Apply reschedule filter
+    if (options.reschedule && options.reschedule !== 'all') {
+      if (options.reschedule === 'scheduled') {
+        queryBuilder.andWhere('lead.scheduledCallbackDate IS NOT NULL');
+      } else if (options.reschedule === 'not_scheduled') {
+        queryBuilder.andWhere('lead.scheduledCallbackDate IS NULL');
+      }
     }
 
     // Get total count

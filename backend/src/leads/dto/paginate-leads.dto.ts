@@ -13,4 +13,13 @@ export class PaginateLeadsDto {
   @IsInt()
   @Min(1)
   limit?: number = 10;
+
+  @IsOptional()
+  linkClicked?: string;
+
+  @IsOptional()
+  formSubmitted?: string;
+
+  @IsOptional()
+  reschedule?: string;
 } 

@@ -48,7 +48,6 @@ const FILTER_OPTIONS = {
     { value: 'registered', label: 'Registered' },
     { value: 'contacted', label: 'Contacted' },
     { value: 'ended', label: 'Ended' },
-    // { value: 'qualified', label: 'Qualified' },
     { value: 'error', label: 'Error' },
   ],
   INDUSTRY: [
@@ -59,6 +58,21 @@ const FILTER_OPTIONS = {
     { value: 'Construction', label: 'Construction' },
     { value: 'Automotive', label: 'Automotive' },
     { value: 'Heavy Equipment', label: 'Heavy Equipment' },
+  ],
+  RESCHEDULE: [
+    { value: 'all', label: 'All' },
+    { value: 'scheduled', label: 'Scheduled' },
+    { value: 'not_scheduled', label: 'Not Scheduled' },
+  ],
+  LINK_CLICKED: [
+    { value: 'all', label: 'All' },
+    { value: 'clicked', label: 'Clicked' },
+    { value: 'not_clicked', label: 'Not Clicked' },
+  ],
+  FORM_SUBMITTED: [
+    { value: 'all', label: 'All' },
+    { value: 'submitted', label: 'Submitted' },
+    { value: 'not_submitted', label: 'Not Submitted' },
   ],
 };
 
@@ -81,6 +95,9 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
   const [filters, setFilters] = useState({
     status: 'all',
     industry: 'all',
+    reschedule: 'all',
+    linkClicked: 'all',
+    formSubmitted: 'all',
   });
   const queryClient = useQueryClient();
 
@@ -96,7 +113,10 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
       // Pass filters to the API
       const apiFilters = {
         status: filters.status !== 'all' ? filters.status : undefined,
-        industry: filters.industry !== 'all' ? filters.industry : undefined
+        industry: filters.industry !== 'all' ? filters.industry : undefined,
+        reschedule: filters.reschedule !== 'all' ? filters.reschedule : undefined,
+        linkClicked: filters.linkClicked !== 'all' ? filters.linkClicked : undefined,
+        formSubmitted: filters.formSubmitted !== 'all' ? filters.formSubmitted : undefined,
       };
 
       switch (activeTab) {
@@ -118,6 +138,9 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     setFilters({
       status: 'all',
       industry: 'all',
+      reschedule: 'all',
+      linkClicked: 'all',
+      formSubmitted: 'all',
     });
     setSearchTerm('');
     setSortOption('newest');
@@ -192,6 +215,9 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
         setFilters({
           status: 'all',
           industry: 'all',
+          reschedule: 'all',
+          linkClicked: 'all',
+          formSubmitted: 'all',
         });
         // Set sort to newest first to show latest synced leads
         setSortOption('newest');
@@ -258,7 +284,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
   const handleFilterChange = (filterType: string, value: string) => {
     setFilters(prev => ({
       ...prev,
-      [filterType.toLowerCase()]: value,
+      [filterType]: value,
     }));
     // Reset to first page when filters change
     setPage(1);
@@ -430,21 +456,21 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
               <button
                 onClick={() => setFilterVisible(!filterVisible)}
                 className={`inline-flex items-center px-3 py-2 border rounded-md shadow-sm text-sm font-medium ${
-                  filters.status !== 'all' || filters.industry !== 'all'
+                  filters.status !== 'all' || filters.industry !== 'all' || filters.reschedule !== 'all' || filters.linkClicked !== 'all' || filters.formSubmitted !== 'all'
                     ? 'border-indigo-500 text-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-300'
                     : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700'
                 }`}
               >
                 <FaFilter className="mr-2 h-4 w-4" />
                 Filters
-                {(filters.status !== 'all' || filters.industry !== 'all') && (
+                {(filters.status !== 'all' || filters.industry !== 'all' || filters.reschedule !== 'all' || filters.linkClicked !== 'all' || filters.formSubmitted !== 'all') && (
                   <span className="ml-1 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full px-2 py-0.5">
-                    {(filters.status !== 'all' ? 1 : 0) + (filters.industry !== 'all' ? 1 : 0)}
+                    {(filters.status !== 'all' ? 1 : 0) + (filters.industry !== 'all' ? 1 : 0) + (filters.reschedule !== 'all' ? 1 : 0) + (filters.linkClicked !== 'all' ? 1 : 0) + (filters.formSubmitted !== 'all' ? 1 : 0)}
                   </span>
                 )}
               </button>
 
-              {(filters.status !== 'all' || filters.industry !== 'all' || searchTerm || sortOption !== 'newest') && (
+              {(filters.status !== 'all' || filters.industry !== 'all' || filters.reschedule !== 'all' || filters.linkClicked !== 'all' || filters.formSubmitted !== 'all' || searchTerm || sortOption !== 'newest') && (
                 <button
                   onClick={clearFilters}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -486,7 +512,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
           
           {/* Expanded Filters */}
           {filterVisible && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <div>
                 <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
                 <select
@@ -497,13 +523,10 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                 >
                   {FILTER_OPTIONS.STATUS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
+                    <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
               </div>
-              
               <div>
                 <label htmlFor="industry-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Industry</label>
                 <select
@@ -514,9 +537,49 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                   onChange={(e) => handleFilterChange('industry', e.target.value)}
                 >
                   {FILTER_OPTIONS.INDUSTRY.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="reschedule-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">ReSchedule</label>
+                <select
+                  id="reschedule-filter"
+                  name="reschedule-filter"
+                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                  value={filters.reschedule}
+                  onChange={(e) => handleFilterChange('reschedule', e.target.value)}
+                >
+                  {FILTER_OPTIONS.RESCHEDULE.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="linkClicked-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Link Status</label>
+                <select
+                  id="linkClicked-filter"
+                  name="linkClicked-filter"
+                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                  value={filters.linkClicked}
+                  onChange={(e) => handleFilterChange('linkClicked', e.target.value)}
+                >
+                  {FILTER_OPTIONS.LINK_CLICKED.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="formSubmitted-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Form Status</label>
+                <select
+                  id="formSubmitted-filter"
+                  name="formSubmitted-filter"
+                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                  value={filters.formSubmitted}
+                  onChange={(e) => handleFilterChange('formSubmitted', e.target.value)}
+                >
+                  {FILTER_OPTIONS.FORM_SUBMITTED.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
               </div>
