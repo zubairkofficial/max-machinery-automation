@@ -144,6 +144,7 @@ export const leadsApi = {
       linkClicked?: string;
       formSubmitted?: string;
       reschedule?: string;
+      search?: string;
     }
   ): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> => {
     const params = new URLSearchParams({
@@ -166,6 +167,9 @@ export const leadsApi = {
     }
     if (filters?.reschedule) {
       params.append('reschedule', filters.reschedule);
+    }
+    if (filters?.search) {
+      params.append('search', filters.search);
     }
     
     const response = await apiClient.get(`/leads?${params.toString()}`);

@@ -117,6 +117,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
         reschedule: filters.reschedule !== 'all' ? filters.reschedule : undefined,
         linkClicked: filters.linkClicked !== 'all' ? filters.linkClicked : undefined,
         formSubmitted: filters.formSubmitted !== 'all' ? filters.formSubmitted : undefined,
+        search: searchTerm && searchTerm.trim() !== '' ? searchTerm.trim() : undefined,
       };
 
       switch (activeTab) {
@@ -153,18 +154,6 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     
     let leads = [...leadsData.data];
     
-    // Apply search term filter on the client side
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      leads = leads.filter(lead => 
-        (lead.firstName && lead.firstName.toLowerCase().includes(searchLower)) ||
-        (lead.lastName && lead.lastName.toLowerCase().includes(searchLower)) ||
-        (lead.company && lead.company.toLowerCase().includes(searchLower)) ||
-        (lead.email && lead.email.toLowerCase().includes(searchLower)) ||
-        (lead.location && lead.location.toLowerCase().includes(searchLower))
-      );
-    }
-    
     // Find the selected sort option
     const selectedSort = SORT_OPTIONS.find(option => option.value === sortOption);
     if (selectedSort) {
@@ -187,7 +176,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     }
     
     return leads;
-  }, [leadsData?.data, searchTerm, sortOption]);
+  }, [leadsData?.data, sortOption]);
 
   // Mutation for searching and importing leads
   const searchMutation = useMutation(

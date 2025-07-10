@@ -49,6 +49,10 @@ export class LeadsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'industry', required: false, type: String })
+  @ApiQuery({ name: 'linkClicked', required: false, type: String })
+  @ApiQuery({ name: 'formSubmitted', required: false, type: String })
+  @ApiQuery({ name: 'reschedule', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search in firstName, lastName, email, company, phone' })
   async getAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
@@ -57,8 +61,9 @@ export class LeadsController {
     @Query('linkClicked') linkClicked?: string,
     @Query('formSubmitted') formSubmitted?: string,
     @Query('reschedule') reschedule?: string,
+    @Query('search') search?: string,
   ) {
-    return this.leadsService.findAll({ page, limit, status, industry, linkClicked, formSubmitted, reschedule });
+    return this.leadsService.findAll({ page, limit, status, industry, linkClicked, formSubmitted, reschedule, search });
   }
 
   @Get('surplus-machinery')

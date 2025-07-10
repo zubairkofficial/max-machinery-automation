@@ -60,6 +60,7 @@ export class LeadsService {
     linkClicked?: string;
     formSubmitted?: string;
     reschedule?: string;
+    search?: string;
   }): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> {
     const page = options?.page || 1;
     const limit = options?.limit || 10;
@@ -69,28 +70,18 @@ export class LeadsService {
       .leftJoinAndSelect('lead.callHistoryRecords', 'callHistory')
       .leftJoinAndSelect('lead.lastCallRecord', 'lastCall');
 
+    // Apply search filter
+    if (options.search && options.search.trim() !== '') {
+      const searchTerm = `%${options.search.trim()}%`;
+      queryBuilder.andWhere(
+        '(lead.firstName ILIKE :search OR lead.lastName ILIKE :search OR lead.email ILIKE :search OR lead.company ILIKE :search OR lead.phone ILIKE :search)',
+        { search: searchTerm }
+      );
+    }
+
     // Apply status filter
     if (options.status) {
-      // switch (options.status) {
-      //   case 'contacted':
-      //     queryBuilder.andWhere('lead.contacted = :contacted', { contacted: true });
-      //     break;
-      //   case 'not-contacted':
-      //     queryBuilder.andWhere('lead.contacted = :contacted', { contacted: false });
-      //     break;
-      //   case 'qualified':
-      //     queryBuilder.andWhere('lead.status = :status', { status: 'qualified' });
-      //     break;
-      //   case 'not-interested':
-      //     queryBuilder.andWhere('lead.status = :status', { status: 'not-interested' });
-      //     break;
-      //   default:
-      //     if (options.status !== 'all') {
-      //       queryBuilder.andWhere('lead.status = :status', { status: options.status });
-      //     }
-      // }
       queryBuilder.andWhere('lead.status = :status', { status: options.status });
-      
     }
 
     // Apply industry filter
