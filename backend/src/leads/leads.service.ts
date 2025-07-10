@@ -103,7 +103,7 @@ export class LeadsService {
           });
           break;
         case 'reminder':
-          queryBuilder.andWhere('lead.reminder IS NOT NULL AND (lead.linkClicked = :linkClicked OR lead.formSubmitted = :formSubmitted )', { 
+          queryBuilder.andWhere(' lead.linkClicked = :linkClicked OR lead.formSubmitted = :formSubmitted ', { 
             linkClicked: false, 
             formSubmitted: false,
             
