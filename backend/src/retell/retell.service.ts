@@ -313,6 +313,8 @@ private retellRepository: Repository<Retell>
 4. Convert any specific time mentioned for callback into a 24-hour format (e.g., "6 PM" to "18:00")
 5. Resent link
 6. Is the person busy or wants to reschedule (look for phrases like "busy", "can't talk", "call back", "another time")
+7. If the user says "not interested", include "notInterested: true" in the result
+
 Return ONLY a JSON object with these fields:
 - preferredMethod: "email", "phone", "both", "schedule", "busy", or "none"
 - contactInfo: {
@@ -323,6 +325,7 @@ Return ONLY a JSON object with these fields:
 - specificTime: the specific time mentioned for callback in 24-hour format or null
 - resentLink: boolean
 - isBusy: boolean (true if person indicates they are busy or want to reschedule)
+- notInterested: boolean (true if the person indicates they are not interested)
 Conversation:
 ${transcript}`
         }];
@@ -379,6 +382,9 @@ ${transcript}`
           }
         }
 
+        if (contactInfo.notInterested) {
+          await this.leadRepository.update({id:lead.id},{notInterested:true,status:'not-interested'})
+        }
         if (contactInfo.resentLink) {
           if (lead.zohoEmail) {
             await this.mailService.sendVerificationLink(lead);

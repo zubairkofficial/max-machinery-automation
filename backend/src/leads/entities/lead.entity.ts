@@ -48,6 +48,9 @@ export class Lead {
 
   @Column({ default: false })
   contacted: boolean;
+  
+  @Column({ default: false })
+  notInterested: boolean;
 
   @Column({ default: 'new' })
   status: string;

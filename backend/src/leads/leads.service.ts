@@ -61,6 +61,7 @@ export class LeadsService {
     formSubmitted?: string;
     reschedule?: string;
     search?: string;
+    tab?: string;
   }): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> {
     const page = options?.page || 1;
     const limit = options?.limit || 10;
@@ -69,6 +70,54 @@ export class LeadsService {
       .createQueryBuilder('lead')
       .leftJoinAndSelect('lead.callHistoryRecords', 'callHistory')
       .leftJoinAndSelect('lead.lastCallRecord', 'lastCall');
+
+    // Apply tab filter
+    if (options.tab) {
+      switch (options.tab) {
+        case 'all':
+          queryBuilder.andWhere('lead.linkSend = :linkSend AND lead.contacted = :contacted AND lead.notInterested = :notInterested AND lead.linkClicked = :linkClicked AND lead.formSubmitted = :formSubmitted AND lead.reminder IS NULL AND lead.scheduledCallbackDate IS NULL', { 
+            linkSend: false, 
+            contacted: false, 
+            notInterested: false, 
+            linkClicked: false, 
+            formSubmitted: false 
+          });
+          break;
+        case 'interested':
+          queryBuilder.andWhere('lead.linkSend = :linkSend AND lead.contacted = :contacted AND lead.notInterested = :notInterested AND lead.reminder IS NULL AND lead.linkClicked = :linkClicked AND lead.formSubmitted = :formSubmitted', { 
+            linkSend: true, 
+            contacted: true, 
+            notInterested: false, 
+            linkClicked: false, 
+            formSubmitted: false 
+          });
+          break;
+        case 'not-interested':
+          queryBuilder.andWhere('lead.notInterested = :notInterested', { notInterested: true });
+          break;
+        case 'reschedule':
+          queryBuilder.andWhere('lead.scheduledCallbackDate IS NOT NULL AND lead.notInterested = :notInterested AND lead.reminder IS NULL AND lead.linkClicked = :linkClicked AND lead.formSubmitted = :formSubmitted', { 
+            notInterested: false, 
+            linkClicked: false, 
+            formSubmitted: false 
+          });
+          break;
+        case 'reminder':
+          queryBuilder.andWhere('lead.reminder IS NOT NULL AND (lead.linkClicked = :linkClicked OR lead.formSubmitted = :formSubmitted )', { 
+            linkClicked: false, 
+            formSubmitted: false,
+            
+           
+          });
+          break;
+        case 'completed':
+          queryBuilder.andWhere('lead.linkClicked = :linkClicked AND lead.formSubmitted = :formSubmitted', { 
+            linkClicked: true, 
+            formSubmitted: true 
+          });
+          break;
+      }
+    }
 
     // Apply search filter
     if (options.search && options.search.trim() !== '') {

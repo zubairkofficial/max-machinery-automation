@@ -12,6 +12,11 @@ import {
   FaSort,
   FaTrash,
   FaTimes, // Add this for clear icon
+  FaCheckCircle, // Added for Interested tab
+  FaTimesCircle, // Added for Not Interested tab
+  FaClock, // Added for Reschedule tab
+  FaBell, // Added for Reminder tab
+  FaCheckDouble, // Added for Completed tab
 } from 'react-icons/fa';
 import Pagination from '../components/common/Pagination';
 import AddLeadModal from '@/components/leads/LeadModel';
@@ -24,6 +29,11 @@ interface LeadsManagementProps {
 
 const TABS = {
   ALL: 'all',
+  INTERESTED: 'interested',
+  NOT_INTERESTED: 'not-interested',
+  RESCHEDULE: 'reschedule',
+  REMINDER: 'reminder',
+  COMPLETED: 'completed',
   PRIORITY: 'priority',
   SURPLUS: 'surplus',
 };
@@ -118,6 +128,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
         linkClicked: filters.linkClicked !== 'all' ? filters.linkClicked : undefined,
         formSubmitted: filters.formSubmitted !== 'all' ? filters.formSubmitted : undefined,
         search: searchTerm && searchTerm.trim() !== '' ? searchTerm.trim() : undefined,
+        tab: activeTab,
       };
 
       switch (activeTab) {
@@ -386,7 +397,12 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
               onChange={(e) => handleTabChange(e.target.value)}
             >
               <option value={TABS.ALL}>All Leads</option>
-              </select>
+              <option value={TABS.INTERESTED}>Interested</option>
+              <option value={TABS.NOT_INTERESTED}>Not Interested</option>
+              <option value={TABS.RESCHEDULE}>Reschedule</option>
+              <option value={TABS.REMINDER}>Reminder</option>
+              <option value={TABS.COMPLETED}>Completed</option>
+            </select>
           </div>
           <div className="hidden sm:block">
             <div className="border-b border-gray-200 dark:border-gray-700">
@@ -401,17 +417,72 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                 >
                   <FaUserTie className="mr-2 h-5 w-5" />
                   All Leads
-                  {leadsData?.pagination?.total && (
-                    <span
-                      className={`${
-                        activeTab === TABS.ALL ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-900'
-                      } ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium`}
-                    >
+                  {leadsData?.pagination?.total && activeTab === TABS.ALL && (
+                    <span className="bg-indigo-100 text-indigo-600 ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium">
                       {leadsData.pagination.total}
                     </span>
                   )}
                 </button>
                 
+                <button
+                  onClick={() => handleTabChange(TABS.INTERESTED)}
+                  className={`${
+                    activeTab === TABS.INTERESTED
+                      ? 'border-green-500 text-green-600 dark:text-green-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+                >
+                  <FaCheckCircle className="mr-2 h-5 w-5" />
+                  Interested
+                </button>
+
+                <button
+                  onClick={() => handleTabChange(TABS.NOT_INTERESTED)}
+                  className={`${
+                    activeTab === TABS.NOT_INTERESTED
+                      ? 'border-red-500 text-red-600 dark:text-red-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+                >
+                  <FaTimesCircle className="mr-2 h-5 w-5" />
+                  Not Interested
+                </button>
+
+                <button
+                  onClick={() => handleTabChange(TABS.RESCHEDULE)}
+                  className={`${
+                    activeTab === TABS.RESCHEDULE
+                      ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+                >
+                  <FaClock className="mr-2 h-5 w-5" />
+                  Reschedule
+                </button>
+
+                <button
+                  onClick={() => handleTabChange(TABS.REMINDER)}
+                  className={`${
+                    activeTab === TABS.REMINDER
+                      ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+                >
+                  <FaBell className="mr-2 h-5 w-5" />
+                  Reminder
+                </button>
+
+                <button
+                  onClick={() => handleTabChange(TABS.COMPLETED)}
+                  className={`${
+                    activeTab === TABS.COMPLETED
+                      ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+                >
+                  <FaCheckDouble className="mr-2 h-5 w-5" />
+                  Completed
+                </button>
               </nav>
             </div>
           </div>
@@ -442,52 +513,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
             </div>
             
             <div className="flex space-x-3">
-              <button
-                onClick={() => setFilterVisible(!filterVisible)}
-                className={`inline-flex items-center px-3 py-2 border rounded-md shadow-sm text-sm font-medium ${
-                  filters.status !== 'all' || filters.industry !== 'all' || filters.reschedule !== 'all' || filters.linkClicked !== 'all' || filters.formSubmitted !== 'all'
-                    ? 'border-indigo-500 text-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-300'
-                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700'
-                }`}
-              >
-                <FaFilter className="mr-2 h-4 w-4" />
-                Filters
-                {(filters.status !== 'all' || filters.industry !== 'all' || filters.reschedule !== 'all' || filters.linkClicked !== 'all' || filters.formSubmitted !== 'all') && (
-                  <span className="ml-1 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full px-2 py-0.5">
-                    {(filters.status !== 'all' ? 1 : 0) + (filters.industry !== 'all' ? 1 : 0) + (filters.reschedule !== 'all' ? 1 : 0) + (filters.linkClicked !== 'all' ? 1 : 0) + (filters.formSubmitted !== 'all' ? 1 : 0)}
-                  </span>
-                )}
-              </button>
-
-              {(filters.status !== 'all' || filters.industry !== 'all' || filters.reschedule !== 'all' || filters.linkClicked !== 'all' || filters.formSubmitted !== 'all' || searchTerm || sortOption !== 'newest') && (
-                <button
-                  onClick={clearFilters}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-                >
-                  <FaTimes className="mr-2 h-4 w-4" />
-                  Clear All
-                </button>
-              )}
-              
-              <div className="relative flex-shrink-0">
-                <div className="flex items-center">
-                  <label htmlFor="sort" className="sr-only">Sort by</label>
-                  <FaSort className="h-4 w-4 text-gray-500 dark:text-gray-400 mr-2" />
-                  <select
-                    id="sort"
-                    name="sort"
-                    className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                    value={sortOption}
-                    onChange={handleSortChange}
-                  >
-                    {SORT_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+             
               
               <button
                 onClick={handleRefresh}
@@ -499,81 +525,6 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
             </div>
           </div>
           
-          {/* Expanded Filters */}
-          {filterVisible && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div>
-                <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                <select
-                  id="status-filter"
-                  name="status-filter"
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                >
-                  {FILTER_OPTIONS.STATUS.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="industry-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Industry</label>
-                <select
-                  id="industry-filter"
-                  name="industry-filter"
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                  value={filters.industry}
-                  onChange={(e) => handleFilterChange('industry', e.target.value)}
-                >
-                  {FILTER_OPTIONS.INDUSTRY.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="reschedule-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">ReSchedule</label>
-                <select
-                  id="reschedule-filter"
-                  name="reschedule-filter"
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                  value={filters.reschedule}
-                  onChange={(e) => handleFilterChange('reschedule', e.target.value)}
-                >
-                  {FILTER_OPTIONS.RESCHEDULE.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="linkClicked-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Link Status</label>
-                <select
-                  id="linkClicked-filter"
-                  name="linkClicked-filter"
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                  value={filters.linkClicked}
-                  onChange={(e) => handleFilterChange('linkClicked', e.target.value)}
-                >
-                  {FILTER_OPTIONS.LINK_CLICKED.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="formSubmitted-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Form Status</label>
-                <select
-                  id="formSubmitted-filter"
-                  name="formSubmitted-filter"
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                  value={filters.formSubmitted}
-                  onChange={(e) => handleFilterChange('formSubmitted', e.target.value)}
-                >
-                  {FILTER_OPTIONS.FORM_SUBMITTED.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Lead List Section */}
