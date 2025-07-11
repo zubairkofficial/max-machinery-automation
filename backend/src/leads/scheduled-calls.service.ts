@@ -71,6 +71,7 @@ export class ScheduledCallsService {
       if (scheduledCallsLeads.length > 0) {
         // Update RetellAI LLM prompt once for this batch of calls
         try {
+          // await this.leadsService.updateLeadsScheduledCallbackDate()
           await this.retellAiService.updateLLMPromptForCronJob(JobName.RESCHEDULE_CALL);
           this.logger.log('Updated RetellAI LLM prompt for rescheduled calls');
         } catch (error) {
@@ -80,7 +81,9 @@ export class ScheduledCallsService {
 
       for (const scheduledCallLead of scheduledCallsLeads) {
         try {
-           
+          await this.leadsService.updateLeadsScheduledCallbackDate(scheduledCallLead.id, {
+            scheduledCallbackDate: null,
+          })
           const callResult = await this.retellAiService.makeCall(
             this.configService.get<string>('FROM_PHONE_NUMBER'),
             scheduledCallLead.phone,

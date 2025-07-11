@@ -1150,13 +1150,12 @@ export class LeadsService {
       throw error;
     }
   }
-  async updateLeads(leadId: string, callDetails: any) {
+  async updateLeadsScheduledCallbackDate(leadId: string, callDetails: any) {
     try {
       // Find the call history record
       return await this.leadRepository.update( { id: leadId}, {
        
-        contacted: true,
-        status: 'contacted',
+      scheduledCallbackDate: null,
         // callHistoryRecords: callDetails
       }
        
