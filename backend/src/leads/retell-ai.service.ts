@@ -264,19 +264,7 @@ if (type===JobName.RESCHEDULE_CALL && lastCallTranscription) {
         // Check if lead exists in Zoho
         let zohoLead = await this.zohoSyncService.searchLeadInZohoByPhone(cleanToNumber);
         
-        // if (!zohoLead) {
-        //   // If this is a first-time call and lead doesn't exist in Zoho, create it
-        //   zohoLead = await this.zohoSyncService.createLeadInZoho({
-        //     firstName: lead.firstName || '',
-        //     lastName: lead.lastName ?? lead.firstName,
-        //     phone: cleanToNumber,
-        //     email: lead.zohoEmail || '',
-        //     company: lead.company || '',
-        //     industry: lead.industry || '',
-        //     leadStatus: 'Initial Call',
-        //     description: `Lead created during initial call attempt on ${new Date().toISOString()}`
-        //   });
-        // }
+       
 
         // Update Zoho lead status based on form submission and link click
         let status = 'Contact Attempted';
