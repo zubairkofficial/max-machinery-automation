@@ -100,24 +100,12 @@ currentDate.setDate(currentDate.getDate() - 1); // Previous day
 
      const leads = await this.leadRepository
   .createQueryBuilder('lead')
-  .leftJoin('lead.userInfo', 'userInfo')
   .where('lead.contacted = true')
-  .andWhere('userInfo.id IS NULL')
- .andWhere(
-    new Brackets(qb => {
-      // کم از کم ایک رابطے کی تفصیل موجود ہو،
-      // یا دونوں خالی ہوں مگر lead.phone موجود ہو
-      qb.where('lead.zohoEmail IS NOT NULL OR lead.zohoPhoneNumber IS NOT NULL')
-        .orWhere('lead.zohoEmail IS NULL AND lead.zohoPhoneNumber IS NULL AND lead.phone IS NOT NULL');
-    }),
-  )
-    .andWhere(
-    new Brackets(qb => {
-      qb.where('lead.reminder < :currentDate', { currentDate: currentDate.toISOString() }) // Previous day check
-        .orWhere('lead.reminder IS NULL'); // OR reminderDateTime can be NULL
-    })
-  )
    .andWhere('lead.linkSend = :linkSend', { linkSend: true })
+   .andWhere('(lead.linkClicked = :linkClicked OR lead.formSubmitted = :formSubmitted)', { 
+     linkClicked: false, 
+     formSubmitted: false 
+   })
   .select([
     'lead.id',
     'lead.zohoEmail',

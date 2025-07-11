@@ -38,26 +38,7 @@ export class UserInfoService {
         throw new UnauthorizedException('Lead not found');
       }
       await this.leadRepository.update(lead.id, { linkClicked: true,linkClickedAt:new Date() });
-    //  const getUserInfo = await this.userInfoRepository.findOne({where:{email:lead.zohoEmail}})
-    //  if(getUserInfo){
-    //   this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
-    //     if (zohoLead) {
-    //   if(zohoLead.zohoEmail)    zohoLead.zohoEmail = lead.zohoEmail;
-    //   if(zohoLead.phone) zohoLead.phone=lead.phone
-    //       await this.zohoSyncService.updateZohoLead(zohoLead, "Zoho Crm link click again");
-
-    //       this.logger.log(`Updated Zoho lead with email: ${lead.zohoEmail}`);
-    //    return { redirectUrl: this.machineryMaxUrl };
-    //     } else {
-    //       this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
-    //       await this.zohoSyncService.createZohoLead(lead, "Zoho Crm link click again");
-    //   return { redirectUrl: this.machineryMaxUrl };
-    //     }
-    //   });
-    //   // await this.leadRepository.update(lead.id, { linkClicked: true });
-    //   return { redirectUrl: this.machineryMaxUrl };
-    //  }
-
+   
     const leadUserInfo = await this.userInfoRepository.findOne({where:{leadId:lead.id}})
       // Create user info from lead data
       if(!leadUserInfo){
@@ -74,21 +55,8 @@ export class UserInfoService {
       await this.zohoSyncService.updateZohoLeadByPhon(lead,'Link Clicked')
 
       }
-// this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
-//         if (zohoLead) {
-//           zohoLead.zohoEmail = userInfo.email;
-//           zohoLead.zohoPhoneNumber = userInfo.phone;
-//           await this.zohoSyncService.updateZohoLead(zohoLead, "Zoho crm consultation link click");
-//           this.logger.log(`Updated Zoho lead with email: ${userInfo.email} and phone: ${userInfo.phone}`);
-//         } else {
-//           this.logger.warn(`No Zoho lead found for ID: ${lead.id}`);
-//           await this.zohoSyncService.createZohoLead(lead, "Zoho crm consultation link click");
-//         }
-//       });
-      // Save the user info
-      // await this.leadRepository.update(lead.id, { linkClicked: true });
-      // Return redirect URL
-      return { redirectUrl: this.machineryMaxUrl };
+
+      return { redirectUrl: `${this.machineryMaxUrl}?lead_id=${lead.id}` };
     } catch (error) {
       this.logger.error(`Token verification failed: ${error.message}`);
       throw new UnauthorizedException(error.message);

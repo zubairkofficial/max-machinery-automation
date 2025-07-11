@@ -69,7 +69,7 @@ export class MailService {
 
    async sendVerificationLink(lead: Lead) {
     try {
-      const payload = { email: lead.email, leadId: lead.id };
+      const payload = { leadId: lead.id };
       const token = this.jwtService.sign(payload);
 
       const appUrl = `${this.configService.get('APP_URL')}/user-info?token=${token}` || `http://localhost:4000/api/v1/user-info?token=${token}`;

@@ -2,7 +2,6 @@ import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ScheduledCall } from './entities/scheduled-call.entity';
 import { RetellAiService } from './retell-ai.service';
 import { LeadsService } from './leads.service';
 import { ConfigService } from '@nestjs/config';
@@ -14,8 +13,6 @@ export class ScheduledCallsService {
   private readonly logger = new Logger(ScheduledCallsService.name);
 
   constructor(
-    @InjectRepository(ScheduledCall)
-    private scheduledCallRepository: Repository<ScheduledCall>,
     private readonly configService: ConfigService,
     @Inject(forwardRef(() => RetellAiService))
     private retellAiService: RetellAiService,
@@ -25,39 +22,9 @@ export class ScheduledCallsService {
     private cronSettingsService: CronSettingsService,
   ) {}
 
-  async scheduleCall(data: {
-    
-    fromNumber: string;
-   
-    startTime: Date;
-    endTime?: Date;
-    overrideAgentId?: string;
-   
-  }): Promise<ScheduledCall> {
-    const scheduledCall = this.scheduledCallRepository.create(data);
-    return this.scheduledCallRepository.save(scheduledCall);
-  }
 
-  async scheduleBatchCalls(data: {
-    leadIds: string[];
-    fromNumber: string;
-    toNumber: string;
-    overrideAgentId?: string;
-    startTime?: Date | string;
-    endTime?: Date | string;
-  }): Promise<ScheduledCall[]> {
-    const now = new Date();
-    
-    const scheduledCalls = data.leadIds.map(leadId =>
-      this.scheduledCallRepository.create({
-        
-        startTime: data.startTime ? new Date(data.startTime) : now,
-        endTime: data.endTime ? new Date(data.endTime) : null,
-      })
-    );
 
-    return this.scheduledCallRepository.save(scheduledCalls);
-  }
+
 
   @Cron(CronExpression.EVERY_MINUTE)
   async handleIndivitualReScheduledCall() {
@@ -81,9 +48,7 @@ export class ScheduledCallsService {
 
       for (const scheduledCallLead of scheduledCallsLeads) {
         try {
-          await this.leadsService.updateLeadsScheduledCallbackDate(scheduledCallLead.id, {
-            scheduledCallbackDate: null,
-          })
+           
           const callResult = await this.retellAiService.makeCall(
             this.configService.get<string>('FROM_PHONE_NUMBER'),
             scheduledCallLead.phone,
@@ -270,41 +235,6 @@ export class ScheduledCallsService {
         error.stack,
       );
     }
-  }
-
-  async getScheduledCalls(filters?: {
-    status?: 'pending' | 'completed' | 'failed' | 'cancelled';
-    startDate?: Date;
-    endDate?: Date;
-  }) {
-    const query = this.scheduledCallRepository.createQueryBuilder('scheduledCall')
-      .leftJoinAndSelect('scheduledCall.lead', 'lead');
-
-    if (filters?.status) {
-      query.andWhere('scheduledCall.status = :status', { status: filters.status });
-    }
-
-    if (filters?.startDate && filters?.endDate) {
-      query.andWhere('scheduledCall.startTime BETWEEN :startDate AND :endDate', {
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-      });
-    }
-
-    return query.getMany();
-  }
-
-  async cancelScheduledCall(id: string): Promise<ScheduledCall> {
-    const scheduledCall = await this.scheduledCallRepository.findOne({
-      where: { id },
-    });
-
-    if (!scheduledCall) {
-      throw new Error('Scheduled call not found');
-    }
-
-    // scheduledCall.status = 'cancelled';
-    return this.scheduledCallRepository.save(scheduledCall);
   }
 
   async handleRescheduleCalls() {

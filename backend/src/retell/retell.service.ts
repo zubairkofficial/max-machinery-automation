@@ -383,7 +383,9 @@ ${transcript}`
         }
 
         if (contactInfo.notInterested) {
-          await this.leadRepository.update({id:lead.id},{notInterested:true,status:'not-interested'})
+          lead.notInterested=true
+          lead.status='not-interested'
+          await this.leadRepository.save(lead)
         }
         if (contactInfo.resentLink) {
           if (lead.zohoEmail) {

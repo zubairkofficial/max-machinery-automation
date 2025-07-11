@@ -27,6 +27,7 @@ const RetellLLMEditor: React.FC<RetellLLMEditorProps> = ({ llmId }) => {
     'lead_name', 
     'contact_info',
     'lead_phone_number',
+    'previous_call_transcription',
   ];
 
   const [showMasterVars, setShowMasterVars] = useState(false);

@@ -76,7 +76,7 @@ private async updateRetellLLM(llmId:string, promptType:JobName,lastCallTranscrip
         prompt = retell.reminderPrompt;
         break;
       case JobName.RESCHEDULE_CALL:
-        prompt = `${retell.busyPrompt}\n\nPrevious Call Transcription:\n${lastCallTranscription}`;
+        prompt = retell.busyPrompt;
         break;
     }
 
@@ -132,6 +132,7 @@ if (type===JobName.RESCHEDULE_CALL && lead.lastCallRecord) {
     
     if (call.data.transcript) {
       lastCallTranscription = call.data.transcript;
+
     }
   } catch (error) {
     this.logger.error(`Error fetching call transcript: ${error.message}`);
@@ -169,9 +170,37 @@ if (type===JobName.RESCHEDULE_CALL && lead.lastCallRecord) {
         this.logger.error(`Error updating Zoho CRM: ${error.message}`);
         // Continue with the call even if Zoho update fails
       }
-
+      let response;
+if (type===JobName.RESCHEDULE_CALL && lastCallTranscription) {
+   response = await axios.post(
+    this.apiUrl,
+    {
+      from_number: cleanFromNumber,
+      to_number: cleanToNumber,
+      override_agent_id: overrideAgentId,
+      retell_llm_dynamic_variables: {
+        lead_name: `${lead.firstName}`,
+        follow_up_weeks: "2 weeks",
+        consultation_link: "https://machinerymax.com/schedule",
+        contact_info: "contact@machinerymax.com | (555) 123-4567",
+        lead_phone_number: lead.phone,
+        previous_call_transcription: lastCallTranscription,
+      },
+      metadata: { 
+        lead_id: lead.id,
+     
+      },
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+}else{
       // Make the call via RetellAI API
-      const response = await axios.post(
+       response = await axios.post(
         this.apiUrl,
         {
           from_number: cleanFromNumber,
@@ -196,6 +225,7 @@ if (type===JobName.RESCHEDULE_CALL && lead.lastCallRecord) {
           },
         }
       );
+    }
 
       // Update lead status
       lead.status = 'CALLING';

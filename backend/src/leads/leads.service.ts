@@ -96,18 +96,19 @@ export class LeadsService {
           queryBuilder.andWhere('lead.notInterested = :notInterested', { notInterested: true });
           break;
         case 'reschedule':
-          queryBuilder.andWhere('lead.scheduledCallbackDate IS NOT NULL AND lead.notInterested = :notInterested AND lead.reminder IS NULL AND lead.linkClicked = :linkClicked AND lead.formSubmitted = :formSubmitted', { 
+          queryBuilder.andWhere('lead.scheduledCallbackDate IS NOT NULL AND lead.notInterested = :notInterested AND lead.reminder IS NULL AND lead.linkClicked = :linkClicked AND lead.formSubmitted = :formSubmitted AND lead.linkSend = :linkSend', { 
             notInterested: false, 
             linkClicked: false, 
-            formSubmitted: false 
+            formSubmitted: false,
+            linkSend: false,
           });
           break;
         case 'reminder':
-          queryBuilder.andWhere(' lead.linkClicked = :linkClicked OR lead.formSubmitted = :formSubmitted ', { 
+          queryBuilder.andWhere(' lead.contacted = :contacted AND lead.linkSend = :linkSend AND (lead.linkClicked = :linkClicked OR lead.formSubmitted = :formSubmitted) ', { 
+            contacted: true,
+            linkSend: true,
             linkClicked: false, 
-            formSubmitted: false,
-            
-           
+            formSubmitted: false,  
           });
           break;
         case 'completed':
@@ -1009,52 +1010,7 @@ export class LeadsService {
     try {
       const fromNumber =  this.configService.get<string>('FROM_PHONE_NUMBER');
       await this.retellAiService.updateLLMPromptForCronJob(JobName.SCHEDULED_CALLS);
-         
-      // // If startTime is provided, handle time-only daily scheduling
-      // if (callParams.startTime) {
-      //   // This is time-only scheduling (HH:MM format) for daily execution
-      //   const lead = await this.findOne(id);
-      //   if (!lead) {
-      //     throw new Error('Lead not found');
-      //   }
-
-      //   // Set up individual reschedule for this lead with the given time
-      //   const today = new Date();
-      //   const [hours, minutes] = callParams.startTime.split(':').map(Number);
-      //   const scheduledDateTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes);
-        
-      //   // If the time has already passed today, schedule for tomorrow
-      //   if (scheduledDateTime <= new Date()) {
-      //     scheduledDateTime.setDate(scheduledDateTime.getDate() + 1);
-      //   }
-
-      //   // Update the lead's scheduledCallbackDate for the individual reschedule cron
-      //   await this.update(id, { 
-      //     scheduledCallbackDate: scheduledDateTime 
-      //   });
-
-      //   const message = `Call scheduled for daily execution at ${callParams.startTime}${callParams.endTime ? ` (until ${callParams.endTime})` : ''}`;
-        
-      //   const result = {
-      //     success: true,
-      //     scheduled: 1,
-      //     skipped: 0,
-      //     errors: [],
-      //     callDetails: [{
-      //       leadId: id,
-      //       name: 'Daily Scheduled Call',
-      //       phone: callParams.toNumber,
-      //       callResult: {
-      //         call_status: 'scheduled',
-      //         scheduled_time: callParams.startTime,
-      //         end_time: callParams.endTime
-      //       }
-      //     }],
-      //     message
-      //   };
-
-      //   return result;
-      // }
+     
       
       // For immediate calls, use the RetellAI service directly
       try {
@@ -1150,13 +1106,12 @@ export class LeadsService {
       throw error;
     }
   }
-  async updateLeadsScheduledCallbackDate(leadId: string, callDetails: any) {
+  async updateLeadsScheduledCallbackDate(leadId: string, zoholeadId: string) {
     try {
       // Find the call history record
       return await this.leadRepository.update( { id: leadId}, {
        
-      scheduledCallbackDate: null,
-        // callHistoryRecords: callDetails
+     leadId: zoholeadId,
       }
        
     

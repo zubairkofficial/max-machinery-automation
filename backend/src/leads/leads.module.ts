@@ -6,7 +6,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Lead } from './entities/lead.entity';
 import { CallHistory } from './entities/call-history.entity';
 import { LastCall } from './entities/last-call.entity';
-import { ScheduledCall } from './entities/scheduled-call.entity';
 import { CallTranscript } from '../retell/entities/call-transcript.entity';
 
 // Services
@@ -36,7 +35,6 @@ import { UserInfoModule } from 'src/userInfo/user-info.module';
       Lead, 
       CallHistory, 
       LastCall, 
-      ScheduledCall,
       CallTranscript,
       UserInfo,
       Retell
