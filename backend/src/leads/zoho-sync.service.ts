@@ -120,7 +120,7 @@ for(const lead of leads) {
 
   try {
    
-    await this.retellAiService.makeCallLeadZoho(lead,this.configService.get<string>('FROM_PHONE_NUMBER'), lead.formSubmitted,lead.linkClicked,this.configService.get<string>('AGENT_ID'));
+   if(!lead.reminder) await this.retellAiService.makeCallLeadZoho(lead,this.configService.get<string>('FROM_PHONE_NUMBER'), lead.formSubmitted,lead.linkClicked,this.configService.get<string>('AGENT_ID'));
   } catch (error) {
     this.logger.error(`Error processing lead ${lead.id}: ${error.message}`);
     continue; // Continue with next lead even if one fails
