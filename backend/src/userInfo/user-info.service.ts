@@ -57,7 +57,10 @@ export class UserInfoService {
     //   // await this.leadRepository.update(lead.id, { linkClicked: true });
     //   return { redirectUrl: this.machineryMaxUrl };
     //  }
+
+    const leadUserInfo = await this.userInfoRepository.findOne({where:{leadId:lead.id}})
       // Create user info from lead data
+      if(!leadUserInfo){
       const userInfo = this.userInfoRepository.create({
         firstName: lead.firstName || '',
         lastName: lead.lastName || lead.firstName,
@@ -67,7 +70,10 @@ export class UserInfoService {
         additionalDetails: '',
         contacted: false
       });
-      
+      await this.userInfoRepository.save(userInfo);
+      await this.zohoSyncService.updateZohoLeadByPhon(lead,'Link Clicked')
+
+      }
 // this.zohoSyncService.getZohoLead(lead).then(async (zohoLead) => {
 //         if (zohoLead) {
 //           zohoLead.zohoEmail = userInfo.email;
@@ -80,8 +86,6 @@ export class UserInfoService {
 //         }
 //       });
       // Save the user info
-      await this.userInfoRepository.save(userInfo);
-     await this.zohoSyncService.updateZohoLeadByPhon(lead,'Link Clicked')
       // await this.leadRepository.update(lead.id, { linkClicked: true });
       // Return redirect URL
       return { redirectUrl: this.machineryMaxUrl };
