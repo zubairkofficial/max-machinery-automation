@@ -269,6 +269,7 @@ for(const lead of leads) {
               formSubmitted:true,
               contacted: true,
               formSubmittedAt:new Date()
+              scheduledCallbackDate: null
             });
             await this.userInfoRepository.save(userInfo);
             this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
