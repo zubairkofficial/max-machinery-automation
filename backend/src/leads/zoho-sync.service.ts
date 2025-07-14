@@ -111,16 +111,25 @@ currentDate.setDate(currentDate.getDate() - 1); // Previous day
     'lead.zohoEmail',
     // پہلے zohoPhoneNumber، ورنہ lead.phone
     'COALESCE(lead.zohoPhoneNumber, lead.phone) AS phone',
+    'lead.reminder',
+    'lead.linkClicked',
+    'lead.formSubmitted',
   ])
   .getRawMany();
 // Now, `leads` will contain only leads that satisfy the given conditions and do not have an associated UserInfo
 
+const todayStr = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
 
 for(const lead of leads) {
 
   try {
-   
-   if(!lead.reminder) await this.retellAiService.makeCallLeadZoho(lead,this.configService.get<string>('FROM_PHONE_NUMBER'), lead.formSubmitted,lead.linkClicked,this.configService.get<string>('AGENT_ID'));
+    const reminderStr = lead.lead_reminder
+    ? new Date(lead.lead_reminder).toISOString().slice(0, 10)
+    : null;
+
+  const shouldCall = !reminderStr || reminderStr < todayStr;  // آج کی نہیں ہے؟
+
+   if(shouldCall  ) await this.retellAiService.makeCallLeadZoho(lead,this.configService.get<string>('FROM_PHONE_NUMBER'), lead.lead_formSubmitted,lead.lead_linkClicked,this.configService.get<string>('AGENT_ID'));
   } catch (error) {
     this.logger.error(`Error processing lead ${lead.id}: ${error.message}`);
     continue; // Continue with next lead even if one fails
@@ -205,77 +214,77 @@ for(const lead of leads) {
     
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
-  async checkUserInfoInZoho() {
-    try {
-      this.logger.log('Starting UserInfo Zoho check');
+  // @Cron(CronExpression.EVERY_MINUTE)
+  // async checkUserInfoInZoho() {
+  //   try {
+  //     this.logger.log('Starting UserInfo Zoho check');
       
-      // Get all userInfo records that haven't been contacted yet
-      const userInfoList = await this.userInfoRepository.find({
-        where: [
-          {
-            email: Not(IsNull()),
-            contacted: false
-          },
-          {
-            phone: Not(IsNull()),
-            contacted: false
-          }
-        ],
-        select: ['id', 'email', 'phone', 'contacted', 'leadId'],
-      });
+  //     // Get all userInfo records that haven't been contacted yet
+  //     const userInfoList = await this.userInfoRepository.find({
+  //       where: [
+  //         {
+  //           email: Not(IsNull()),
+  //           contacted: false
+  //         },
+  //         {
+  //           phone: Not(IsNull()),
+  //           contacted: false
+  //         }
+  //       ],
+  //       select: ['id', 'email', 'phone', 'contacted', 'leadId'],
+  //     });
 
-      this.logger.log(`Found ${userInfoList.length} userInfo records to check`);
+  //     this.logger.log(`Found ${userInfoList.length} userInfo records to check`);
 
-      for (const userInfo of userInfoList) {
-        try {
-          // Check if we need to refresh the token
-          await this.ensureValidAccessToken();
+  //     for (const userInfo of userInfoList) {
+  //       try {
+  //         // Check if we need to refresh the token
+  //         await this.ensureValidAccessToken();
           
-          let foundInZoho = false;
+  //         let foundInZoho = false;
           
-          // Try searching Zoho with email if available
-          if (userInfo.email) {
-            const foundLead = await this.searchLeadInZoho(userInfo.email);
-            if (foundLead?.Email) {
-              foundInZoho = true;
-              this.logger.log(`Found user in Zoho by email: ${userInfo.email}`);
-            }
-          }
+  //         // Try searching Zoho with email if available
+  //         if (userInfo.email) {
+  //           const foundLead = await this.searchLeadInZoho(userInfo.email);
+  //           if (foundLead?.Email) {
+  //             foundInZoho = true;
+  //             this.logger.log(`Found user in Zoho by email: ${userInfo.email}`);
+  //           }
+  //         }
           
-          // If not found with email, try with phone
-          if (!foundInZoho && userInfo.phone) {
-            const foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
-            if (foundLead?.Phone) {
-              foundInZoho = true;
-              this.logger.log(`Found user in Zoho by phone: ${userInfo.phone}`);
-            }
-          }
+  //         // If not found with email, try with phone
+  //         if (!foundInZoho && userInfo.phone) {
+  //           const foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
+  //           if (foundLead?.Phone) {
+  //             foundInZoho = true;
+  //             this.logger.log(`Found user in Zoho by phone: ${userInfo.phone}`);
+  //           }
+  //         }
           
-          // If found in Zoho, update the status
-          if (foundInZoho) {
-            userInfo.contacted = true;
-            await this.leadRepository.update(userInfo.leadId, {
-              status: 'completed',
-              formSubmitted:true,
-              contacted: true,
-              formSubmittedAt:new Date()
-            });
-            await this.userInfoRepository.save(userInfo);
-            this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
-          }
+  //         // If found in Zoho, update the status
+  //         if (foundInZoho) {
+  //           userInfo.contacted = true;
+  //           await this.leadRepository.update(userInfo.leadId, {
+  //             status: 'completed',
+  //             formSubmitted:true,
+  //             contacted: true,
+  //             formSubmittedAt:new Date()
+  //           });
+  //           await this.userInfoRepository.save(userInfo);
+  //           this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
+  //         }
           
-        } catch (error) {
-          this.logger.error(`Error checking userInfo ${userInfo.id} in Zoho: ${error.message}`);
-          continue; // Continue with next user even if one fails
-        }
-      }
+  //       } catch (error) {
+  //         this.logger.error(`Error checking userInfo ${userInfo.id} in Zoho: ${error.message}`);
+  //         continue; // Continue with next user even if one fails
+  //       }
+  //     }
       
-      this.logger.log('Completed UserInfo Zoho check');
-    } catch (error) {
-      this.logger.error(`Error in UserInfo Zoho check: ${error.message}`);
-    }
-  }
+  //     this.logger.log('Completed UserInfo Zoho check');
+  //   } catch (error) {
+  //     this.logger.error(`Error in UserInfo Zoho check: ${error.message}`);
+  //   }
+  // }
 
   private async ensureValidAccessToken(): Promise<void> {
     // Check if token is still valid (with 5 min buffer)
