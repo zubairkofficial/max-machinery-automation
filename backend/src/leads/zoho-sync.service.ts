@@ -268,7 +268,7 @@ for(const lead of leads) {
               status: 'completed',
               formSubmitted:true,
               contacted: true,
-              formSubmittedAt:new Date()
+              formSubmittedAt:new Date(),
               scheduledCallbackDate: null
             });
             await this.userInfoRepository.save(userInfo);
