@@ -377,6 +377,7 @@ ${transcript}`
           // Get the next available time from cron settings
           const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
           if (cronSetting?.startTime) {
+            
             const scheduleDate = new Date();
             scheduleDate.setDate(scheduleDate.getDate() + 2); // Default to next day if no specific days mentioned
             
