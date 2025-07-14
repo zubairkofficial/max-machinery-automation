@@ -373,7 +373,7 @@ ${transcript}`
         }
 
         // Handle busy/reschedule case first
-        if (contactInfo.isBusy || contactInfo.preferredMethod === 'busy') {
+        if (contactInfo.isBusy || contactInfo.preferredMethod === 'busy' || contactInfo.preferredMethod === 'schedule') {
           // Get the next available time from cron settings
           const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
           if (cronSetting?.startTime) {
@@ -394,6 +394,12 @@ ${transcript}`
             await this.leadRepository.save(lead);
             this.logger.log(`Lead is busy, rescheduled for next available time: ${scheduleDate.toISOString()}`);
             return;
+          } else {
+            // If no cron setting available, schedule for next working day
+            lead.scheduledCallbackDate = await this.getNextScheduleDay();
+            await this.leadRepository.save(lead);
+            this.logger.log(`Lead is busy, rescheduled for next working day: ${lead.scheduledCallbackDate.toISOString()}`);
+            return;
           }
         }
 
@@ -407,7 +413,7 @@ ${transcript}`
             await this.mailService.sendVerificationLink(lead);
             this.logger.log(`Sent verification email to ${lead.zohoEmail}`);
           }
-          if (lead.zohoPhoneNumber) {
+          if (lead.zohoPhoneNumber||lead.phone) {
             await this.smsService.sendVerificationSMS(lead);
             this.logger.log(`Sent verification SMS to ${lead.zohoPhoneNumber}`);
           }
@@ -415,23 +421,7 @@ ${transcript}`
           await this.leadRepository.update({id:lead.id},{linkSend:true})
         }
 
-        if (contactInfo.preferredMethod === 'schedule' && contactInfo.scheduleDays) {
-          const scheduleDate = new Date();
-          scheduleDate.setDate(scheduleDate.getDate() + contactInfo.scheduleDays);
-          
-          if (contactInfo.specificTime) {
-            const [hours, minutes] = contactInfo.specificTime.split(':').map(Number);
-            scheduleDate.setHours(hours);
-            scheduleDate.setMinutes(minutes);
-            scheduleDate.setSeconds(0);
-          }
-
-          lead.scheduledCallbackDate = scheduleDate;
-          await this.leadRepository.save(lead);
-          
-          this.logger.log(`Scheduled callback for ${scheduleDate.toISOString()}`);
-          return;
-        }
+      
 
         // Handle both email and phone cases
         if (contactInfo.preferredMethod === 'both') {
