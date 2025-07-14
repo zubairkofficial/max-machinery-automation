@@ -87,7 +87,7 @@ private retellRepository: Repository<Retell>
       const currentTimestamp = Date.now();
       const lastProcessedTimestamp = this.processedCallsTimestamps.get(leadId);
 
-      if (lastProcessedTimestamp && currentTimestamp - lastProcessedTimestamp < 80000) {
+      if (lastProcessedTimestamp && currentTimestamp - lastProcessedTimestamp < 200000) {
         this.logger.log(`Call for lead ${leadId} is within the 80-second window. Skipping.`);
         return; // Skip if within the 80 seconds window
       }
