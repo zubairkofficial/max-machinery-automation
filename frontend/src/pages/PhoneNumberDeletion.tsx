@@ -36,7 +36,7 @@ const PhoneNumberDeletion: React.FC = () => {
         setShowConfirmation(false);
         setConfirmationPhone('');
       } else {
-        toast.info(result.message);
+        toast.error(result.message);
         setShowConfirmation(false);
         setConfirmationPhone('');
       }
