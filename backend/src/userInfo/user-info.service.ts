@@ -51,6 +51,7 @@ export class UserInfoService {
         additionalDetails: '',
         contacted: false
       });
+      await this.zohoSyncService.deleteLeadsFromZohoByPhone(lead.zohoPhoneNumber  || lead.phone)
       await this.userInfoRepository.save(userInfo);
       await this.zohoSyncService.updateZohoLeadByPhon(lead,'Link Clicked')
 

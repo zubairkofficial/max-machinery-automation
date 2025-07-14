@@ -19,6 +19,7 @@ import { RetellService } from 'src/retell/retell.service';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
 import { CallDashboardFilterDto } from './dto/call-filter.dto';
+import { ZohoSyncService } from './zoho-sync.service';
 
 @Injectable()
 export class LeadsService {
@@ -38,6 +39,7 @@ export class LeadsService {
     private readonly configService: ConfigService,
     private readonly retellService: RetellService,
     private readonly cronSettingsService: CronSettingsService,
+    private readonly zohoSyncService: ZohoSyncService,
   ) {
     this.retellApiKey = this.configService.get<string>('RETELL_AI_API_KEY');
   }
@@ -287,6 +289,19 @@ export class LeadsService {
       this.logger.error(`Failed to delete lead ${id}: ${error.message}`);
       throw new HttpException(
         'Failed to delete lead and related records',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async removeByPhoneNumber(phoneNumber: string): Promise<{ deletedCount: number; message: string }> {
+    try {
+      // Use Zoho service to delete leads from Zoho CRM
+      return await this.zohoSyncService.deleteLeadsFromZohoByPhone(phoneNumber);
+    } catch (error) {
+      this.logger.error(`Failed to delete leads from Zoho CRM by phone number ${phoneNumber}: ${error.message}`);
+      throw new HttpException(
+        'Failed to delete leads from Zoho CRM by phone number',
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
@@ -580,6 +595,7 @@ export class LeadsService {
       where: {
         scheduledCallbackDate: Between(startOfMinute, endOfMinute),
      status:Not ('CALLING'),
+     notInterested: false,    
       },
     });
       

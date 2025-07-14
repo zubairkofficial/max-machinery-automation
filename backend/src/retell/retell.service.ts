@@ -24,6 +24,7 @@ export class RetellService {
   private openai: ChatOpenAI;
   private readonly retellApiKey: string;
   private readonly retellBaseUrl = 'https://api.retellai.com';
+  private processedCallsTimestamps: Map<string, number> = new Map();  // Store timestamps for each lead
 
   constructor(
     @InjectRepository(CallHistory)
@@ -82,6 +83,20 @@ private retellRepository: Repository<Retell>
         this.logger.warn(`No lead ID found for call ${call.call_id}`);
         return;
       }
+
+      const currentTimestamp = Date.now();
+      const lastProcessedTimestamp = this.processedCallsTimestamps.get(leadId);
+
+      if (lastProcessedTimestamp && currentTimestamp - lastProcessedTimestamp < 80000) {
+        this.logger.log(`Call for lead ${leadId} is within the 80-second window. Skipping.`);
+        return; // Skip if within the 80 seconds window
+      }
+      
+      this.logger.log(`Call ended: ${call.call_id}`);
+
+      // Update the processed timestamp for the lead
+      this.processedCallsTimestamps.set(leadId, currentTimestamp);
+
 
       // Update call history with ended status and transcript
       const callHistory = await this.createOrUpdateCallHistory(call, leadId, 'ended');

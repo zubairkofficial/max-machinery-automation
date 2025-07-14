@@ -214,77 +214,77 @@ for(const lead of leads) {
     
   }
 
-  // @Cron(CronExpression.EVERY_MINUTE)
-  // async checkUserInfoInZoho() {
-  //   try {
-  //     this.logger.log('Starting UserInfo Zoho check');
+  @Cron(CronExpression.EVERY_MINUTE)
+  async checkUserInfoInZoho() {
+    try {
+      this.logger.log('Starting UserInfo Zoho check');
       
-  //     // Get all userInfo records that haven't been contacted yet
-  //     const userInfoList = await this.userInfoRepository.find({
-  //       where: [
-  //         {
-  //           email: Not(IsNull()),
-  //           contacted: false
-  //         },
-  //         {
-  //           phone: Not(IsNull()),
-  //           contacted: false
-  //         }
-  //       ],
-  //       select: ['id', 'email', 'phone', 'contacted', 'leadId'],
-  //     });
+      // Get all userInfo records that haven't been contacted yet
+      const userInfoList = await this.userInfoRepository.find({
+        where: [
+          {
+            email: Not(IsNull()),
+            contacted: false
+          },
+          {
+            phone: Not(IsNull()),
+            contacted: false
+          }
+        ],
+        select: ['id', 'email', 'phone', 'contacted', 'leadId'],
+      });
 
-  //     this.logger.log(`Found ${userInfoList.length} userInfo records to check`);
+      this.logger.log(`Found ${userInfoList.length} userInfo records to check`);
 
-  //     for (const userInfo of userInfoList) {
-  //       try {
-  //         // Check if we need to refresh the token
-  //         await this.ensureValidAccessToken();
+      for (const userInfo of userInfoList) {
+        try {
+          // Check if we need to refresh the token
+          await this.ensureValidAccessToken();
           
-  //         let foundInZoho = false;
+          let foundInZoho = false;
           
-  //         // Try searching Zoho with email if available
-  //         if (userInfo.email) {
-  //           const foundLead = await this.searchLeadInZoho(userInfo.email);
-  //           if (foundLead?.Email) {
-  //             foundInZoho = true;
-  //             this.logger.log(`Found user in Zoho by email: ${userInfo.email}`);
-  //           }
-  //         }
+          // Try searching Zoho with email if available
+          // if (userInfo.email) {
+          //   const foundLead = await this.searchLeadInZoho(userInfo.email);
+          //   if (foundLead?.Email) {
+          //     foundInZoho = true;
+          //     this.logger.log(`Found user in Zoho by email: ${userInfo.email}`);
+          //   }
+          // }
           
-  //         // If not found with email, try with phone
-  //         if (!foundInZoho && userInfo.phone) {
-  //           const foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
-  //           if (foundLead?.Phone) {
-  //             foundInZoho = true;
-  //             this.logger.log(`Found user in Zoho by phone: ${userInfo.phone}`);
-  //           }
-  //         }
+          // If not found with email, try with phone
+          if (!foundInZoho && userInfo.phone) {
+            const foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
+            if (foundLead?.Phone) {
+              foundInZoho = true;
+              this.logger.log(`Found user in Zoho by phone: ${userInfo.phone}`);
+            }
+          }
           
-  //         // If found in Zoho, update the status
-  //         if (foundInZoho) {
-  //           userInfo.contacted = true;
-  //           await this.leadRepository.update(userInfo.leadId, {
-  //             status: 'completed',
-  //             formSubmitted:true,
-  //             contacted: true,
-  //             formSubmittedAt:new Date()
-  //           });
-  //           await this.userInfoRepository.save(userInfo);
-  //           this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
-  //         }
+          // If found in Zoho, update the status
+          if (foundInZoho) {
+            userInfo.contacted = true;
+            await this.leadRepository.update(userInfo.leadId, {
+              status: 'completed',
+              formSubmitted:true,
+              contacted: true,
+              formSubmittedAt:new Date()
+            });
+            await this.userInfoRepository.save(userInfo);
+            this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
+          }
           
-  //       } catch (error) {
-  //         this.logger.error(`Error checking userInfo ${userInfo.id} in Zoho: ${error.message}`);
-  //         continue; // Continue with next user even if one fails
-  //       }
-  //     }
+        } catch (error) {
+          this.logger.error(`Error checking userInfo ${userInfo.id} in Zoho: ${error.message}`);
+          continue; // Continue with next user even if one fails
+        }
+      }
       
-  //     this.logger.log('Completed UserInfo Zoho check');
-  //   } catch (error) {
-  //     this.logger.error(`Error in UserInfo Zoho check: ${error.message}`);
-  //   }
-  // }
+      this.logger.log('Completed UserInfo Zoho check');
+    } catch (error) {
+      this.logger.error(`Error in UserInfo Zoho check: ${error.message}`);
+    }
+  }
 
   private async ensureValidAccessToken(): Promise<void> {
     // Check if token is still valid (with 5 min buffer)
@@ -615,6 +615,74 @@ await this.leadRepository.save(leadData)
       return this.accessToken;
     } catch (error) {
       this.logger.error(`Failed to get Zoho access token: ${error.message}`);
+      throw error;
+    }
+  }
+
+  public async deleteLeadsFromZohoByPhone(phoneNumber: string): Promise<{ deletedCount: number; message: string }> {
+    try {
+      await this.ensureValidAccessToken();
+      
+      // First, search for leads with the given phone number
+      const searchCriteria = `(Phone:equals:${phoneNumber})`;
+      const searchResponse = await axios.get(
+        `${this.zohoApiUrl}/Leads/search?criteria=${encodeURIComponent(searchCriteria)}`,
+        {
+          headers: {
+            'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!searchResponse.data?.data || searchResponse.data.data.length === 0) {
+        return {
+          deletedCount: 0,
+          message: `No leads found in Zoho CRM with phone number: ${phoneNumber}`
+        };
+      }
+
+      let deletedCount = 0;
+      const errors: string[] = [];
+
+      // Delete each lead found
+      for (const lead of searchResponse.data.data) {
+        try {
+          const deleteResponse = await axios.delete(
+            `${this.zohoApiUrl}/Leads/${lead.id}`,
+            {
+              headers: {
+                'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          if (deleteResponse.status === 200 || deleteResponse.status === 204) {
+            deletedCount++;
+            this.logger.log(`Successfully deleted lead ${lead.id} from Zoho CRM`);
+          }
+        } catch (error) {
+          const errorMsg = `Failed to delete lead ${lead.id}: ${error.response?.data?.message || error.message}`;
+          this.logger.error(errorMsg);
+          errors.push(errorMsg);
+        }
+      }
+
+      const message = deletedCount > 0 
+        ? `Successfully deleted ${deletedCount} leads from Zoho CRM with phone number: ${phoneNumber}`
+        : `No leads were deleted from Zoho CRM with phone number: ${phoneNumber}`;
+
+      if (errors.length > 0) {
+        this.logger.warn(`Some errors occurred during deletion: ${errors.join(', ')}`);
+      }
+
+      return {
+        deletedCount,
+        message: errors.length > 0 ? `${message}. Errors: ${errors.join(', ')}` : message
+      };
+    } catch (error) {
+      this.logger.error(`Error deleting leads from Zoho CRM by phone number ${phoneNumber}: ${error.message}`);
       throw error;
     }
   }

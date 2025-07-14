@@ -271,6 +271,11 @@ export const leadsApi = {
     const response = await apiClient.delete(`/leads/${id}`);
     return response.data;
   },
+
+  deleteByPhoneNumber: async (phoneNumber: string): Promise<{ deletedCount: number; message: string }> => {
+    const response = await apiClient.delete(`/leads/by-phone/${phoneNumber}`);
+    return response.data;
+  },
 };
 
 // Apollo Config API

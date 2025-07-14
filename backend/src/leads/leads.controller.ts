@@ -120,6 +120,13 @@ export class LeadsController {
     return this.leadsService.remove(id);
   }
 
+  @Delete('by-phone/:phoneNumber')
+  @ApiOperation({ summary: 'Delete all leads by phone number' })
+  @ApiResponse({ status: 200, description: 'Successfully deleted leads' })
+  async removeByPhoneNumber(@Param('phoneNumber') phoneNumber: string) {
+    return this.leadsService.removeByPhoneNumber(phoneNumber);
+  }
+
   @Post('apollo/search')
   @UsePipes(new ValidationPipe({ transform: true }))
   fetchFromApollo(@Body() searchParams: SearchLeadsDto) {
