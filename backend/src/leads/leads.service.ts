@@ -4,6 +4,7 @@ import { Repository, Between, Like, ILike, Not } from 'typeorm';
 import { Lead } from './entities/lead.entity';
 import { CallHistory } from './entities/call-history.entity';
 import { LastCall } from './entities/last-call.entity';
+import { CallTranscript } from '../retell/entities/call-transcript.entity';
 import { ApolloService } from '../apollo/apollo.service';
 import { SearchLeadsDto } from '../apollo/dto/search-leads.dto';
 import { CreateLeadDto } from './dto/create-lead.dto';
@@ -34,6 +35,8 @@ export class LeadsService {
     private callHistoryRepository: Repository<CallHistory>,
     @InjectRepository(LastCall)
     private lastCallRepository: Repository<LastCall>,
+    @InjectRepository(CallTranscript)
+    private callTranscriptRepository: Repository<CallTranscript>,
     private apolloService: ApolloService,
     private retellAiService: RetellAiService,
     private readonly configService: ConfigService,
@@ -277,7 +280,15 @@ export class LeadsService {
 
   async remove(id: string): Promise<void> {
     try {
-      // First, delete all related call history records
+      // First, delete all related call transcripts
+      await this.callTranscriptRepository.delete({ call_history_id: In(
+        await this.callHistoryRepository.find({
+          where: { lead_id: id },
+          select: ['id']
+        }).then(records => records.map(record => record.id))
+      ) });
+      
+      // Then, delete all related call history records
       await this.callHistoryRepository.delete({ lead_id: id });
       
       // Delete the last call record if it exists
