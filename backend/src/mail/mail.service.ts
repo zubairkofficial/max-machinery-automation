@@ -10,7 +10,8 @@ import { MessageTemplatesService } from 'src/message-templates/message-templates
 export class MailService {
   private transporter: nodemailer.Transporter;
   private readonly logger = new Logger(MailService.name);
-  
+  private emailSentTimestamps: Map<string, number> = new Map(); // Map to track sent email timestamps
+
   constructor(private configService: ConfigService,private jwtService: JwtService,  private readonly messageTemplatesService: MessageTemplatesService,
  ) {
     const mailConfig = this.configService.get('mail');
@@ -69,6 +70,18 @@ export class MailService {
 
    async sendVerificationLink(lead: Lead) {
     try {
+      const currentTimestamp = Date.now();
+      const lastSentTimestamp = this.emailSentTimestamps.get(lead.id);
+
+      // Check if email was sent in the last 1 minute (60,000 ms)
+      if (lastSentTimestamp && currentTimestamp - lastSentTimestamp < 60000) {
+        this.logger.log(`Verification email already sent to ${lead.id}. Skipping.`);
+        return; // Skip sending the email if within 1 minute
+      }
+
+      // Update the timestamp for this lead
+      this.emailSentTimestamps.set(lead.id, currentTimestamp);
+
       const payload = { leadId: lead.id };
       const token = this.jwtService.sign(payload);
 
