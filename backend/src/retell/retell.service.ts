@@ -407,6 +407,7 @@ ${transcript}`
         if (contactInfo.notInterested) {
           lead.notInterested=true
           lead.status='not-interested'
+          lead.scheduledCallbackDate=null
           await this.leadRepository.save(lead)
         }
         if (contactInfo.resentLink) {

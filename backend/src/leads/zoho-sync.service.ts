@@ -1,15 +1,12 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, In, Repository } from 'typeorm';
+import {  Repository } from 'typeorm';
 import { Lead } from './entities/lead.entity';
 import axios from 'axios';
 import { Not, IsNull } from 'typeorm';
 import { CallTranscript } from '../retell/entities/call-transcript.entity';
 import { ChatOpenAI } from '@langchain/openai';
-import { PromptTemplate } from '@langchain/core/prompts';
-import { RunnableSequence } from '@langchain/core/runnables';
-import { StringOutputParser } from '@langchain/core/output_parsers';
 import { ConfigService } from '@nestjs/config';
 import { UserInfo } from 'src/userInfo/entities/user-info.entity';
 import { RetellAiService } from './retell-ai.service';
@@ -33,7 +30,7 @@ export interface ZohoLeadData {
 export class ZohoSyncService {
   private readonly logger = new Logger(ZohoSyncService.name);
   private accessToken: string;
-  private readonly zohoApiUrl = 'https://www.zohoapis.com/crm/v2';
+  private readonly zohoApiUrl = 'https://www.zohoapis.com/crm/v2/Leads';
   private readonly clientId: string;
   private readonly clientSecret: string;
   private readonly refreshToken: string;
@@ -136,73 +133,7 @@ for(const lead of leads) {
   }
 }
 
-      // Get all leads that need to be checked
-      // const userInfo = await this.userInfoRepository.find({
-      //   where: [
-      //     {
-      //       email: Not(IsNull()),
-      //       contacted: false
-      //     },
-      //     {
-      //       phone: Not(IsNull()),
-      //       contacted: false
-      //     }
-      //   ],
-      //   select: ['id', 'email', 'phone', 'contacted', 'leadId'],
-      // });
-
-      // for (const userLeadInfo of userInfo) {
-      //   try {
-      //     // Check if we need to refresh the token
-      //     await this.ensureValidAccessToken();
-          
-      //     // Get the lead information
-      //     const leadRes = await this.leadRepository.findOne({where:{id:userLeadInfo.leadId}});
-          
-      //     if (leadRes) {
-      //       // Try searching Zoho with available contact info
-      //       let foundLead = null;
-            
-      //       // First try with email if available
-      //       if (userLeadInfo.email) {
-      //         foundLead = await this.searchLeadInZoho(userLeadInfo.email);
-      //       }
-            
-      //       // If not found with email, try with phone
-      //       if (!foundLead && userLeadInfo.phone) {
-      //         foundLead = await this.searchLeadInZohoByPhone(userLeadInfo.phone);
-      //       }
-            
-      //       // If still not found, try with lead's contact info
-      //       if (!foundLead && leadRes.zohoEmail) {
-      //         foundLead = await this.searchLeadInZoho(leadRes.zohoEmail);
-      //       }
-            
-      //       if (!foundLead && leadRes.zohoPhoneNumber) {
-      //         foundLead = await this.searchLeadInZohoByPhone(leadRes.zohoPhoneNumber);
-      //       }
-            
-      //       if (!foundLead?.Email) {
-      //         const formSubmit = false;
-      //         const linkClick = true;
-      //         // Make reminder call if lead not found in Zoho
-      //         await this.retellAiService.makeCallLeadZoho(
-      //           leadRes,
-      //           this.configService.get<string>('FROM_PHONE_NUMBER'), 
-      //           formSubmit,
-      //           linkClick,
-      //           this.configService.get<string>('AGENT_ID')
-      //         );
-      //       } else {
-      //         // Update our lead with Zoho data
-      //         await this.updateLeadWithZohoData(userLeadInfo);
-      //       }
-      //     }   
-      //   } catch (error) {
-      //     this.logger.error(`Error processing lead ${userLeadInfo.id}: ${error.message}`);
-      //     continue; // Continue with next lead even if one fails
-      //   }
-      // }
+     
     
       this.logger.log('Completed Zoho CRM sync');
 } else {
@@ -240,29 +171,87 @@ for(const lead of leads) {
         try {
           // Check if we need to refresh the token
           await this.ensureValidAccessToken();
+        const  leads = await this.getLeadsByPhoneNumber(userInfo.phone)
+       let leadCount=leads.length
+        for(const lead of leads){
+        if(!lead?.Lead_Status){
+         await axios.delete(
+            `${this.zohoApiUrl}/${lead.id}`,
+            {
+              headers: {
+                'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+        } else if(leadCount==2){
+          await axios.put(`${this.zohoApiUrl}/${lead.id}`, {
+            data: [
+              {
+                "Lead_Status": "Submitted",
+              }
+            ]
+          });
+        }
+        }
+        let foundInZoho = false;
           
-          let foundInZoho = false;
           
-          // Try searching Zoho with email if available
-          // if (userInfo.email) {
-          //   const foundLead = await this.searchLeadInZoho(userInfo.email);
-          //   if (foundLead?.Email) {
-          //     foundInZoho = true;
-          //     this.logger.log(`Found user in Zoho by email: ${userInfo.email}`);
-          //   }
-          // }
           
-          // If not found with email, try with phone
+          
           if (!foundInZoho && userInfo.phone) {
             const foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
             if (foundLead?.Phone) {
               foundInZoho = true;
               this.logger.log(`Found user in Zoho by phone: ${userInfo.phone}`);
+              
+              // Get lead with last call information
+              const lead = await this.leadRepository.findOne({
+                where: { id: userInfo.leadId },
+                relations: ['lastCallRecord']
+              });
+              
+              let transcript = "";
+              let summary = "";
+              
+              // If lead has last call record, get call information from Retell AI
+              if (lead?.lastCallRecord?.callId) {
+                try {
+                  const callDetail = await this.retellAiService.getCallDetail(lead.lastCallRecord.callId);
+                  transcript = callDetail.transcript || "";
+                  summary = callDetail.call_analysis?.call_summary || "";
+                  this.logger.log(`Retrieved call information for callId: ${lead.lastCallRecord.callId}`);
+                } catch (error) {
+                  this.logger.error(`Error getting call detail for callId ${lead.lastCallRecord.callId}: ${error.message}`);
+                }
+              }
+              
+              // Update Zoho lead with transcript and summary
+            try {
+           const response =   await axios.put(`${this.zohoApiUrl}/${foundLead.id}`, {
+                data: [
+                  {
+                    "Lead_Source": "Retell AI",
+                    "Transcript": transcript,
+                    "Summary": summary,
+                  }
+                ]
+              }, {
+                headers: {
+                  Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+                }
+              });
+              this.logger.log(`Lead updated in Zoho: ${response.data}`);
+            } catch (error) {
+              this.logger.error(`Error updating lead in Zoho: ${error.message}`);
             }
+            }
+           
           }
           
           // If found in Zoho, update the status
           if (foundInZoho) {
+           
             userInfo.contacted = true;
             await this.leadRepository.update(userInfo.leadId, {
               status: 'completed',
@@ -317,7 +306,7 @@ for(const lead of leads) {
  async getZohoLead(lead: Lead): Promise<any> {
   try {
     await this.ensureValidAccessToken();
-    const response = await axios.get(`https://www.zohoapis.com/crm/v2/Leads/search?criteria=(Email:equals:${lead.zohoEmail})`, {
+    const response = await axios.get(`${this.zohoApiUrl}/search?criteria=(Email:equals:${lead.zohoEmail})`, {
       headers: {
         Authorization: `Zoho-oauthtoken ${this.accessToken}`,
       },
@@ -340,7 +329,7 @@ for(const lead of leads) {
   async createZohoLead(leadData: Lead,status: string) {
   try {
     await this.ensureValidAccessToken();
-    const response = await axios.post('https://www.zohoapis.com/crm/v2/Leads', {
+    const response = await axios.post(`${this.zohoApiUrl}`, {
       data: [
         {
           "First_Name": leadData.firstName,
@@ -396,7 +385,7 @@ await this.leadRepository.save(leadData)
   try {
     await this.ensureValidAccessToken();
 
-      const searchResponse = await axios.get(`https://www.zohoapis.com/crm/v2/Leads/search?criteria=(Phone:equals:${lead.phone})`, {
+      const searchResponse = await axios.get(`${this.zohoApiUrl}/search?criteria=(Phone:equals:${lead.phone})`, {
       headers: {
         Authorization: `Zoho-oauthtoken ${this.accessToken}`,
       }
@@ -406,7 +395,7 @@ await this.leadRepository.save(leadData)
     const leadId = searchResponse.data.data[0].id; // Get the first matching lead
 
       // Step 2: Update the lead with new data (PUT request)
-      const updateResponse = await axios.put(`https://www.zohoapis.com/crm/v2/Leads/${leadId}`, {
+      const updateResponse = await axios.put(`${this.zohoApiUrl}/${leadId}`, {
         data: [
           {
            
@@ -428,7 +417,7 @@ await this.leadRepository.save(leadData)
   try {
     await this.ensureValidAccessToken();
 
-      const searchResponse = await axios.get(`https://www.zohoapis.com/crm/v2/Leads/search?criteria=(Email:equals:${lead.zohoEmail})`, {
+      const searchResponse = await axios.get(`${this.zohoApiUrl}/search?criteria=(Email:equals:${lead.zohoEmail})`, {
       headers: {
         Authorization: `Zoho-oauthtoken ${this.accessToken}`,
       }
@@ -438,7 +427,7 @@ await this.leadRepository.save(leadData)
     const leadId = searchResponse.data.data[0].id; // Get the first matching lead
 
       // Step 2: Update the lead with new data (PUT request)
-      const updateResponse = await axios.put(`https://www.zohoapis.com/crm/v2/Leads/${leadId}`, {
+      const updateResponse = await axios.put(`${this.zohoApiUrl}/${leadId}`, {
         data: [
           {
            
@@ -458,7 +447,7 @@ await this.leadRepository.save(leadData)
   }}
   private async searchLeadInZoho(email: string): Promise<any> {
     try {
-      const response = await axios.get('https://www.zohoapis.com/crm/v2/Leads/search', {
+      const response = await axios.get(`${this.zohoApiUrl}/search`, {
         params: { email },
         headers: {
           'Authorization': `Zoho-oauthtoken ${this.accessToken}`
@@ -482,11 +471,6 @@ await this.leadRepository.save(leadData)
 
   private async updateLeadWithZohoData(userInfo: UserInfo): Promise<void> {
     try {
-      // Update local lead with Zoho data
-      // userInfo.firstName = zohoLead.First_Name || userInfo.firstName;
-      // userInfo.lastName = zohoLead.Last_Name || userInfo.lastName;
-      // userInfo.email = zohoLead.Email || userInfo.email;
-      // userInfo.phone = zohoLead.Phone || userInfo.phone;
       userInfo.contacted = true;
       // Store Zoho ID and other metadata
     
@@ -505,7 +489,7 @@ await this.leadRepository.save(leadData)
       
       const searchCriteria = `(Phone:equals:${phone})`;
       const response = await axios.get(
-        `${this.zohoApiUrl}/Leads/search?criteria=${encodeURIComponent(searchCriteria)}`,
+        `${this.zohoApiUrl}/search?criteria=${encodeURIComponent(searchCriteria)}`,
         {
           headers: {
             'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
@@ -539,7 +523,7 @@ await this.leadRepository.save(leadData)
       };
 
       const response = await axios.post(
-        `${this.zohoApiUrl}/Leads`,
+        `${this.zohoApiUrl}`,
         { data: [zohoData] },
         {
           headers: {
@@ -570,7 +554,7 @@ await this.leadRepository.save(leadData)
       };
 
       const response = await axios.put(
-        `${this.zohoApiUrl}/Leads/${leadId}`,
+        `${this.zohoApiUrl}/${leadId}`,
         { data: [zohoData] },
         {
           headers: {
@@ -627,7 +611,7 @@ await this.leadRepository.save(leadData)
       // First, search for leads with the given phone number
       const searchCriteria = `(Phone:equals:${phoneNumber})`;
       const searchResponse = await axios.get(
-        `${this.zohoApiUrl}/Leads/search?criteria=${encodeURIComponent(searchCriteria)}`,
+        `${this.zohoApiUrl}/search?criteria=${encodeURIComponent(searchCriteria)}`,
         {
           headers: {
             'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
@@ -650,7 +634,7 @@ await this.leadRepository.save(leadData)
       for (const lead of searchResponse.data.data) {
         try {
           const deleteResponse = await axios.delete(
-            `${this.zohoApiUrl}/Leads/${lead.id}`,
+            `${this.zohoApiUrl}/${lead.id}`,
             {
               headers: {
                 'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
@@ -687,4 +671,36 @@ await this.leadRepository.save(leadData)
       throw error;
     }
   }
+
+  async  getLeadsByPhoneNumber(phoneNumber) {
+    if (!phoneNumber) {
+        this.logger.warn('Phone number is missing, skipping Zoho search.');
+        return []; // Return an empty array if no phone number is provided
+    }
+
+    try {
+        const searchCriteria = `(Phone:equals:${phoneNumber})`;
+        const searchUrl = `https://www.zohoapis.com/crm/v2/Leads/search?criteria=${encodeURIComponent(searchCriteria)}`;
+
+        const searchResponse = await axios.get(searchUrl, {
+            headers: {
+                Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+            }
+        });
+
+        const foundLeads = searchResponse.data.data;
+
+        if (foundLeads && foundLeads.length > 0) {
+            this.logger.log(`Found ${foundLeads.length} leads in Zoho with phone: ${phoneNumber}`);
+            return foundLeads;
+        } else {
+            this.logger.log(`No leads found in Zoho with phone: ${phoneNumber}`);
+            return []; // Return an empty array if no leads are found
+        }
+    } catch (error) {
+        this.logger.error(`Error searching Zoho Leads by phone ${phoneNumber}:`, error);
+        throw error; // Re-throw for further error handling upstream
+    }
+}
+
 } 

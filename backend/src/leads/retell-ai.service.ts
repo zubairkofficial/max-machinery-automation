@@ -633,4 +633,28 @@ ${transcript}`
       this.logger.error(`Error in processTranscriptForContactInfo: ${error.message}`, error.stack);
     }
   }
+
+  /**
+   * Get call details from Retell AI API
+   */
+  public async getCallDetail(callId: string): Promise<any> {
+    try {
+      if (!this.apiKey) throw new Error('RetellAI API key is not configured');
+      
+      const response = await axios.get(`${this.retellBaseUrl}/v2/get-call/${callId}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Error getting call detail for callId ${callId}: ${error.message}`);
+      throw new HttpException(
+        `Failed to get call detail: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 } 
