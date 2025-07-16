@@ -173,27 +173,27 @@ for(const lead of leads) {
           await this.ensureValidAccessToken();
         const  leads = await this.getLeadsByPhoneNumber(userInfo.phone)
        let leadCount=leads.length
-        for(const lead of leads){
-        if(!lead?.Lead_Status){
-         await axios.delete(
-            `${this.zohoApiUrl}/${lead.id}`,
-            {
-              headers: {
-                'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-        } else if(leadCount==2){
-          await axios.put(`${this.zohoApiUrl}/${lead.id}`, {
-            data: [
-              {
-                "Lead_Status": "Submitted",
-              }
-            ]
-          });
-        }
-        }
+        // for(const lead of leads){
+        // if(!lead?.Lead_Status){
+        //  await axios.delete(
+        //     `${this.zohoApiUrl}/${lead.id}`,
+        //     {
+        //       headers: {
+        //         'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
+        //         'Content-Type': 'application/json'
+        //       }
+        //     }
+        //   );
+        // } else if(leadCount==2){
+        //   await axios.put(`${this.zohoApiUrl}/${lead.id}`, {
+        //     data: [
+        //       {
+        //         "Lead_Status": "Submitted",
+        //       }
+        //     ]
+        //   });
+        // }
+        // }
         let foundInZoho = false;
           
           
@@ -250,7 +250,8 @@ for(const lead of leads) {
           }
           
           // If found in Zoho, update the status
-          if (foundLead?.Lead_Status==="Submitted") {
+          if (foundLead) {
+            // foundLead?.Lead_Status==="Submitted"
            
             userInfo.contacted = true;
             await this.leadRepository.update(userInfo.leadId, {
