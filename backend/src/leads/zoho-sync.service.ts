@@ -197,10 +197,10 @@ for(const lead of leads) {
         let foundInZoho = false;
           
           
-          
+          let foundLead=null
           
           if (!foundInZoho && userInfo.phone) {
-            const foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
+             foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
             if (foundLead?.Phone) {
               foundInZoho = true;
               this.logger.log(`Found user in Zoho by phone: ${userInfo.phone}`);
@@ -250,7 +250,7 @@ for(const lead of leads) {
           }
           
           // If found in Zoho, update the status
-          if (foundInZoho) {
+          if (foundLead?.Lead_Status==="Submitted") {
            
             userInfo.contacted = true;
             await this.leadRepository.update(userInfo.leadId, {
