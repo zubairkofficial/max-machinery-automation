@@ -194,7 +194,7 @@ export class MessageTemplatesService {
               <p>If you have any questions, feel free to contact us.</p>
               <p>Best regards,<br>The MachineryMax Team</p>
             </div>
-            <div style="background-color: #333; color: white; padding: 10px; text-align: center; font-size: 12px;">
+            <div style="background-color: #031C52; color: white; padding: 10px; text-align: center; font-size: 12px;">
               &copy; {{currentYear}} MachineryMax. All rights reserved.
             </div>
           </div>
