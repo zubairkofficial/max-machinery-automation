@@ -183,7 +183,7 @@ export class MessageTemplatesService {
             <div style="background-color: #031C52; padding: 20px; text-align: center;">
               <img src="https://mmaxstorage.blob.core.windows.net/assets/media/a94bd20a-4a87-4aff-bd45-807bc378d569.png" alt="MachineryMax" style="max-width: 200px;background-color: transparent;"  />
             </div>
-            <div style="padding: 20px; border: 1px solid #ddd;">
+            <div style="color: #f0f0f0; padding: 20px; border: 1px solid #ddd;">
               <h2>Hello {{firstName}},</h2>
               <p>Thank you for your interest in MachineryMax. To complete your information, please click the link below:</p>
               <p style="text-align: center;">

@@ -242,26 +242,23 @@ for(const lead of leads) {
                   Authorization: `Zoho-oauthtoken ${this.accessToken}`,
                 }
               });
-
-              const addNoteResponse = await axios.post(`https://www.zohoapis.com/crm/v2/Notes`, {
-                data: [
-                  {
-                    "Note_Title": "Lead Follow-up Details", 
-                    "Note_Content": "The lead was successfully converted after a call and follow-up. Details of the conversation:...", // Add the note content here
-                    "Parent_Id": {
-                      "module": {
-                        "api_name": "Leads" 
-                      },
-                      "id": foundLead.id // Use the same Lead ID
-                    }
+              const noteData = {
+                data: [{
+                  "Note_Title": "Call Summary",  // Required field
+                  "Note_Content": "Detailed notes from the call..."  // Your note content
+                }]
+              }
+              const noteResponse = await axios.post(
+                `${this.zohoApiUrl}/${foundLead.id}/Notes`,  // Note endpoint
+                noteData,
+                {
+                  headers: {
+                    Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+                    'Content-Type': 'application/json'  // Explicit content type
                   }
-                ]
-              }, {
-                headers: {
-                  Authorization: `Zoho-oauthtoken ${this.accessToken}`,
                 }
-              });
-                this.logger.log(`Lead updated in Zoho: ${addNoteResponse.data}`);
+              );
+                this.logger.log(`Lead updated in Zoho: ${noteResponse.data}`);
             } catch (error) {
               this.logger.error(`Error updating lead in Zoho: ${error.message}`);
             }
