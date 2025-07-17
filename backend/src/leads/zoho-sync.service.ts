@@ -172,7 +172,7 @@ for(const lead of leads) {
           // Check if we need to refresh the token
           await this.ensureValidAccessToken();
         const  leads = await this.getLeadsByPhoneNumber(userInfo.phone)
-       let leadCount=leads.length
+      //  let leadCount=leads.length
         // for(const lead of leads){
         // if(!lead?.Lead_Status){
         //  await axios.delete(
@@ -243,7 +243,7 @@ for(const lead of leads) {
                 }
               });
 
-              const addNoteResponse = await axios.post(`${this.zohoApiUrl}/Notes`, {
+              const addNoteResponse = await axios.post(`https://www.zohoapis.com/crm/v2/Notes`, {
                 data: [
                   {
                     "Note_Title": "Lead Follow-up Details", 
