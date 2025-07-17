@@ -244,10 +244,10 @@ for(const lead of leads) {
               });
               const noteData = {
                 data: [{
-                  "Note_Title": "Call Summary",  // Required field
-                  "Note_Content": "Detailed notes from the call..."  // Your note content
+                  "Note_Title": "Call Summary", // Required field
+                  "Note_Content": `\n${summary}\n\n${transcript}\n` // Ensure both summary and transcript start on new lines
                 }]
-              }
+              };
               const noteResponse = await axios.post(
                 `${this.zohoApiUrl}/${foundLead.id}/Notes`,  // Note endpoint
                 noteData,
