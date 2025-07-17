@@ -231,7 +231,7 @@ for(const lead of leads) {
            const response =   await axios.put(`${this.zohoApiUrl}/${foundLead.id}`, {
                 data: [
                   {
-                    // "Status": 'completed',
+                    "Lead_Status": 'completed',
                     "Lead_Source": "Retell AI",
                     
                     "Campaign_Medium": "call", 
