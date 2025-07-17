@@ -4,7 +4,7 @@ import { Repository, Not } from 'typeorm';
 import { MessageTemplate, MessageType, MessageCategory } from './entities/message-template.entity';
 import { CreateMessageTemplateDto } from './dto/create-message-template.dto';
 import { UpdateMessageTemplateDto } from './dto/update-message-template.dto';
-
+import logo from '../images/max-machinery-log.png';
 @Injectable()
 export class MessageTemplatesService {
   private readonly logger = new Logger(MessageTemplatesService.name);
@@ -180,8 +180,8 @@ export class MessageTemplatesService {
         content: 'Thank you for your interest in MachineryMax. To complete your information, please click the link below: {{verificationUrl}}',
         htmlContent: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background-color: #f0f0f0; padding: 20px; text-align: center;">
-              <img src="https://mmaxstorage.blob.core.windows.net/assets/media/a94bd20a-4a87-4aff-bd45-807bc378d569.png" alt="MachineryMax" style="max-width: 200px;" />
+            <div style="background-color: #031C52; padding: 20px; text-align: center;">
+              <img src="${logo}" alt="MachineryMax" style="max-width: 200px;" />
             </div>
             <div style="padding: 20px; border: 1px solid #ddd;">
               <h2>Hello {{firstName}},</h2>
