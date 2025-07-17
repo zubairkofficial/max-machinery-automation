@@ -409,6 +409,7 @@ ${transcript}`
           lead.status='not-interested'
           lead.scheduledCallbackDate=null
           await this.leadRepository.save(lead)
+          return;
         }
         if (contactInfo.resentLink) {
           if (lead.zohoEmail) {
@@ -421,6 +422,7 @@ ${transcript}`
           }
           
           await this.leadRepository.update({id:lead.id},{linkSend:true})
+        return;
         }
 
       
