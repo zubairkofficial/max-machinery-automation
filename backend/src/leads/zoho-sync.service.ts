@@ -243,24 +243,25 @@ for(const lead of leads) {
                 }
               });
 
-              const noteResponse = await axios.post(
-                `${this.zohoApiUrl}/Notes`, // API endpoint for creating notes
-                {
-                  data: [
-                    {
-                      Note_Title: "Lead Information Update", // Title of the note
-                      Note_Content: `Lead Source: Retell AI\nCampaign Medium: Call\n\nAdditional Info: Your custom message or summary can go here.`,
-                      Parent_Id: foundLead.id, // Link to the updated Lead
-                      se_module: 'Leads', // Module name (Leads in this case)
+              const addNoteResponse = await axios.post(`${this.zohoApiUrl}/Notes`, {
+                data: [
+                  {
+                    "Note_Title": "Lead Follow-up Details", 
+                    "Note_Content": "The lead was successfully converted after a call and follow-up. Details of the conversation:...", // Add the note content here
+                    "Parent_Id": {
+                      "module": {
+                        "api_name": "Leads" 
+                      },
+                      "id": foundLead.id // Use the same Lead ID
                     }
-                  ]
-                },
-                {
-                  headers: {
-                    Authorization: `Zoho-oauthtoken ${this.accessToken}`, // Authorization token
                   }
-                })
-              this.logger.log(`Lead updated in Zoho: ${noteResponse.data}`);
+                ]
+              }, {
+                headers: {
+                  Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+                }
+              });
+                this.logger.log(`Lead updated in Zoho: ${addNoteResponse.data}`);
             } catch (error) {
               this.logger.error(`Error updating lead in Zoho: ${error.message}`);
             }
