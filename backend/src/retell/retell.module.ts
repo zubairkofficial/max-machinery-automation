@@ -30,7 +30,7 @@ import { LeadsModule } from '../leads/leads.module';
    
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'secret-key',
-      signOptions: { expiresIn: '1h' },
+      signOptions: { expiresIn: '365d' },
     }),
   ],
   controllers: [RetellController],

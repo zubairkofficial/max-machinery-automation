@@ -12,7 +12,7 @@ import { MessageTemplatesModule } from '../message-templates/message-templates.m
       imports: [ConfigModule],
       useFactory: async () => ({
         secret: process.env.JWT_SECRET || 'secret-key',
-        signOptions: { expiresIn: '1h' },
+       signOptions: { expiresIn: '365d' }
       }),
     }),
   ],
