@@ -24,6 +24,7 @@ import RetellLLMPage from "./pages/RetellLLMPage";
 import CronSettings from './pages/CronSettings';
 import CallHistory from './pages/CallHistory';
 import PhoneNumberDeletion from './pages/PhoneNumberDeletion';
+import EmailSender from "./components/EmailSender";
 
 // Import or create route placeholders (these components can be implemented later)
 // const PriorityLeads = () => <LeadsManagement currentTab="priority" />;
@@ -97,6 +98,7 @@ function App() {
                             <Route path="/retell-llm" element={<RetellLLMPage />} />
                             <Route path="/cron-settings" element={<CronSettings />} />
                             <Route path="/phone-deletion" element={<PhoneNumberDeletion />} />
+                            <Route path="/email-sender" element={<EmailSender />} />
                             <Route path="*" element={<Navigate to="/" replace />} />
                           </Routes>
                         </main>

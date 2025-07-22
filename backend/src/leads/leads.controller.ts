@@ -90,6 +90,19 @@ export class LeadsController {
   findOne(@Param('id') id: string) {
     return this.leadsService.findOne(id);
   }
+  
+  @Get('email/:leadId')
+  testMail(@Param('leadId') leadId: string) {
+    try {
+      
+    
+    return this.leadsService.testMail(leadId);
+  } catch (error) {
+      throw new HttpException( 
+        'Failed to send email',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+  }}
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateLeadDto: UpdateLeadDto) {

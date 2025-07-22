@@ -277,6 +277,18 @@ export class LeadsService {
     await this.leadRepository.update(id, updateLeadDto);
     return this.findOne(id);
   }
+  async testMail(leadId): Promise<any> {
+    this.getByLeadId(leadId).then(lead => {
+      if (!lead) {
+        throw new HttpException('Lead not found', HttpStatus.NOT_FOUND);
+      }
+      return this.retellAiService.testMail(lead);
+    }).catch(error => {
+      this.logger.error(`Failed to send test mail for lead ${leadId}: ${error.message}`);
+      throw new HttpException('Failed to send test mail', HttpStatus.INTERNAL_SERVER_ERROR);
+    });
+  //  return this.retellAiService.testMail(lead);
+  }
 
   async remove(id: string): Promise<void> {
     try {

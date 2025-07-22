@@ -202,6 +202,10 @@ export const leadsApi = {
     const response = await apiClient.get(`/leads/${id}`);
     return response.data;
   },
+  sendEmail: async (id: string): Promise<Lead> => {
+    const response = await apiClient.get(`/leads/email/${id}`);
+    return response.data;
+  },
 
   update: async (id: string, data: Partial<Lead>): Promise<Lead> => {
     const response = await apiClient.patch(`/leads/${id}`, data);

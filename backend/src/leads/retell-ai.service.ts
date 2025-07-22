@@ -102,6 +102,15 @@ private async updateRetellLLM(llmId:string, promptType:JobName,lastCallTranscrip
   public async updateLLMPromptForCronJob(promptType:JobName, lastCallTranscription?: string): Promise<void> {
     return this.updateRetellLLM(this.configService.get<string>('RETELL_LLM_ID'), promptType, lastCallTranscription);
   }
+  public async testMail(lead): Promise<void> {
+    try {
+      
+  
+    return this.mailService.sendVerificationLink(lead);
+  } catch (error) {
+    throw new HttpException(`Failed to send test mail: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  }
 
   // Call making method with error handling
   public async makeCall(fromNumber: string, toNumber: string, id: string, type:JobName, overrideAgentId?: string): Promise<any> {

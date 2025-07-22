@@ -28,6 +28,7 @@ import { UserInfo } from 'src/userInfo/entities/user-info.entity';
 import { Retell } from 'src/retell/entities/retell.entity';
 import { ConfigModule } from '@nestjs/config';
 import { UserInfoModule } from 'src/userInfo/user-info.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -39,6 +40,10 @@ import { UserInfoModule } from 'src/userInfo/user-info.module';
       UserInfo,
       Retell
     ]),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET||'secret-key', // In production, use environment variables
+      signOptions: { expiresIn: '1d' },
+    }),
     forwardRef(() => RetellModule),
     forwardRef(() => CronSettingsModule),
     forwardRef(() => UserInfoModule),

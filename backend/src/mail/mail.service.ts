@@ -83,7 +83,9 @@ export class MailService {
       this.emailSentTimestamps.set(lead.id, currentTimestamp);
 
       const payload = { leadId: lead.id };
-      const token = this.jwtService.sign(payload);
+      const jwtSecret = this.configService.get('JWT_SECRET') || 'secret-key'; // Default to 'secret-key' if not set
+     
+       const token = this.jwtService.sign(payload, { secret: jwtSecret });
 
       const appUrl = `${this.configService.get('APP_URL')}/user-info?token=${token}` || `http://localhost:4000/api/v1/user-info?token=${token}`;
 
