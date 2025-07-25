@@ -108,6 +108,7 @@ private async shortenUrl(url: string): Promise<string> {
         timeout: 5000  // Add timeout
       }
     );
+    
     return response.data.secureShortURL;
 
   } catch (error) {
@@ -116,7 +117,7 @@ private async shortenUrl(url: string): Promise<string> {
   }
 }
 
-  async sendVerificationSMS(lead: Lead): Promise<void> {
+  async sendVerificationSMS(lead: Lead): Promise<string> {
     try {
       if (!this.apiKey) {
         this.logger.warn('Bird API key not configured. SMS service disabled.');
@@ -154,6 +155,7 @@ private async shortenUrl(url: string): Promise<string> {
 
       if (success) {
         this.logger.log(`Verification SMS sent to ${lead.phone}`);
+        return message
       } else {
         throw new Error('Failed to send SMS');
       }
