@@ -3,6 +3,10 @@ import { cronService, CronSetting, UpdateCronSettingDto } from '../services/cron
 import { FaSpinner } from 'react-icons/fa';
 import { Save, RefreshCw, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { JobName } from '../types/job-name.enum';
+import { convertUTCToEastern, convertEasternToUTC } from '@/components/common/Time';
+
+// Time zone conversion utilities
+
 
 const CronSettings: React.FC = () => {
   const [settings, setSettings] = useState<CronSetting[]>([]);
@@ -21,8 +25,8 @@ const CronSettings: React.FC = () => {
       data.forEach(s => {
         initialEditingValues[s.jobName] = {
           isEnabled: s.isEnabled,
-          startTime: s.startTime ?? '',
-          endTime: s.endTime ?? ''
+          startTime: s.startTime ? convertUTCToEastern(s.startTime) : '',
+          endTime: s.endTime ? convertUTCToEastern(s.endTime) : ''
         };
       });
       setEditingValues(initialEditingValues);
@@ -71,7 +75,14 @@ const CronSettings: React.FC = () => {
 
     try {
       setLoading(true);
-      await cronService.updateCronSetting(jobName, updateData);
+      // Convert Eastern times to UTC before sending to API
+      const utcUpdateData: UpdateCronSettingDto = {
+        isEnabled: updateData.isEnabled,
+        startTime: updateData.startTime ? convertEasternToUTC(updateData.startTime) : undefined,
+        endTime: updateData.endTime ? convertEasternToUTC(updateData.endTime) : undefined
+      };
+      
+      await cronService.updateCronSetting(jobName, utcUpdateData);
       setSuccess(`Successfully updated ${jobName}.`);
       setTimeout(() => setSuccess(null), 3000);
       fetchSettings(); 
@@ -94,7 +105,15 @@ const CronSettings: React.FC = () => {
     
     try {
       setLoading(true);
-      await cronService.createCronSetting({ jobName, ...createData });
+      // Convert Eastern times to UTC before sending to API
+      const utcCreateData = {
+        jobName,
+        isEnabled: createData.isEnabled,
+        startTime: createData.startTime ? convertEasternToUTC(createData.startTime) : undefined,
+        endTime: createData.endTime ? convertEasternToUTC(createData.endTime) : undefined
+      };
+      
+      await cronService.createCronSetting(utcCreateData);
       setSuccess(`Successfully created ${jobName}.`);
       setTimeout(() => setSuccess(null), 3000);
       fetchSettings(); 
@@ -175,7 +194,7 @@ const CronSettings: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <div className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      Start Time (Daily)
+                      Start Time (Eastern Time)
                     </div>
                   </label>
                   <input
@@ -190,7 +209,7 @@ const CronSettings: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <div className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      End Time (Optional)
+                      End Time (Eastern Time)
                     </div>
                   </label>
                   <input

@@ -21,3 +21,4 @@ export async function updateZohoLead(leadId, leadData) {
   } catch (error) {
     console.error('Error updating lead in Zoho CRM:', error.message);
   }}
+
