@@ -3,10 +3,7 @@ import { cronService, CronSetting, UpdateCronSettingDto } from '../services/cron
 import { FaSpinner } from 'react-icons/fa';
 import { Save, RefreshCw, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { JobName } from '../types/job-name.enum';
-import { convertUTCToEastern, convertEasternToUTC } from '@/components/common/Time';
-
-// Time zone conversion utilities
-
+import { easternToUTC, utcToEastern, formatTimeForDisplay } from '../utils/timezone-utils';
 
 const CronSettings: React.FC = () => {
   const [settings, setSettings] = useState<CronSetting[]>([]);
@@ -23,10 +20,11 @@ const CronSettings: React.FC = () => {
       setSettings(data);
       const initialEditingValues: Record<JobName, UpdateCronSettingDto> = {} as Record<JobName, UpdateCronSettingDto>;
       data.forEach(s => {
+        // Convert UTC times from database to Eastern time for display
         initialEditingValues[s.jobName] = {
           isEnabled: s.isEnabled,
-          startTime: s.startTime ? convertUTCToEastern(s.startTime) : '',
-          endTime: s.endTime ? convertUTCToEastern(s.endTime) : ''
+          startTime: s.startTime ? utcToEastern(s.startTime) : '',
+          endTime: s.endTime ? utcToEastern(s.endTime) : ''
         };
       });
       setEditingValues(initialEditingValues);
@@ -78,10 +76,9 @@ const CronSettings: React.FC = () => {
       // Convert Eastern times to UTC before sending to API
       const utcUpdateData: UpdateCronSettingDto = {
         isEnabled: updateData.isEnabled,
-        startTime: updateData.startTime ? convertEasternToUTC(updateData.startTime) : undefined,
-        endTime: updateData.endTime ? convertEasternToUTC(updateData.endTime) : undefined
+        startTime: updateData.startTime ? easternToUTC(updateData.startTime) : undefined,
+        endTime: updateData.endTime ? easternToUTC(updateData.endTime) : undefined
       };
-      
       await cronService.updateCronSetting(jobName, utcUpdateData);
       setSuccess(`Successfully updated ${jobName}.`);
       setTimeout(() => setSuccess(null), 3000);
@@ -109,10 +106,9 @@ const CronSettings: React.FC = () => {
       const utcCreateData = {
         jobName,
         isEnabled: createData.isEnabled,
-        startTime: createData.startTime ? convertEasternToUTC(createData.startTime) : undefined,
-        endTime: createData.endTime ? convertEasternToUTC(createData.endTime) : undefined
+        startTime: createData.startTime ? easternToUTC(createData.startTime) : undefined,
+        endTime: createData.endTime ? easternToUTC(createData.endTime) : undefined
       };
-      
       await cronService.createCronSetting(utcCreateData);
       setSuccess(`Successfully created ${jobName}.`);
       setTimeout(() => setSuccess(null), 3000);
@@ -156,7 +152,10 @@ const CronSettings: React.FC = () => {
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Job Scheduler</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Job Scheduler</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">All times are in Eastern Time (ET)</p>
+          </div>
           <button onClick={fetchSettings} disabled={loading} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
             <RefreshCw className={`w-5 h-5 text-gray-600 dark:text-gray-300 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -194,7 +193,7 @@ const CronSettings: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <div className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      Start Time (Eastern Time)
+                      Start Time (Daily) - Eastern Time
                     </div>
                   </label>
                   <input
@@ -204,12 +203,17 @@ const CronSettings: React.FC = () => {
                     className={`w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border ${timeErrors[setting.jobName] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-gray-100 font-mono`}
                     required
                   />
+                  {editingValues[setting.jobName]?.startTime && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Will be saved as: {formatTimeForDisplay(easternToUTC(editingValues[setting.jobName]?.startTime || ''), 'UTC')}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <div className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      End Time (Eastern Time)
+                      End Time (Optional) - Eastern Time
                     </div>
                   </label>
                   <input
@@ -218,6 +222,11 @@ const CronSettings: React.FC = () => {
                     onChange={(e) => handleInputChange(setting.jobName, 'endTime', e.target.value)}
                     className={`w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border ${timeErrors[setting.jobName] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-gray-100 font-mono`}
                   />
+                  {editingValues[setting.jobName]?.endTime && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Will be saved as: {formatTimeForDisplay(easternToUTC(editingValues[setting.jobName]?.endTime || ''), 'UTC')}
+                    </p>
+                  )}
                 </div>
                 {timeErrors[setting.jobName] && (
                   <div className="col-span-full">
