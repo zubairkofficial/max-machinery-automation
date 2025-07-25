@@ -38,24 +38,26 @@ const CronSettings: React.FC = () => {
   }, []);
 
   // Function to subtract 4 hours for display
-  const subtractFourHours = (time: string): string => {
-    const [hours, minutes] = time.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours - 4, minutes);  // Subtract 4 hours
-    const newHours = date.getHours().toString().padStart(2, '0');
-    const newMinutes = date.getMinutes().toString().padStart(2, '0');
-    return `${newHours}:${newMinutes}`;
-  };
+const subtractFourHours = (time: string | undefined): string => {
+  if (!time) return ''; // Return an empty string if time is undefined
+  const [hours, minutes] = time.split(':').map(Number); // Split and map
+  const date = new Date();
+  date.setHours(hours - 4, minutes);  // Subtract 4 hours for display
+  const newHours = date.getHours().toString().padStart(2, '0');
+  const newMinutes = date.getMinutes().toString().padStart(2, '0');
+  return `${newHours}:${newMinutes}`;
+};
 
-  // Function to add 4 hours when setting time
-  const addFourHours = (time: string): string => {
-    const [hours, minutes] = time.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours + 4, minutes);  // Add 4 hours
-    const newHours = date.getHours().toString().padStart(2, '0');
-    const newMinutes = date.getMinutes().toString().padStart(2, '0');
-    return `${newHours}:${newMinutes}`;
-  };
+  // Function to add 4 hours before sending the time to the API
+ const addFourHours = (time: string | undefined): string => {
+  if (!time) return ''; // Return an empty string if time is undefined
+  const [hours, minutes] = time.split(':').map(Number); // Split and map
+  const date = new Date();
+  date.setHours(hours + 4, minutes);  // Add 4 hours before updating API
+  const newHours = date.getHours().toString().padStart(2, '0');
+  const newMinutes = date.getMinutes().toString().padStart(2, '0');
+  return `${newHours}:${newMinutes}`;
+};
 
   const validateTimes = (jobName: JobName, startTime: string | undefined, endTime: string | undefined): boolean => {
     // Clear previous errors for this job
@@ -89,9 +91,16 @@ const CronSettings: React.FC = () => {
       return;
     }
 
+    // Add 4 hours to the startTime and endTime before updating in API
+    const updatedData = {
+      ...updateData,
+      startTime: addFourHours(updateData.startTime),
+      endTime: updateData.endTime ? addFourHours(updateData.endTime) : undefined,
+    };
+
     try {
       setLoading(true);
-      await cronService.updateCronSetting(jobName, updateData);
+      await cronService.updateCronSetting(jobName, updatedData);
       setSuccess(`Successfully updated ${jobName}.`);
       setTimeout(() => setSuccess(null), 3000);
       fetchSettings(); 
@@ -111,10 +120,17 @@ const CronSettings: React.FC = () => {
       setError(`Invalid time settings for ${jobName}`);
       return;
     }
+
+    // Add 4 hours to the startTime and endTime before sending to API
+    const newData = {
+      ...createData,
+      startTime: addFourHours(createData.startTime),
+      endTime: createData.endTime ? addFourHours(createData.endTime) : undefined,
+    };
     
     try {
       setLoading(true);
-      await cronService.createCronSetting({ jobName, ...createData });
+      await cronService.createCronSetting({ jobName, ...newData });
       setSuccess(`Successfully created ${jobName}.`);
       setTimeout(() => setSuccess(null), 3000);
       fetchSettings(); 
@@ -201,7 +217,7 @@ const CronSettings: React.FC = () => {
                   <input
                     type="time"
                     value={editingValues[setting.jobName]?.startTime ?? ''}
-                    onChange={(e) => handleInputChange(setting.jobName, 'startTime', addFourHours(e.target.value))}
+                    onChange={(e) => handleInputChange(setting.jobName, 'startTime', e.target.value)}
                     className={`w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border ${timeErrors[setting.jobName] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-gray-100 font-mono`}
                     required
                   />
@@ -216,7 +232,7 @@ const CronSettings: React.FC = () => {
                   <input
                     type="time"
                     value={editingValues[setting.jobName]?.endTime ?? ''}
-                    onChange={(e) => handleInputChange(setting.jobName, 'endTime', addFourHours(e.target.value))}
+                    onChange={(e) => handleInputChange(setting.jobName, 'endTime', e.target.value)}
                     className={`w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border ${timeErrors[setting.jobName] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-gray-100 font-mono`}
                   />
                 </div>
