@@ -37,27 +37,33 @@ const CronSettings: React.FC = () => {
     fetchSettings();
   }, []);
 
-  // Function to subtract 4 hours for display
-const subtractFourHours = (time: string | undefined): string => {
-  if (!time) return ''; // Return an empty string if time is undefined
-  const [hours, minutes] = time.split(':').map(Number); // Split and map
-  const date = new Date();
-  date.setHours(hours - 4, minutes);  // Subtract 4 hours for display
-  const newHours = date.getHours().toString().padStart(2, '0');
-  const newMinutes = date.getMinutes().toString().padStart(2, '0');
-  return `${newHours}:${newMinutes}`;
-};
+  // Function to subtract 4 hours for display (convert from UTC to local time)
+  const subtractFourHours = (time: string | undefined): string => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':').map(Number);
+    let newHours = hours - 4;
+    
+    // Handle negative hours (wrap around to previous day)
+    if (newHours < 0) {
+      newHours += 24;
+    }
+    
+    return `${newHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
 
-  // Function to add 4 hours before sending the time to the API
- const addFourHours = (time: string | undefined): string => {
-  if (!time) return ''; // Return an empty string if time is undefined
-  const [hours, minutes] = time.split(':').map(Number); // Split and map
-  const date = new Date();
-  date.setHours(hours + 4, minutes);  // Add 4 hours before updating API
-  const newHours = date.getHours().toString().padStart(2, '0');
-  const newMinutes = date.getMinutes().toString().padStart(2, '0');
-  return `${newHours}:${newMinutes}`;
-};
+  // Function to add 4 hours before sending to API (convert from local time to UTC)
+  const addFourHours = (time: string | undefined): string => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':').map(Number);
+    let newHours = hours + 4;
+    
+    // Handle hours >= 24 (wrap around to next day)
+    if (newHours >= 24) {
+      newHours -= 24;
+    }
+    
+    return `${newHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
 
   const validateTimes = (jobName: JobName, startTime: string | undefined, endTime: string | undefined): boolean => {
     // Clear previous errors for this job
@@ -173,7 +179,12 @@ const subtractFourHours = (time: string | undefined): string => {
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Job Scheduler</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Job Scheduler</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Times are displayed in your local timezone. Database stores times in UTC (4 hours ahead).
+            </p>
+          </div>
           <button onClick={fetchSettings} disabled={loading} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
             <RefreshCw className={`w-5 h-5 text-gray-600 dark:text-gray-300 ${loading ? 'animate-spin' : ''}`} />
           </button>
