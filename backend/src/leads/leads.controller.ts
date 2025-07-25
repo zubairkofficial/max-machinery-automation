@@ -9,7 +9,6 @@ import {
   Query, 
   ValidationPipe, 
   UsePipes, 
-  UseGuards,
   NotFoundException,
   DefaultValuePipe,
   ParseIntPipe,

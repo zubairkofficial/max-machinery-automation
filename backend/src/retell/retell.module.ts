@@ -17,13 +17,14 @@ import { LeadsModule } from '../leads/leads.module';
 
 @Module({
   imports: [
+
     TypeOrmModule.forFeature([
       CallHistory,
       Lead,
       CallTranscript,
       LastCall,
       MessageTemplate,
-      Retell
+      Retell,
     ]),
     forwardRef(() => LeadsModule),
     forwardRef(() => CronSettingsModule),

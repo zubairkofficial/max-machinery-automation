@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Lead } from '../leads/entities/lead.entity';
 import { MessageTemplatesService } from '../message-templates/message-templates.service';
 import { MessageCategory } from '../message-templates/entities/message-template.entity';
+import axios from 'axios';
 
 @Injectable()
 export class SmsService {
@@ -11,16 +12,20 @@ export class SmsService {
   private readonly apiKey: string;
   private readonly fromNumber: string;
   private readonly birdApiUrl: string;
-
+private readonly shortApiKey: string;
+private readonly shortDomain: string;
   constructor(
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     private readonly messageTemplatesService: MessageTemplatesService,
-  ) {
+    
+    ) {
     this.apiKey = this.configService.get<string>('BIRD_API_KEY') || 'Fcd0htERi3akNCxrw7k9B7Its2yXopTdYoLg';
     this.fromNumber = this.configService.get<string>('BIRD_ORIGINATOR') || 'MachineryMax';
     this.birdApiUrl = this.configService.get<string>('BIRD_URL') || 'https://api.bird.com/workspaces/641e4d94-facc-4112-a4c9-0e8449e943c2/channels/15e09bc2-24a3-5b01-97b7-4593d79ce4b6/messages';
-
+   this.shortApiKey = this.configService.get<string>('SHORT_IO_API_KEY');
+   this.shortDomain = this.configService.get<string>('SHORT_IO_DOMAIN');
+ 
     if (this.apiKey) {
       this.logger.log('Bird API client initialized successfully');
     } else {
@@ -84,6 +89,33 @@ export class SmsService {
     return success;
   }
 
+  // In shortener.service.ts
+private async shortenUrl(url: string): Promise<string> {
+  try {
+    const response = await axios.post(
+      'https://api.short.io/links',
+      {
+        domain:this.shortDomain,
+        // this.shortDomain,  // Critical: must match your verified domain
+        originalURL: url,
+        allowDuplicates: false
+      },
+      {
+        headers: {
+          'Authorization': `${this.shortApiKey}`,  // Case-sensitive!
+          'Content-Type': 'application/json'
+        },
+        timeout: 5000  // Add timeout
+      }
+    );
+    return response.data.secureShortURL;
+
+  } catch (error) {
+    this.logger.error(`Short.io API Error: ${error.response?.data?.error || error.message}`);
+    throw new Error('URL_SHORTENING_FAILED');
+  }
+}
+
   async sendVerificationSMS(lead: Lead): Promise<void> {
     try {
       if (!this.apiKey) {
@@ -91,10 +123,10 @@ export class SmsService {
         return;
       }
 
-      if (!lead.zohoPhoneNumber) {
-        this.logger.warn(`No phone number found for lead ${lead.id}`);
-        return;
-      }
+      // if (!lead.zohoPhoneNumber) {
+      //   this.logger.warn(`No phone number found for lead ${lead.id}`);
+      //   return;
+      // }
 
       // Generate JWT token
       const token = this.jwtService.sign({
@@ -103,11 +135,12 @@ export class SmsService {
 
       // Create verification URL
       const verificationUrl = `${this.configService.get('APP_URL')}/user-info?token=${token}`;
+      const shortUrl = await this.shortenUrl(verificationUrl);
 
       // Get dynamic SMS message from templates
       const messageData = {
         firstName: lead.firstName || '',
-        verificationUrl: verificationUrl,
+        verificationUrl: shortUrl,
         currentYear: new Date().getFullYear().toString(),
       };
 
@@ -127,6 +160,7 @@ export class SmsService {
     } catch (error) {
       this.logger.error(`Failed to send verification SMS: ${error.message}`);
       throw error;
+      
     }
   }
 }

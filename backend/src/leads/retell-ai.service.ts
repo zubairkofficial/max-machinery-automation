@@ -105,8 +105,8 @@ private async updateRetellLLM(llmId:string, promptType:JobName,lastCallTranscrip
   public async testMail(lead): Promise<void> {
     try {
       
-  
-    return this.mailService.sendVerificationLink(lead);
+  return this.smsService.sendVerificationSMS(lead);
+    // return this.mailService.sendVerificationLink(lead);
   } catch (error) {
     throw new HttpException(`Failed to send test mail: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
   }

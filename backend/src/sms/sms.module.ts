@@ -12,11 +12,11 @@ import { MessageTemplatesModule } from '../message-templates/message-templates.m
       imports: [ConfigModule],
       useFactory: async () => ({
         secret: process.env.JWT_SECRET || 'secret-key',
-       signOptions: { expiresIn: '365d' }
+        signOptions: { expiresIn: '365d' }
       }),
     }),
   ],
   providers: [SmsService],
   exports: [SmsService],
 })
-export class SmsModule {} 
+export class SmsModule {}
