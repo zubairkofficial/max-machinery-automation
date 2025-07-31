@@ -21,6 +21,9 @@ export class CronSetting {
   @Column({ type: 'varchar', nullable: true })
   endTime: string;
 
+  @Column({ type: 'date', nullable: true })
+  runDate: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

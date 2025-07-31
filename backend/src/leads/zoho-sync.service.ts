@@ -12,6 +12,7 @@ import { UserInfo } from 'src/userInfo/entities/user-info.entity';
 import { RetellAiService } from './retell-ai.service';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
+import { addBusinessDays, isSameDate } from 'src/utils/business-day.util';
 
 export interface ZohoLeadData {
   firstName?: string;
@@ -70,7 +71,13 @@ export class ZohoSyncService {
       console.log('ReminderCall job is not enabled or has no start time');
       return;
     }
+    if(!callReminder.runDate){
+      const runDate = new Date();
+      callReminder.runDate = addBusinessDays(runDate, 3); // Next business day
+      await this.cronSettingService.update(JobName.REMINDER_CALL, callReminder);
+    }
 
+    if (callReminder.runDate && isSameDate(new Date(callReminder.runDate), new Date())) {
     const now = new Date();
     const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
     const startTime = callReminder.startTime;
@@ -136,14 +143,20 @@ for(const lead of leads) {
      
     
       this.logger.log('Completed Zoho CRM sync');
-} else {
-  console.log('The times do not match');
 }
+else{
+  const runDate = new Date();
+  callReminder.runDate = addBusinessDays(runDate, 3); // Next business day
+  await this.cronSettingService.update(JobName.REMINDER_CALL, callReminder);
+}}
+
     } catch (error) {
       this.logger.error(`Error in Zoho sync: ${error.message}`);
     }
     
   }
+
+
 
   @Cron(CronExpression.EVERY_MINUTE)
   async checkUserInfoInZoho() {
@@ -169,36 +182,12 @@ for(const lead of leads) {
 
       for (const userInfo of userInfoList) {
         try {
+          let foundInZoho = false;
+          let foundLead=null
+           
           // Check if we need to refresh the token
           await this.ensureValidAccessToken();
-        const  leads = await this.getLeadsByPhoneNumber(userInfo.phone)
-      //  let leadCount=leads.length
-        // for(const lead of leads){
-        // if(!lead?.Lead_Status){
-        //  await axios.delete(
-        //     `${this.zohoApiUrl}/${lead.id}`,
-        //     {
-        //       headers: {
-        //         'Authorization': `Zoho-oauthtoken ${this.accessToken}`,
-        //         'Content-Type': 'application/json'
-        //       }
-        //     }
-        //   );
-        // } else if(leadCount==2){
-        //   await axios.put(`${this.zohoApiUrl}/${lead.id}`, {
-        //     data: [
-        //       {
-        //         "Lead_Status": "Submitted",
-        //       }
-        //     ]
-        //   });
-        // }
-        // }
-        let foundInZoho = false;
-          
-          
-          let foundLead=null
-          
+      
           if (!foundInZoho && userInfo.phone) {
              foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
             if (foundLead?.Phone) {
@@ -228,7 +217,7 @@ for(const lead of leads) {
               
               // Update Zoho lead with transcript and summary
             try {
-           const response =   await axios.put(`${this.zohoApiUrl}/${foundLead.id}`, {
+           await axios.put(`${this.zohoApiUrl}/${foundLead.id}`, {
                 data: [
                   {
                     "Lead_Status": 'completed',
@@ -268,8 +257,6 @@ for(const lead of leads) {
           
           // If found in Zoho, update the status
           if (foundLead) {
-            // foundLead?.Lead_Status==="Submitted"
-           
             userInfo.contacted = true;
             await this.leadRepository.update(userInfo.leadId, {
               status: 'completed',

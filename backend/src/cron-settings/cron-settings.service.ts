@@ -70,7 +70,7 @@ export class CronSettingsService implements OnModuleInit {
 
     switch (jobName) {
       case JobName.SCHEDULED_CALLS:
-        jobCallback = () => this.scheduledCallsService.handleDailyScheduledCalls();
+        // jobCallback = () => this.scheduledCallsService.handleDailyScheduledCalls();
         break;
       case JobName.RESCHEDULE_CALL:
         // jobCallback = () => this.scheduledCallsService.handleRescheduleCalls();
