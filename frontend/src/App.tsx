@@ -3,8 +3,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Dashboard from "./pages/Dashboard";
 import LeadsManagement from './pages/LeadsManagement';
-import FollowUps from "./pages/FollowUps";
-import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import MessageTemplates from './pages/MessageTemplates';
@@ -12,7 +10,6 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import "./App.css";
 import { QueryClient, QueryClientProvider } from 'react-query';
-import ApolloSettings from './pages/ApolloSettings';
 import BatchCallPage from './pages/BatchCallPage';
 import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -26,10 +23,6 @@ import CallHistory from './pages/CallHistory';
 import PhoneNumberDeletion from './pages/PhoneNumberDeletion';
 import EmailSender from "./components/EmailSender";
 
-// Import or create route placeholders (these components can be implemented later)
-// const PriorityLeads = () => <LeadsManagement currentTab="priority" />;
-// const AddNewLead = () => <div className="p-4">Add New Lead Form (Coming Soon)</div>;
-// const LeadSearch = () => <div className="p-4">Advanced Lead Search (Coming Soon)</div>;
 
 // A component for embedding in an iframe on machinerymax.com
 const EmbeddedFormPage = () => {
@@ -90,7 +83,7 @@ function App() {
                             <Route path="/calls/batch" element={<ProtectedRoute><BatchCallPage /></ProtectedRoute>} />
                             {/* <Route path="/follow-ups" element={<FollowUps />} /> */}
                             {/* <Route path="/analytics" element={<Analytics />} /> */}
-                            {/* <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} /> */}
+                            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                             <Route path="/calls" element={<CallDashboard />} />
                             <Route path="/calls/dashboard" element={<CallDashboard />} />
                             <Route path="/call-history" element={<CallHistory />} />

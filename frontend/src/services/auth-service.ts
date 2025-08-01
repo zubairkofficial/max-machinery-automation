@@ -25,8 +25,9 @@ authClient.interceptors.request.use(
 
 export interface User {
   id: string;
-  name: string;
+  username: string;
   email: string;
+  name?: string;
   role?: string;
 }
 
@@ -38,6 +39,11 @@ export interface LoginCredentials {
 export interface AuthResponse {
   user: User;
   access_token: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export const authService = {
@@ -74,6 +80,15 @@ export const authService = {
       localStorage.removeItem('auth_token');
       return null;
     }
+  },
+
+  changePassword: async (changePasswordRequest: ChangePasswordRequest): Promise<{ message: string }> => {
+    const response = await authClient.put('/auth/change-password', changePasswordRequest);
+    return response.data;
+  },
+  updateProfile: async ({username}:{username:string}): Promise<{ message: string }> => {
+    const response = await authClient.put('/users/update-name', {username});
+    return response.data;
   },
 
   isAuthenticated: (): boolean => {

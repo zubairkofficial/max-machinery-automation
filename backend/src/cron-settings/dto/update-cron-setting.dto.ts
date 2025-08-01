@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator';
 
 export class UpdateCronSettingDto {
   
@@ -18,4 +18,13 @@ export class UpdateCronSettingDto {
   @IsOptional()
   @IsString()
   endTime?: string;
+
+
+  @IsOptional()
+  
+  runDate?: Date;
+
+  @IsOptional()
+  @IsNumber()
+  selectedDays?: number;
 } 

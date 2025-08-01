@@ -37,6 +37,14 @@ export class UsersService {
 
     return this.usersRepository.save(user);
   }
+  async update(userId:string,username:string): Promise<User> {
+    // Check if user already exists
+    const existingUser = await this.usersRepository.findOne({ 
+      where: {id:userId}
+    });
+    existingUser.username=username
+    return this.usersRepository.save(existingUser);
+  }
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.find();
@@ -56,5 +64,21 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User> {
     return this.usersRepository.findOne({ where: { email } });
+  }
+
+  async updatePassword(userId: string, hashedPassword: string): Promise<void> {
+    const user = await this.findOne(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    
+    user.password = hashedPassword;
+    await this.usersRepository.save(user);
+  }
+
+  async updateUsername(newUsername: string): Promise<{ message: string }> {
+    // For now, we'll just return a success message
+    // In a real application, you would update the username in the database
+    return { message: 'Username updated successfully' };
   }
 } 

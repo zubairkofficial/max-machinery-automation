@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, Put, InternalServerErrorException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from '../users/dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -15,6 +15,18 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getProfile(@Request() req) {
-    return this.authService.getUserProfile(req.user.userId);
+    return this.authService.getUserProfile(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('change-password')
+  async changePassword(@Request() req, @Body() changePasswordDto: { currentPassword: string; newPassword: string }) {
+    try {
+      
+   
+    return this.authService.changePassword(req.user.id, changePasswordDto);
+  } catch (error) {
+      throw new InternalServerErrorException(error.message)
+    }
   }
 } 

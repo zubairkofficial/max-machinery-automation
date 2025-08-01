@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Put } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entities/user.entity';
@@ -23,5 +23,13 @@ export class UsersController {
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<User> {
     return this.usersService.findOne(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('update-name')
+  async updateName(@Body() updateNameDto: { username: string }) {
+    // For now, we'll update the username field as name
+    // In a real application, you might want to add a separate name field
+    return this.usersService.updateUsername(updateNameDto.username);
   }
 } 

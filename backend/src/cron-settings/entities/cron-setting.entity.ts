@@ -24,6 +24,9 @@ export class CronSetting {
   @Column({ type: 'date', nullable: true })
   runDate: Date;
 
+  @Column({ type: 'int', nullable: true, default: 1 })
+  selectedDays: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

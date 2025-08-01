@@ -8,6 +8,8 @@ export interface CronSetting {
   isEnabled: boolean;
   startTime: string | null;
   endTime: string | null;
+  runDate: string | null;
+  selectedDays: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -16,6 +18,8 @@ export interface UpdateCronSettingDto {
   isEnabled?: boolean;
   startTime?: string;
   endTime?: string;
+  runDate?: string;
+  selectedDays?: number;
 }
 
 class CronService {

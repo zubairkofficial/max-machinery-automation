@@ -1,6 +1,6 @@
 import { Injectable, Logger, HttpException, HttpStatus, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Like, ILike, Not } from 'typeorm';
+import { Repository, Between, Like, ILike, Not, IsNull } from 'typeorm';
 import { Lead } from './entities/lead.entity';
 import { CallHistory } from './entities/call-history.entity';
 import { LastCall } from './entities/last-call.entity';
@@ -610,15 +610,15 @@ export class LeadsService {
   
 
    async findAllWithIndivitualScheduledCalls() {
-   const now=new Date();
-    const startOfMinute = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 0); // Start of the current minute
-        const endOfMinute = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 59, 999); // End of the current minute
-     
+
       return this.leadRepository.find({
       where: {
-        scheduledCallbackDate: Between(startOfMinute, endOfMinute),
+     scheduledCallbackDate: Not(IsNull()) ,
      status:Not ('CALLING'),
-     notInterested: false,    
+     notInterested: false,  
+     linkClicked: false, 
+     formSubmitted: false,
+     linkSend: false,  
       },
     });
       

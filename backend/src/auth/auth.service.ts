@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
@@ -63,14 +63,7 @@ export class AuthService {
       const user = await this.usersService.findOne(userId);
       
       // Determine role based on username until migration adds the field
-      let role = 'user';
-      if (user.username === 'admin') {
-        role = 'admin';
-      } else if (user.username === 'manager') {
-        role = 'manager';
-      } else if (user.username === 'sales') {
-        role = 'sales';
-      }
+    
       
       const { password, ...userWithoutPassword } = user;
       
@@ -82,5 +75,40 @@ export class AuthService {
     } catch (error) {
       throw new NotFoundException('User not found');
     }
+  }
+
+  async changePassword(userId: string, changePasswordDto: { currentPassword: string; newPassword: string }) {
+   try {
+    
+  
+    const { currentPassword, newPassword } = changePasswordDto;
+    
+    // Validate new password
+    if (!newPassword || newPassword.length < 6) {
+      throw new BadRequestException('New password must be at least 6 characters long');
+    }
+    
+    // Get user
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+    
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password
+    await this.usersService.updatePassword(userId, hashedNewPassword);
+    
+    return { message: 'Password updated successfully' };
+  } catch (error) {
+    throw new InternalServerErrorException(error.message)
+   }
   }
 } 

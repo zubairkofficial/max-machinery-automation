@@ -73,7 +73,7 @@ export class ZohoSyncService {
     }
     if(!callReminder.runDate){
       const runDate = new Date();
-      callReminder.runDate = addBusinessDays(runDate, 3); // Next business day
+      callReminder.runDate = addBusinessDays(runDate, +callReminder.selectedDays); // Next business day
       await this.cronSettingService.update(JobName.REMINDER_CALL, callReminder);
     }
 
@@ -146,7 +146,7 @@ for(const lead of leads) {
 }
 else{
   const runDate = new Date();
-  callReminder.runDate = addBusinessDays(runDate, 3); // Next business day
+  callReminder.runDate = addBusinessDays(runDate, +callReminder.selectedDays); // Next business day
   await this.cronSettingService.update(JobName.REMINDER_CALL, callReminder);
 }}
 

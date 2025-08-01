@@ -325,7 +325,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               <Trash2 className="w-5 h-5 mr-3" />
               <span>Delete by Phone</span>
             </NavLink>
-            <NavLink
+            {/* <NavLink
               to="/email-sender"
               className={({ isActive }) =>
                 `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -335,8 +335,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             >
               <Mail className="w-5 h-5 mr-3" />
               <span>Email Sender</span>
-            </NavLink>
-            {/* <NavLink
+            </NavLink> */}
+            <NavLink
               to="/settings"
               className={({ isActive }) =>
                 `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -346,7 +346,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             >
               <Settings className="w-5 h-5 mr-3" />
               <span>Settings</span>
-            </NavLink> */}
+            </NavLink>
           </div>
         </nav>
         

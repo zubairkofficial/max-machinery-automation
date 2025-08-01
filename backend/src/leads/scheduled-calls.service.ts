@@ -36,7 +36,7 @@ export class ScheduledCallsService {
       
       if(!reScheduleCalls.runDate){
         const runDate = new Date();
-        reScheduleCalls.runDate = addBusinessDays(runDate, 3); // Next business day
+        reScheduleCalls.runDate = addBusinessDays(runDate, +reScheduleCalls.selectedDays); // Next business day
         await this.cronSettingsService.update(JobName.SCHEDULED_CALLS, reScheduleCalls);
         }
       
@@ -106,7 +106,7 @@ export class ScheduledCallsService {
     }
     else{
       const runDate = new Date();
-      reScheduleCalls.runDate = addBusinessDays(runDate, 3); // Next business day
+      reScheduleCalls.runDate = addBusinessDays(runDate, +reScheduleCalls.selectedDays); // Next business day
       await this.cronSettingsService.update(JobName.RESCHEDULE_CALL, reScheduleCalls);
     }
     }
@@ -131,7 +131,7 @@ export class ScheduledCallsService {
       }
 if(!scheduleCalls.runDate){
   const runDate = new Date();
-  scheduleCalls.runDate = addBusinessDays(runDate, 3); // Next business day
+  scheduleCalls.runDate = addBusinessDays(runDate, +scheduleCalls.selectedDays); // Next business day
   await this.cronSettingsService.update(JobName.SCHEDULED_CALLS, scheduleCalls);
   }
 
@@ -203,7 +203,7 @@ if (scheduleCalls.runDate && isSameDate(new Date(scheduleCalls.runDate), new Dat
       else{
       
 const runDate = new Date();
-scheduleCalls.runDate = addBusinessDays(runDate, 3); // Next business day
+scheduleCalls.runDate = addBusinessDays(runDate, +scheduleCalls.selectedDays); // Next business day
 await this.cronSettingsService.update(JobName.SCHEDULED_CALLS, scheduleCalls);
  }
     }
