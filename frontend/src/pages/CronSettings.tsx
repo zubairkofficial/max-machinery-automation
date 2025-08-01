@@ -93,7 +93,7 @@ const CronSettings: React.FC = () => {
     
     return {
       runsOnWeekends: true,
-      message: "This job runs daily including weekends"
+      message: "This job does not run on weekends (Saturday and Sunday)"
     };
   };
 
