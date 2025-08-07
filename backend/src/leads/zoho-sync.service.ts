@@ -13,6 +13,7 @@ import { RetellAiService } from './retell-ai.service';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
 import { addBusinessDays, isSameDate } from 'src/utils/business-day.util';
+import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
 
 export interface ZohoLeadData {
   firstName?: string;
@@ -43,12 +44,11 @@ export class ZohoSyncService {
     private readonly leadRepository: Repository<Lead>,
     @InjectRepository(UserInfo)
     private readonly userInfoRepository: Repository<UserInfo>,
-    @InjectRepository(CallTranscript)
-    private readonly callTranscriptRepository: Repository<CallTranscript>,
-    private readonly configService: ConfigService,
+  private readonly configService: ConfigService,
     @Inject(forwardRef(() => RetellAiService))
     private readonly retellAiService: RetellAiService,
     private readonly cronSettingService: CronSettingsService,
+    private readonly leadCallService: LeadCallsService,
   ) {
     this.clientId = this.configService.get<string>('ZOHO_CLIENT_ID');
     this.clientSecret = this.configService.get<string>('ZOHO_CLIENT_SECRET');
@@ -132,16 +132,19 @@ for(const lead of leads) {
     : null;
 
   const shouldCall = !reminderStr || reminderStr < todayStr;  // آج کی نہیں ہے؟
-
-   if(shouldCall  ) await this.retellAiService.makeCallLeadZoho(lead,this.configService.get<string>('FROM_PHONE_NUMBER'), lead.lead_formSubmitted,lead.lead_linkClicked,this.configService.get<string>('AGENT_ID'));
-  } catch (error) {
+const leadCall = await this.leadCallService.getAllLeadCalls();
+if(leadCall.reminderCallCount >= callReminder.callLimit){
+  break;
+}
+   if(shouldCall  ){
+  const callResult = await this.retellAiService.makeCallLeadZoho(lead,this.configService.get<string>('FROM_PHONE_NUMBER'), lead.lead_formSubmitted,lead.lead_linkClicked,this.configService.get<string>('AGENT_ID'));
+   const result = (callResult.disconnection_reason === "user_hangup" || callResult.disconnection_reason === "agent_hangup") ? 1 : 0;
+   await this.leadCallService.countScheduledCalls(result,JobName.REMINDER_CALL);
+}  } catch (error) {
     this.logger.error(`Error processing lead ${lead.id}: ${error.message}`);
     continue; // Continue with next lead even if one fails
   }
 }
-
-     
-    
       this.logger.log('Completed Zoho CRM sync');
 }
 else{

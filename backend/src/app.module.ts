@@ -19,6 +19,7 @@ import { MessageTemplatesModule } from './message-templates/message-templates.mo
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CronSettingsModule } from './cron-settings/cron-settings.module';
 import { CategoriesModule } from './categories/categories.module';
+import { LeadCallsModule } from './lead_calls/lead_calls.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { CategoriesModule } from './categories/categories.module';
     DashboardModule,
     CronSettingsModule,
     CategoriesModule,
+    LeadCallsModule,
  
   ],
   controllers: [AppController],

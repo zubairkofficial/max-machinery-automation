@@ -189,12 +189,24 @@ export class LeadsService {
     };
   }
 
-  async findAllWithScheduledCalls() {
- 
-    return  this.leadRepository.find({where: {contacted: false,status:Not("CALLING")} })
-  
-    
+ async findAllWithScheduledCalls(limit: number) {
+  try {
+    // Fetch leads with the provided conditions and apply the limit
+    const leads = await this.leadRepository.find({
+      where: {
+        contacted: false,
+        status: Not("CALLING"),
+      },
+      take: limit, // Apply limit to the number of results returned
+    });
+
+    return leads;
+  } catch (error) {
+    this.logger.error(`Error fetching leads with scheduled calls: ${error.message}`, error.stack);
+    throw new Error('Failed to fetch leads with scheduled calls'); // Throwing a custom error to propagate the failure
   }
+}
+
 
   async findSurplusMachineryLeads(options?: { page: number, limit: number }): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> {
     const page = options?.page || 1;

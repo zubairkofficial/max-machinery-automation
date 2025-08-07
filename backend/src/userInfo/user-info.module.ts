@@ -11,6 +11,7 @@ import { CallTranscript } from 'src/retell/entities/call-transcript.entity';
 import { CronSettingsModule } from 'src/cron-settings/cron-settings.module';
 import { LeadsModule } from 'src/leads/leads.module';
 import { LastCall } from 'src/leads/entities/last-call.entity';
+import { LeadCallsModule } from 'src/lead_calls/lead_calls.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { LastCall } from 'src/leads/entities/last-call.entity';
     ConfigModule,
     forwardRef(() => CronSettingsModule),
     forwardRef(() => LeadsModule),
+    forwardRef(() => LeadCallsModule),  // Add LeadCallsModule here
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
@@ -39,4 +41,4 @@ import { LastCall } from 'src/leads/entities/last-call.entity';
   ],
   exports: [UserInfoService],
 })
-export class UserInfoModule {} 
+export class UserInfoModule {}

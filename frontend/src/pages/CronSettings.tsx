@@ -311,7 +311,7 @@ const CronSettings: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       <div className="flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
-                        Call Limit
+                       Per Day Call Limit
                       </div>
                     </label>
                     <input

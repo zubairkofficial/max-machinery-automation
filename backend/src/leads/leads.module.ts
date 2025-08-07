@@ -30,6 +30,8 @@ import { Retell } from 'src/retell/entities/retell.entity';
 import { ConfigModule } from '@nestjs/config';
 import { UserInfoModule } from 'src/userInfo/user-info.module';
 import { JwtModule } from '@nestjs/jwt';
+import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
+import { LeadCall } from 'src/lead_calls/entities/lead_call.entity';
 
 @Module({
   imports: [
@@ -40,7 +42,7 @@ import { JwtModule } from '@nestjs/jwt';
       CallTranscript,
       UserInfo,
       Retell,
-      Category
+      Category,LeadCall
     ]),
     JwtModule.register({
       secret: process.env.JWT_SECRET||'secret-key', // In production, use environment variables
@@ -58,6 +60,7 @@ import { JwtModule } from '@nestjs/jwt';
   controllers: [LeadsController],
   providers: [
     LeadsService,
+    LeadCallsService,
     ScheduledCallsService,
     CallDataMigrationService,
     {
