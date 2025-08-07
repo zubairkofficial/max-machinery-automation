@@ -6,10 +6,13 @@ import {
   UpdateDateColumn,
   OneToMany,
   OneToOne,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { CallHistory } from './call-history.entity';
 import { LastCall } from './last-call.entity';
 import { UserInfo } from 'src/userInfo/entities/user-info.entity';
+import { Category } from '../../categories/entities/category.entity';
 
 @Entity('leads')
 export class Lead {
@@ -102,6 +105,13 @@ export class Lead {
 
  @OneToOne(() => UserInfo, userInfo => userInfo.lead, { onDelete: 'CASCADE', })
 userInfo: UserInfo;
+
+  @ManyToOne(() => Category, category => category.leads, { nullable: true })
+  @JoinColumn()
+  category: Category;
+
+  @Column({ nullable: true })
+  categoryId: string;
 
   @CreateDateColumn()
   createdAt: Date;

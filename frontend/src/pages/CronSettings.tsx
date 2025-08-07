@@ -4,6 +4,7 @@ import { FaSpinner } from 'react-icons/fa';
 import { Save, RefreshCw, AlertCircle, CheckCircle2, Clock, Calendar, Info } from 'lucide-react';
 import { JobName } from '../types/job-name.enum';
 import toast from 'react-hot-toast';
+import CallLimit from './CallLimit';
 
 const CronSettings: React.FC = () => {
   const [settings, setSettings] = useState<CronSetting[]>([]);
@@ -27,7 +28,6 @@ const CronSettings: React.FC = () => {
           isEnabled: s.isEnabled,
           startTime: s.startTime ? subtractFourHours(s.startTime) : '',
           endTime: s.endTime ? subtractFourHours(s.endTime) : '',
-          runDate: s.runDate ? s.runDate : ''
         };
         initialSelectedDays[s.jobName] = s.selectedDays || 1; // Use selectedDays from API or default to 1
       });
@@ -116,33 +116,7 @@ const CronSettings: React.FC = () => {
     return currentDate;
   };
 
-  // Function to format run date
-  const formatRunDate = (runDate: string | undefined): string => {
-    if (!runDate) return 'Not set';
-    
-    try {
-      const date = new Date(runDate);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch {
-      return runDate;
-    }
-  };
 
-  // Function to calculate and format next run date based on selected days
-  const calculateNextRunDate = (jobName: JobName): string => {
-    const days = selectedDays[jobName] || 1;
-    const nextBusinessDay = getNextBusinessDay(days);
-    
-    return nextBusinessDay.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
 
   // Function to get the actual date object for saving
   const getNextRunDateForSaving = (jobName: JobName): Date => {
@@ -191,7 +165,6 @@ const CronSettings: React.FC = () => {
       ...updateData,
       startTime: addFourHours(updateData.startTime),
       endTime: updateData.endTime ? addFourHours(updateData.endTime) : undefined,
-      runDate: nextRunDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
       selectedDays: selectedDaysCount, // Add selected days to API
     };
 
@@ -231,7 +204,6 @@ const CronSettings: React.FC = () => {
       ...createData,
       startTime: addFourHours(createData.startTime),
       endTime: createData.endTime ? addFourHours(createData.endTime) : undefined,
-      runDate: nextRunDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
       selectedDays: selectedDaysCount, // Add selected days to API
     };
     
@@ -390,24 +362,7 @@ const CronSettings: React.FC = () => {
                       <option value={5}>5 days</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        Next Run Date
-                      </div>
-                    </label>
-                    <input
-                      type="text"
-                      value={calculateNextRunDate(setting.jobName)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-gray-100 font-mono cursor-not-allowed"
-                      readOnly
-                      disabled
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Business days only
-                    </p>
-                  </div>
+                 
                 </div>
                 
                 {timeErrors[setting.jobName] && (
@@ -421,6 +376,7 @@ const CronSettings: React.FC = () => {
             );
           })}
         </div>
+        <CallLimit/>
       </div>
     </div>
   );

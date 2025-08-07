@@ -56,6 +56,12 @@ const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, 
               Form Status
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Category
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Date Created
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Actions
             </th>
           </tr>
@@ -65,7 +71,7 @@ const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, 
             <tr key={lead.id}>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {lead.firstName} {lead.lastName}
+                  {lead.firstName} 
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">{lead.email}</div>
               </td>
@@ -128,6 +134,12 @@ const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, 
                     Not Submitted
                   </span>
                 )}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                {lead.category?.name}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                {new Date(lead.createdAt).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div className="flex space-x-2">

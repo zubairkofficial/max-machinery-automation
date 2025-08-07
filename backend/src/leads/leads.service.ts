@@ -67,6 +67,7 @@ export class LeadsService {
     reschedule?: string;
     search?: string;
     tab?: string;
+    categoryId?: string;
   }): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> {
     const page = options?.page || 1;
     const limit = options?.limit || 10;
@@ -74,7 +75,8 @@ export class LeadsService {
     const queryBuilder = this.leadRepository
       .createQueryBuilder('lead')
       .leftJoinAndSelect('lead.callHistoryRecords', 'callHistory')
-      .leftJoinAndSelect('lead.lastCallRecord', 'lastCall');
+      .leftJoinAndSelect('lead.lastCallRecord', 'lastCall')
+      .leftJoinAndSelect('lead.category', 'category');
 
     // Apply tab filter
     if (options.tab) {
@@ -142,6 +144,11 @@ export class LeadsService {
     // Apply industry filter
     if (options.industry && options.industry !== 'all') {
       queryBuilder.andWhere('lead.industry = :industry', { industry: options.industry });
+    }
+
+    // Apply category filter
+    if (options.categoryId && options.categoryId !== 'all') {
+      queryBuilder.andWhere('lead.categoryId = :categoryId', { categoryId: options.categoryId });
     }
 
     // Apply linkClicked filter
@@ -405,6 +412,7 @@ export class LeadsService {
             leadSource: 'apollo',
             status: 'new',
             contacted: false,
+            categoryId: searchParams.categoryId || null, // Assign category if provided
           });
 
           newLeadsCount++;

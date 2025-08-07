@@ -7,6 +7,7 @@ import { Lead } from './entities/lead.entity';
 import { CallHistory } from './entities/call-history.entity';
 import { LastCall } from './entities/last-call.entity';
 import { CallTranscript } from '../retell/entities/call-transcript.entity';
+import { Category } from '../categories/entities/category.entity';
 
 // Services
 import { LeadsService } from './leads.service';
@@ -38,7 +39,8 @@ import { JwtModule } from '@nestjs/jwt';
       LastCall, 
       CallTranscript,
       UserInfo,
-      Retell
+      Retell,
+      Category
     ]),
     JwtModule.register({
       secret: process.env.JWT_SECRET||'secret-key', // In production, use environment variables

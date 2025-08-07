@@ -90,6 +90,12 @@ export interface Lead {
   scheduledCallbackDate?: string | null;
   linkClicked?: boolean;
   formSubmitted?: boolean;
+  categoryId?: string;
+  category?: {
+    id: string;
+    name: string;
+    color?: string;
+  };
 }
 
 export interface SearchParams {
@@ -103,6 +109,7 @@ export interface SearchParams {
   page?: number;
   cronSchedule?: string;
   emailStatus?: string;
+  categoryId?: string;
 }
 
 export interface ApolloConfig {
@@ -146,6 +153,7 @@ export const leadsApi = {
       reschedule?: string;
       search?: string;
       tab?: string;
+      categoryId?: string;
     }
   ): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> => {
     const params = new URLSearchParams({
@@ -174,6 +182,9 @@ export const leadsApi = {
     }
     if (filters?.tab) {
       params.append('tab', filters.tab);
+    }
+    if (filters?.categoryId) {
+      params.append('categoryId', filters.categoryId);
     }
     
     const response = await apiClient.get(`/leads?${params.toString()}`);

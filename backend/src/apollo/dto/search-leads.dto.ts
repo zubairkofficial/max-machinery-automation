@@ -40,4 +40,8 @@ export class SearchLeadsDto {
   @IsOptional()
   @IsString()
   cronSchedule?: string;
+  
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
 } 

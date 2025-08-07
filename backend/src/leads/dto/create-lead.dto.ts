@@ -82,4 +82,8 @@ export class CreateLeadDto {
   @IsOptional()
   @IsDateString()
   scheduledCallbackDate?: Date;
+
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
 } 

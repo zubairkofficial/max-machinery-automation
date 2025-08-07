@@ -18,6 +18,7 @@ import jwtConfig from './config/jwt.config';
 import { MessageTemplatesModule } from './message-templates/message-templates.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CronSettingsModule } from './cron-settings/cron-settings.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { CronSettingsModule } from './cron-settings/cron-settings.module';
     MessageTemplatesModule,
     DashboardModule,
     CronSettingsModule,
+    CategoriesModule,
  
   ],
   controllers: [AppController],

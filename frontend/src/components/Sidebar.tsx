@@ -12,7 +12,8 @@ import {
   Settings,
   Clock,
   Trash2,
-  Mail
+  Mail,
+  Tags
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { FaRobot } from "react-icons/fa"
@@ -150,6 +151,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   <Users className="w-4 h-4 mr-3" />
                   <span>All Leads</span>
                 </NavLink>
+                <NavLink
+                  to="/categories"
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
+                      isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
+                    }`
+                  }
+                >
+                  <Tags className="w-4 h-4 mr-3" />
+                  <span>Categories</span>
+                </NavLink>
                 {/* <NavLink
                   to="/leads/priority"
                   className={({ isActive }) =>
@@ -215,7 +227,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   <Phone className="w-4 h-4 mr-3" />
                   <span>Call Dashboard</span>
                 </NavLink> */}
-                <NavLink
+                {/* <NavLink
                   to="/calls/batch"
                   className={({ isActive }) =>
                     `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -225,7 +237,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 >
                   <PhoneCall className="w-4 h-4 mr-3" />
                   <span>Batch Calling</span>
-                </NavLink>
+                </NavLink> */}
                 <NavLink
                   to="/call-history"
                   className={({ isActive }) =>

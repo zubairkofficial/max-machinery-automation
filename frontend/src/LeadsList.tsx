@@ -122,7 +122,16 @@ const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails }
                     </div>
                   </div>
                 </div>
-                <div>
+                <div className="flex flex-col items-end space-y-2">
+                  {lead.category && (
+                    <span 
+                      className="inline-flex items-center px-2 py-1 text-xs leading-5 font-semibold rounded-full text-white"
+                      style={{ backgroundColor: lead.category.color || '#6b7280' }}
+                    >
+                      <FaTag className="mr-1" />
+                      {lead.category.name}
+                    </span>
+                  )}
                   {getStatusBadge(lead.status, !!lead.hasSurplusMachinery)}
                 </div>
               </div>

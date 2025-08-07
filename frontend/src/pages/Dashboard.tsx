@@ -57,7 +57,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 mr-4">
@@ -94,7 +94,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
+        {/* <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300 mr-4">
               <MessageSquare className="h-6 w-6" />
@@ -104,9 +104,9 @@ const Dashboard = () => {
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.pendingFollowUps}</p>
             </div>
           </div>
-        </div>
+        </div> */}
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
+        {/* <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 mr-4">
               <AlertCircle className="h-6 w-6" />
@@ -116,7 +116,7 @@ const Dashboard = () => {
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.successfulConversions}</p>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Recent Activity and Upcoming Calls */}

@@ -22,6 +22,7 @@ import CronSettings from './pages/CronSettings';
 import CallHistory from './pages/CallHistory';
 import PhoneNumberDeletion from './pages/PhoneNumberDeletion';
 import EmailSender from "./components/EmailSender";
+import Categories from './pages/Categories';
 
 
 // A component for embedding in an iframe on machinerymax.com
@@ -74,16 +75,9 @@ function App() {
                             {/* Leads Management Routes */}
                             <Route path="/leads" element={<LeadsManagement currentTab="all" />} />
                             <Route path="/leads/all-history" element={<CallHistory />} />
-                            {/* <Route path="/leads/priority" element={<PriorityLeads />} />
-                            <Route path="/leads/new" element={<AddNewLead />} />
-                            <Route path="/leads/search" element={<LeadSearch />} /> */}
-                            
-                            {/* <Route path="/apollo-settings" element={<ApolloSettings />} /> */}
-                            {/* <Route path="/calls" element={<CallCenter />} /> */}
-                            <Route path="/calls/batch" element={<ProtectedRoute><BatchCallPage /></ProtectedRoute>} />
-                            {/* <Route path="/follow-ups" element={<FollowUps />} /> */}
-                            {/* <Route path="/analytics" element={<Analytics />} /> */}
-                            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                               
+                             <Route path="/calls/batch" element={<ProtectedRoute><BatchCallPage /></ProtectedRoute>} />
+                             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                             <Route path="/calls" element={<CallDashboard />} />
                             <Route path="/calls/dashboard" element={<CallDashboard />} />
                             <Route path="/call-history" element={<CallHistory />} />
@@ -92,6 +86,7 @@ function App() {
                             <Route path="/cron-settings" element={<CronSettings />} />
                             <Route path="/phone-deletion" element={<PhoneNumberDeletion />} />
                             <Route path="/email-sender" element={<EmailSender />} />
+                            <Route path="/categories" element={<Categories />} />
                             <Route path="*" element={<Navigate to="/" replace />} />
                           </Routes>
                         </main>

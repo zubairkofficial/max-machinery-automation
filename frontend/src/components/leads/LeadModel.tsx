@@ -1,6 +1,6 @@
 // components/AddLeadModal.tsx
 import React, { useState } from 'react';
-import { FaUser, FaMobile, FaBuilding, FaUserTie, FaTimesCircle } from 'react-icons/fa';
+import { FaUser, FaMobile,  FaTimesCircle } from 'react-icons/fa';
 
 import toast from 'react-hot-toast';
 import { Lead, api } from '@/services/api';
@@ -31,10 +31,9 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
       setIsAddingLead(true);
       const createDto = {
         firstName: newLead.firstName,
-        // lastName: "lead",
+       
         phone: newLead.phone,
-        // company: newLead.company,
-        // jobTitle: newLead.jobTitle,
+        
         status: 'new',
         contacted: false,
         source: 'manual'
@@ -102,24 +101,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
               </div>
             </div>
             
-            {/* <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Last Name
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaUser className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  value={newLead.lastName}
-                  onChange={(e) => setNewLead({...newLead, lastName: e.target.value})}
-                  className="pl-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 px-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Doe"
-                />
-              </div>
-            </div>
-             */}
+          
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Phone Number *
@@ -137,43 +119,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onLeadAdde
                 />
               </div>
             </div>
-            
-            {/* <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Company
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaBuilding className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  value={newLead.company}
-                  onChange={(e) => setNewLead({...newLead, company: e.target.value})}
-                  className="pl-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 px-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Acme Inc"
-                />
-              </div>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Job Title
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaUserTie className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  value={newLead.jobTitle}
-                  onChange={(e) => setNewLead({...newLead, jobTitle: e.target.value})}
-                  className="pl-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 px-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="CEO"
-                />
-              </div>
-            </div> */}
-          </div>
           
           <div className="mt-6 flex justify-end space-x-3">
             <button

@@ -4,12 +4,12 @@ import { Lead, SearchParams, leadsApi, apolloApi } from '../services/api';
 import LeadsList from '../components/LeadsList';
 import LeadDetailModal from '../components/LeadDetailModal';
 import ApolloSearchForm from '../components/ApolloSearchForm';
+import { categoryService, Category } from '../services/category-service';
 import { 
   FaFilter, 
   FaUserTie, 
   FaSyncAlt, 
   FaSearch,
-  FaSort,
   FaTrash,
   FaTimes, // Add this for clear icon
   FaCheckCircle, // Added for Interested tab
@@ -51,40 +51,7 @@ const SORT_OPTIONS = [
   { value: 'nameZA', label: 'Name (Z-A)', field: 'firstName' as SortableField, direction: 'DESC' as const },
 ];
 
-const FILTER_OPTIONS = {
-  STATUS: [
-    { value: 'all', label: 'All Statuses' },
-    { value: 'new', label: 'New' },
-    { value: 'registered', label: 'Registered' },
-    { value: 'contacted', label: 'Contacted' },
-    { value: 'ended', label: 'Ended' },
-    { value: 'error', label: 'Error' },
-  ],
-  INDUSTRY: [
-    { value: 'all', label: 'All Industries' },
-    { value: 'Manufacturing', label: 'Manufacturing' },
-    { value: 'Industrial Equipment', label: 'Industrial Equipment' },
-    { value: 'Machinery', label: 'Machinery' },
-    { value: 'Construction', label: 'Construction' },
-    { value: 'Automotive', label: 'Automotive' },
-    { value: 'Heavy Equipment', label: 'Heavy Equipment' },
-  ],
-  RESCHEDULE: [
-    { value: 'all', label: 'All' },
-    { value: 'scheduled', label: 'Scheduled' },
-    { value: 'not_scheduled', label: 'Not Scheduled' },
-  ],
-  LINK_CLICKED: [
-    { value: 'all', label: 'All' },
-    { value: 'clicked', label: 'Clicked' },
-    { value: 'not_clicked', label: 'Not Clicked' },
-  ],
-  FORM_SUBMITTED: [
-    { value: 'all', label: 'All' },
-    { value: 'submitted', label: 'Submitted' },
-    { value: 'not_submitted', label: 'Not Submitted' },
-  ],
-};
+
 
 const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL }) => {
   const [activeTab, setCurrentTab] = useState(currentTab);
@@ -94,7 +61,6 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [filterVisible, setFilterVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('newest');
     const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false);
@@ -108,8 +74,23 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     reschedule: 'all',
     linkClicked: 'all',
     formSubmitted: 'all',
+    categoryId: 'all',
   });
+  const [categories, setCategories] = useState<Category[]>([]);
   const queryClient = useQueryClient();
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesData = await categoryService.getActive();
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Query for leads based on current tab
   const {
@@ -127,6 +108,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
         reschedule: filters.reschedule !== 'all' ? filters.reschedule : undefined,
         linkClicked: filters.linkClicked !== 'all' ? filters.linkClicked : undefined,
         formSubmitted: filters.formSubmitted !== 'all' ? filters.formSubmitted : undefined,
+        categoryId: filters.categoryId !== 'all' ? filters.categoryId : undefined,
         search: searchTerm && searchTerm.trim() !== '' ? searchTerm.trim() : undefined,
         tab: activeTab,
       };
@@ -145,19 +127,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     }
   );
 
-  // Add clearFilters function
-  const clearFilters = () => {
-    setFilters({
-      status: 'all',
-      industry: 'all',
-      reschedule: 'all',
-      linkClicked: 'all',
-      formSubmitted: 'all',
-    });
-    setSearchTerm('');
-    setSortOption('newest');
-    setPage(1);
-  };
+
 
   // Update sorting logic with proper typing
   const processedLeads = React.useMemo(() => {
@@ -280,20 +250,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     setPage(1);
   };
 
-  // Handle filter change
-  const handleFilterChange = (filterType: string, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: value,
-    }));
-    // Reset to first page when filters change
-    setPage(1);
-  };
 
-  // Handle sort change
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSortOption(e.target.value);
-  };
 
   // Handle page size change
   const handlePageSizeChange = (newPageSize: number) => {
@@ -301,7 +258,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     setPage(1); // Reset to first page when changing page size
   };
 
-    const handleLeadAdded = (newLead: Lead) => {
+    const handleLeadAdded = () => {
     // Optionally refetch or update your leads list here
     queryClient.invalidateQueries(['leads']);
   };
@@ -513,7 +470,19 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
             </div>
             
             <div className="flex space-x-3">
-             
+              {/* Category Filter */}
+              <select
+                value={filters.categoryId}
+                onChange={(e) => setFilters({ ...filters, categoryId: e.target.value })}
+                className="min-w-32 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
               
               <button
                 onClick={handleRefresh}

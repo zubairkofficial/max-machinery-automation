@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { SearchParams, apolloApi, leadsApi } from '../services/api';
 import { FaSyncAlt, FaInfoCircle } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
+import { categoryService, Category } from '../services/category-service';
 
 interface ApolloSearchFormProps {
   onSearch: (params: SearchParams) => Promise<void>;
@@ -37,6 +38,7 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
   const [syncLoading, setSyncLoading] = useState(false);
   const [estimatedTotal, setEstimatedTotal] = useState<number | null>(null);
   const [fetchingTotal, setFetchingTotal] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
   const { register, handleSubmit, setValue, watch } = useForm<SearchParams>({
     defaultValues: defaultConfig,
   });
@@ -87,13 +89,17 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
     }
   };
 
-  // Load the default configuration from the server
+  // Load the default configuration and categories from the server
   useEffect(() => {
     const fetchConfig = async () => {
       try {
         setLoadingConfig(true);
-        const { defaultParameters } = await apolloApi.getConfig();
+        const [{ defaultParameters }, categoriesData] = await Promise.all([
+          apolloApi.getConfig(),
+          categoryService.getActive()
+        ]);
         setDefaultConfig(defaultParameters);
+        setCategories(categoriesData);
         
         // Get status for next/last sync times
         const status = await apolloApi.getStatus();
@@ -131,8 +137,11 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
         if (defaultParameters.cronSchedule) {
           setValue('cronSchedule', defaultParameters.cronSchedule);
         }
+        if (defaultParameters.categoryId) {
+          setValue('categoryId', defaultParameters.categoryId);
+        }
       } catch (error) {
-        console.error('Failed to fetch Apollo configuration:', error);
+        console.error('Failed to fetch Apollo configuration and categories:', error);
       } finally {
         setLoadingConfig(false);
       }
@@ -432,6 +441,27 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
               placeholder="industrial machinery equipment"
               defaultValue={defaultConfig.keywords || ''}
             />
+          </div>
+
+          <div className="col-span-2">
+            <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Category (Optional)
+            </label>
+            <select
+              id="categoryId"
+              {...register('categoryId')}
+              className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            >
+              <option value="">No Category (Default)</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Select a category to automatically assign new leads to this category.
+            </p>
           </div>
         </div>
 
