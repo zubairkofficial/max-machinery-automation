@@ -166,6 +166,7 @@ export class ApolloSchedulerService implements OnModuleInit {
         emailStatus: config.emailStatus,
         limit: config.limit,
         cronSchedule: config.cronSchedule,
+        categoryId: config.categoryId,
       };
       
       // Execute the search

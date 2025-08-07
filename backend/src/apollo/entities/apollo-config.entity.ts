@@ -53,6 +53,9 @@ export class ApolloConfig {
   @Column({ type: 'timestamp', nullable: true })
   nextRunAt: Date;
 
+  @Column({ nullable: true })
+  categoryId?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

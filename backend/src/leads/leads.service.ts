@@ -377,6 +377,11 @@ export class LeadsService {
             updatedLead.jobTitle = apolloLead.title || updatedLead.jobTitle;
             updatedLead.linkedinUrl = apolloLead.linkedin_url || updatedLead.linkedinUrl;
             
+            // Update category if provided in search params
+            if (searchParams.categoryId) {
+              updatedLead.categoryId = searchParams.categoryId;
+            }
+            
             // Save the updated lead
             await this.leadRepository.save(updatedLead);
             

@@ -150,6 +150,7 @@ export class ApolloConfigService implements OnModuleInit {
       if (searchParams.emailStatus !== undefined) config.emailStatus = searchParams.emailStatus;
       if (searchParams.limit) config.limit = searchParams.limit;
       if (searchParams.cronSchedule) config.cronSchedule = searchParams.cronSchedule;
+      if (searchParams.categoryId !== undefined) config.categoryId = searchParams.categoryId;
       
       return await this.updateConfig(config);
     } catch (error) {
@@ -173,6 +174,7 @@ export class ApolloConfigService implements OnModuleInit {
         limit: config.limit,
         page: config.page,
         cronSchedule: config.cronSchedule,
+        categoryId: config.categoryId,
       };
     } catch (error) {
       this.logger.error(`Failed to get search params DTO: ${error.message}`, error.stack);
@@ -201,32 +203,6 @@ export class ApolloConfigService implements OnModuleInit {
     }
   }
 
-  // Create a new config profile
-  // async createConfigProfile(name: string, searchParams: SearchLeadsDto): Promise<ApolloConfig> {
-  //   try {
-  //     // Create new config
-  //     const config = this.apolloConfigRepository.create({
-  //       apiKey: this.apiKey, // Use the current API key
-  //       jobTitles: searchParams.jobTitles,
-  //       industries: searchParams.industries,
-  //       locations: searchParams.locations,
-  //       companySize: searchParams.companySize,
-  //       keywords: searchParams.keywords,
-  //       companyNames: searchParams.companyNames,
-  //       emailStatus: searchParams.emailStatus,
-  //       limit: searchParams.limit || 25,
-  //       page: searchParams.page || 1,
-  //       cronSchedule: searchParams.cronSchedule || '0 0 * * *', // Default: Every day at midnight
-  //       isActive: true,
-  //       additionalInfo: { name }, // Store the profile name in additionalInfo
-  //     });
-
-  //     return this.apolloConfigRepository.save(config);
-  //   } catch (error) {
-  //     this.logger.error(`Failed to create Apollo config profile: ${error.message}`, error.stack);
-  //     throw error;
-  //   }
-  // }
 
   // Get all config profiles
   async getAllConfigProfiles(): Promise<ApolloConfig[]> {
