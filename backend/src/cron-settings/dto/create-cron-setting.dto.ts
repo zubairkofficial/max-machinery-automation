@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator';
 
 export class CreateCronSettingDto {
   @IsString()
@@ -19,4 +19,8 @@ export class CreateCronSettingDto {
   @IsOptional()
   @IsString()
   endTime?: string;
+
+  @IsOptional()
+  @IsNumber()
+  callLimit?: number;
 }

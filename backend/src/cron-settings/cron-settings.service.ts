@@ -158,6 +158,12 @@ export class CronSettingsService implements OnModuleInit {
     if (updateData.description !== undefined) {
       setting.description = updateData.description;
     }
+    if (updateData.callLimit !== undefined) {
+      setting.callLimit = updateData.callLimit;
+    }
+    if (updateData.selectedDays !== undefined) {
+      setting.selectedDays = updateData.selectedDays;
+    }
 
     return this.cronSettingsRepository.save(setting);
   }

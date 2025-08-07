@@ -27,4 +27,8 @@ export class UpdateCronSettingDto {
   @IsOptional()
   @IsNumber()
   selectedDays?: number;
+
+  @IsOptional()
+  @IsNumber()
+  callLimit?: number;
 } 

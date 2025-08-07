@@ -27,6 +27,9 @@ export class CronSetting {
   @Column({ type: 'int', nullable: true, default: 1 })
   selectedDays: number;
 
+  @Column({ type: 'int', nullable: true, default: 100 })
+  callLimit: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

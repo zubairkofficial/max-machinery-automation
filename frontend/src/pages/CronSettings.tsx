@@ -4,7 +4,6 @@ import { FaSpinner } from 'react-icons/fa';
 import { Save, RefreshCw, AlertCircle, CheckCircle2, Clock, Calendar, Info } from 'lucide-react';
 import { JobName } from '../types/job-name.enum';
 import toast from 'react-hot-toast';
-import CallLimit from './CallLimit';
 
 const CronSettings: React.FC = () => {
   const [settings, setSettings] = useState<CronSetting[]>([]);
@@ -14,6 +13,7 @@ const CronSettings: React.FC = () => {
   const [editingValues, setEditingValues] = useState<Record<JobName, UpdateCronSettingDto>>({} as Record<JobName, UpdateCronSettingDto>);
   const [timeErrors, setTimeErrors] = useState<Record<JobName, string>>({} as Record<JobName, string>);
   const [selectedDays, setSelectedDays] = useState<Record<JobName, number>>({} as Record<JobName, number>);
+
 
   const fetchSettings = async () => {
     try {
@@ -28,6 +28,7 @@ const CronSettings: React.FC = () => {
           isEnabled: s.isEnabled,
           startTime: s.startTime ? subtractFourHours(s.startTime) : '',
           endTime: s.endTime ? subtractFourHours(s.endTime) : '',
+          callLimit: s.callLimit || 100,
         };
         initialSelectedDays[s.jobName] = s.selectedDays || 1; // Use selectedDays from API or default to 1
       });
@@ -97,32 +98,11 @@ const CronSettings: React.FC = () => {
     };
   };
 
-  // Function to calculate next business day
-  const getNextBusinessDay = (days: number): Date => {
-    const today = new Date();
-    let currentDate = new Date(today);
-    let businessDaysAdded = 0;
-    
-    while (businessDaysAdded < days) {
-      currentDate.setDate(currentDate.getDate() + 1);
-      const dayOfWeek = currentDate.getDay();
-      
-      // Skip weekends (0 = Sunday, 6 = Saturday)
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        businessDaysAdded++;
-      }
-    }
-    
-    return currentDate;
-  };
 
 
 
-  // Function to get the actual date object for saving
-  const getNextRunDateForSaving = (jobName: JobName): Date => {
-    const days = selectedDays[jobName] || 1;
-    return getNextBusinessDay(days);
-  };
+
+
 
   const validateTimes = (jobName: JobName, startTime: string | undefined, endTime: string | undefined): boolean => {
     // Clear previous errors for this job
@@ -156,8 +136,6 @@ const CronSettings: React.FC = () => {
       return;
     }
 
-    // Get the next run date based on selected days
-    const nextRunDate = getNextRunDateForSaving(jobName);
     const selectedDaysCount = selectedDays[jobName] || 1;
 
     // Add 4 hours to the startTime and endTime before updating in API
@@ -166,6 +144,7 @@ const CronSettings: React.FC = () => {
       startTime: addFourHours(updateData.startTime),
       endTime: updateData.endTime ? addFourHours(updateData.endTime) : undefined,
       selectedDays: selectedDaysCount, // Add selected days to API
+      callLimit: updateData.callLimit, // Add call limit to API
     };
 
     try {
@@ -185,42 +164,8 @@ const CronSettings: React.FC = () => {
     }
   };
 
-  const handleCreate = async (jobName: JobName) => {
-    const createData = editingValues[jobName];
-    if (!createData) return;
 
-    // Validate times before creating
-    if (!validateTimes(jobName, createData.startTime, createData.endTime)) {
-      setError(`Invalid time settings for ${jobName}`);
-      return;
-    }
-
-    // Get the next run date based on selected days
-    const nextRunDate = getNextRunDateForSaving(jobName);
-    const selectedDaysCount = selectedDays[jobName] || 1;
-
-    // Add 4 hours to the startTime and endTime before sending to API
-    const newData = {
-      ...createData,
-      startTime: addFourHours(createData.startTime),
-      endTime: createData.endTime ? addFourHours(createData.endTime) : undefined,
-      selectedDays: selectedDaysCount, // Add selected days to API
-    };
-    
-    try {
-      setLoading(true);
-      await cronService.createCronSetting({ jobName, ...newData });
-      setSuccess(`Successfully created ${jobName}.`);
-      setTimeout(() => setSuccess(null), 3000);
-      fetchSettings(); 
-    } catch (err) {
-      setError(`Failed to create ${jobName}.`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (jobName: JobName, field: keyof UpdateCronSettingDto, value: string | boolean) => {
+  const handleInputChange = (jobName: JobName, field: keyof UpdateCronSettingDto, value: string | boolean | number) => {
     setEditingValues(prev => ({
       ...prev,
       [jobName]: {
@@ -362,6 +307,23 @@ const CronSettings: React.FC = () => {
                       <option value={5}>5 days</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <div className="flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        Call Limit
+                      </div>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={editingValues[setting.jobName]?.callLimit ?? 100}
+                      onChange={(e) => handleInputChange(setting.jobName, 'callLimit', parseInt(e.target.value) || 100)}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-gray-100 font-mono"
+                      placeholder="100"
+                    />
+                  </div>
                  
                 </div>
                 
@@ -376,7 +338,6 @@ const CronSettings: React.FC = () => {
             );
           })}
         </div>
-        <CallLimit/>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ export interface CronSetting {
   endTime: string | null;
   runDate: string | null;
   selectedDays: number;
+  callLimit: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,6 +21,7 @@ export interface UpdateCronSettingDto {
   endTime?: string;
   runDate?: string;
   selectedDays?: number;
+  callLimit?: number;
 }
 
 class CronService {
