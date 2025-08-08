@@ -42,7 +42,8 @@ import { LeadCall } from 'src/lead_calls/entities/lead_call.entity';
       CallTranscript,
       UserInfo,
       Retell,
-      Category,LeadCall
+      Category,
+      LeadCall
     ]),
     JwtModule.register({
       secret: process.env.JWT_SECRET||'secret-key', // In production, use environment variables

@@ -6,6 +6,7 @@ import { CronJob } from 'cron';
 import { CronSetting } from './entities/cron-setting.entity';
 import { UpdateCronSettingDto } from './dto/update-cron-setting.dto';
 import { ScheduledCallsService } from '../leads/scheduled-calls.service';
+import { LeadCallsService } from '../lead_calls/lead_calls.service';
 import { JobName } from './enums/job-name.enum';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class CronSettingsService implements OnModuleInit {
     private schedulerRegistry: SchedulerRegistry,
     @Inject(forwardRef(() => ScheduledCallsService))
     private readonly scheduledCallsService: ScheduledCallsService,
+    private readonly leadCallsService: LeadCallsService,
   ) {}
 
   async onModuleInit() {
@@ -34,17 +36,23 @@ export class CronSettingsService implements OnModuleInit {
         { 
           jobName: JobName.SCHEDULED_CALLS,  
           description: 'Schedules calls for users who have not been contacted yet.', 
-          isEnabled: true 
+          isEnabled: true,
+          selectedDays: 1,
+          callLimit: 100
         },
         { 
           jobName: JobName.RESCHEDULE_CALL,  
           description: 'Reschedules calls for users who did not pick up during the initial attempt.', 
-          isEnabled: true 
+          isEnabled: true,
+          selectedDays: 1,
+          callLimit: 100
         },
         { 
           jobName: JobName.REMINDER_CALL,  
           description: 'Sends reminders if the user has not clicked on the link or completed the Zoho CRM form.', 
-          isEnabled: true 
+          isEnabled: true,
+          selectedDays: 1,
+          callLimit: 100
         },
       ];
       
@@ -104,7 +112,17 @@ export class CronSettingsService implements OnModuleInit {
   }
 
   async findAll() {
-    return this.cronSettingsRepository.find();
+    const cronSettings = await this.cronSettingsRepository.find();
+    const leadCallData = await this.leadCallsService.getAllLeadCalls();
+    
+    return {
+      cronSettings,
+      leadCallData: leadCallData || {
+        scheduledCallCount: 0,
+        rescheduledCallCount: 0,
+        reminderCallCount: 0
+      }
+    };
   }
 
   async getByName(jobName: JobName) {

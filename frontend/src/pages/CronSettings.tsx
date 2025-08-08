@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { cronService, CronSetting, UpdateCronSettingDto } from '../services/cron-service';
+import { cronService, CronSetting, UpdateCronSettingDto, LeadCallData } from '../services/cron-service';
 import { FaSpinner } from 'react-icons/fa';
-import { Save, RefreshCw, AlertCircle, CheckCircle2, Clock, Calendar, Info } from 'lucide-react';
+import { Save, RefreshCw, AlertCircle, CheckCircle2, Clock, Calendar, Info, Phone } from 'lucide-react';
 import { JobName } from '../types/job-name.enum';
 import toast from 'react-hot-toast';
 
 const CronSettings: React.FC = () => {
   const [settings, setSettings] = useState<CronSetting[]>([]);
+  const [leadCallData, setLeadCallData] = useState<LeadCallData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -18,12 +19,13 @@ const CronSettings: React.FC = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const data = await cronService.getCronSettings();
-      setSettings(data);
+      const response = await cronService.getCronSettingsWithLeadData();
+      setSettings(response.cronSettings);
+      setLeadCallData(response.leadCallData);
       const initialEditingValues: Record<JobName, UpdateCronSettingDto> = {} as Record<JobName, UpdateCronSettingDto>;
       const initialSelectedDays: Record<JobName, number> = {} as Record<JobName, number>;
       
-      data.forEach(s => {
+      response.cronSettings.forEach(s => {
         initialEditingValues[s.jobName] = {
           isEnabled: s.isEnabled,
           startTime: s.startTime ? subtractFourHours(s.startTime) : '',
@@ -49,7 +51,7 @@ const CronSettings: React.FC = () => {
   const subtractFourHours = (time: string | undefined): string => {
     if (!time) return '';
     const [hours, minutes] = time.split(':').map(Number);
-    let newHours = hours - 4;
+    let newHours = hours;
     
     // Handle negative hours (wrap around to previous day)
     if (newHours < 0) {
@@ -63,7 +65,7 @@ const CronSettings: React.FC = () => {
   const addFourHours = (time: string | undefined): string => {
     if (!time) return '';
     const [hours, minutes] = time.split(':').map(Number);
-    let newHours = hours + 4;
+    let newHours = hours;
     
     // Handle hours >= 24 (wrap around to next day)
     if (newHours >= 24) {
@@ -217,6 +219,51 @@ const CronSettings: React.FC = () => {
 
         {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg flex items-center"><AlertCircle className="w-5 h-5 mr-2"/>{error}</div>}
         {success && <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg flex items-center"><CheckCircle2 className="w-5 h-5 mr-2"/>{success}</div>}
+
+        {/* Lead Call Statistics */}
+        {leadCallData && (
+          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+              <Phone className="w-5 h-5 mr-2" />
+              Lead Call Statistics
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg mr-3">
+                    <Phone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Scheduled Calls</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{leadCallData.scheduledCallCount}</p>
+                  </div>
+                </div>
+              </div>
+               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+               <div className="flex items-center">
+               <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg mr-3">
+               <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Rescheduled Calls</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{leadCallData.rescheduledCallCount}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+              <div className="flex items-center">
+              <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg mr-3">
+              <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Reminder Calls</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{leadCallData.reminderCallCount}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           {settings.map((setting) => {

@@ -104,7 +104,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
         </div>
 
         {/* Navigation */}
-        <nav className="space-y-6">
+        <nav className="space-y-6 ">
           {/* Main Navigation */}
           <div className="space-y-1">
             <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -152,7 +152,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   <span>All Leads</span>
                 </NavLink>
                 <NavLink
-                  to="/categories"
+                  to="/lists"
                   className={({ isActive }) =>
                     `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
                       isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
@@ -160,99 +160,28 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   }
                 >
                   <Tags className="w-4 h-4 mr-3" />
-                  <span>Categories</span>
+                  <span>All Lists</span>
                 </NavLink>
-                {/* <NavLink
-                  to="/leads/priority"
-                  className={({ isActive }) =>
-                    `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
-                      isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
-                    }`
-                  }
-                >
-                  <Award className="w-4 h-4 mr-3" />
-                  <span>Priority Leads</span>
-                </NavLink>
-                <NavLink
-                  to="/leads/new"
-                  className={({ isActive }) =>
-                    `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
-                      isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
-                    }`
-                  }
-                >
-                  <UserPlus className="w-4 h-4 mr-3" />
-                  <span>Add New Lead</span>
-                </NavLink> */}
-                {/* <NavLink
-                  to="/leads/search"
-                  className={({ isActive }) =>
-                    `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
-                      isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
-                    }`
-                  }
-                >
-                  <Search className="w-4 h-4 mr-3" />
-                  <span>Advanced Search</span>
-                </NavLink> */}
-              </div>
+                </div>
             )}
           </div>
-          
-          {/* Communication Section */}
           <div className="space-y-1">
             <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Communication
             </p>
-            
-            <SubMenuButton 
-              isExpanded={callsExpanded}
-              toggleExpand={() => setCallsExpanded(!callsExpanded)}
-              icon={Phone}
-              path="/calls"
-              label="Call Center"
-            />
-            
-            {callsExpanded && (
-              <div className="ml-6 pl-3 border-l border-gray-700 space-y-1 pt-1">
-                {/* <NavLink
-                  to="/calls"
-                  className={({ isActive }) =>
-                    `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
-                      isActive && location.pathname === '/calls' ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
-                    }`
-                  }
-                  end
-                >
-                  <Phone className="w-4 h-4 mr-3" />
-                  <span>Call Dashboard</span>
-                </NavLink> */}
-                {/* <NavLink
-                  to="/calls/batch"
-                  className={({ isActive }) =>
-                    `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
-                      isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
-                    }`
-                  }
-                >
-                  <PhoneCall className="w-4 h-4 mr-3" />
-                  <span>Batch Calling</span>
-                </NavLink> */}
-                <NavLink
-                  to="/call-history"
-                  className={({ isActive }) =>
-                    `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
-                      isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
-                    }`
-                  }
-                >
-                  <Clock className="w-4 h-4 mr-3" />
+           <NavLink
+              to="/call-history"
+              className={({ isActive }) =>
+                `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
+                  isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
+                }`
+              }
+              end
+            >
+              <Clock className="w-4 h-4 mr-3" />
                   <span>Call History</span>
-                </NavLink>
-              </div>
-            )}
-
-            <NavLink
+            </NavLink>
+             <NavLink
               to="/templates"
               className={({ isActive }) =>
                 `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
@@ -274,47 +203,18 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               <FaRobot className="w-5 h-5 mr-3" />
               <span>LLM Prompt</span>
             </NavLink>
-            
-            {/* <NavLink
-              to="/follow-ups"
-              className={({ isActive }) =>
-                `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
-                  isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
-                }`
-              }
-            >
-              <MessageSquare className="w-5 h-5 mr-3" />
-              <span>Follow-ups</span>
-            </NavLink> */}
-          </div>
+            </div>
+            <div className="space-y-1">
+              
+            </div>
+        
           
           {/* Data & Settings Section */}
           <div className="space-y-1">
             <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Data & Settings
             </p>
-            {/* <NavLink
-              to="/apollo-settings"
-              className={({ isActive }) =>
-                `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
-                  isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
-                }`
-              }
-            >
-              <Sliders className="w-5 h-5 mr-3" />
-              <span>Apollo Settings</span>
-            </NavLink> */}
-            {/* <NavLink
-              to="/analytics"
-              className={({ isActive }) =>
-                `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
-                  isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
-                }`
-              }
-            >
-              <BarChart2 className="w-5 h-5 mr-3" />
-              <span>Analytics</span>
-            </NavLink> */}
+           
             <NavLink
               to="/cron-settings"
               className={({ isActive }) =>
@@ -337,17 +237,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               <Trash2 className="w-5 h-5 mr-3" />
               <span>Delete by Phone</span>
             </NavLink>
-            {/* <NavLink
-              to="/email-sender"
-              className={({ isActive }) =>
-                `flex items-center px-4 py-2 text-sm font-medium rounded-lg ${
-                  isActive ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-700 hover:text-white"
-                }`
-              }
-            >
-              <Mail className="w-5 h-5 mr-3" />
-              <span>Email Sender</span>
-            </NavLink> */}
+           
             <NavLink
               to="/settings"
               className={({ isActive }) =>
@@ -363,9 +253,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
         </nav>
         
         {/* Application Version */}
-        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 px-4 py-2">
+        {/* <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 px-4 py-2">
   <p className="text-xs text-gray-500 text-center">MaxMachinery v1.0.0</p>
-</div>
+</div> */}
       </div>
     </div>
   )

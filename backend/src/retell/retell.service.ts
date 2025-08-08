@@ -17,6 +17,7 @@ import { ConfigService } from '@nestjs/config';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 import { Retell } from './entities/retell.entity';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
+import { getNextReminderDate } from 'src/utils/business-day.util';
 
 @Injectable()
 export class RetellService {
@@ -271,23 +272,23 @@ private retellRepository: Repository<Retell>
     return tomorrow;
   }
 
-  private async getNextScheduleDay(): Promise<Date> {
-    const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
-    console.log("cronSetting", cronSetting);
+  // private async getNextScheduleDay(): Promise<Date> {
+  //   const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
+  //   console.log("cronSetting", cronSetting);
     
-    if (cronSetting?.startTime) {
-      // Parse the time string (HH:MM format) and set it for tomorrow
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 2);
+  //   if (cronSetting?.startTime) {
+  //     // Parse the time string (HH:MM format) and set it for tomorrow
+  //     const tomorrow = new Date();
+  //     tomorrow.setDate(tomorrow.getDate() + 2);
       
-      const [hours, minutes] = cronSetting.startTime.split(':').map(Number);
-      tomorrow.setHours(hours, minutes, 0, 0);
+  //     const [hours, minutes] = cronSetting.startTime.split(':').map(Number);
+  //     tomorrow.setHours(hours, minutes, 0, 0);
       
-      return tomorrow;
-    }
+  //     return tomorrow;
+  //   }
     
-    return this.getNextBusinessDay();
-  }
+  //   return this.getNextBusinessDay();
+  // }
   /**
    * Process transcript for email or phone information
    */
@@ -296,10 +297,15 @@ private retellRepository: Repository<Retell>
       const lead = await this.leadRepository.findOne({
         where: { id: leadId }
       });
-
-      if (!call.transcript) {
+      const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
+     if(!call.transcript && lead.reminder){
+      lead.reminder=getNextReminderDate(cronSetting.selectedDays,new Date());
+      await this.leadRepository.save(lead);
+      return;
+     }
+      else if (!call.transcript) {
         this.logger.warn(`No transcript found for call ${call.call_id}`);
-        lead.scheduledCallbackDate = await this.getNextScheduleDay();
+        lead.scheduledCallbackDate = getNextReminderDate(cronSetting.selectedDays,new Date());
         await this.leadRepository.save(lead);  
         return;
       }
@@ -376,32 +382,14 @@ ${transcript}`
         if (contactInfo.isBusy || contactInfo.preferredMethod === 'busy' || contactInfo.preferredMethod === 'schedule') {
           // Get the next available time from cron settings
           const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
-          if (cronSetting?.startTime) {
-            
-            const scheduleDate = new Date();
-            scheduleDate.setDate(scheduleDate.getDate() + 2); // Default to next day if no specific days mentioned
-            
-            const [hours, minutes] = cronSetting.startTime.split(':').map(Number);
-            scheduleDate.setHours(hours, minutes, 0, 0);
-            
-            // If it's weekend, move to Monday
-            if (scheduleDate.getDay() === 0) { // Sunday
-              scheduleDate.setDate(scheduleDate.getDate() + 1);
-            } else if (scheduleDate.getDay() === 6) { // Saturday
-              scheduleDate.setDate(scheduleDate.getDate() + 2);
-            }
-            
-            lead.scheduledCallbackDate = scheduleDate;
+         
+         
+          lead.scheduledCallbackDate = getNextReminderDate(cronSetting.selectedDays,new Date());
+
             await this.leadRepository.save(lead);
-            this.logger.log(`Lead is busy, rescheduled for next available time: ${scheduleDate.toISOString()}`);
+            this.logger.log(`Lead is busy, rescheduled for next available time: ${lead.scheduledCallbackDate.toISOString()}`);
             return;
-          } else {
-            // If no cron setting available, schedule for next working day
-            lead.scheduledCallbackDate = await this.getNextScheduleDay();
-            await this.leadRepository.save(lead);
-            this.logger.log(`Lead is busy, rescheduled for next working day: ${lead.scheduledCallbackDate.toISOString()}`);
-            return;
-          }
+         
         }
 
         if (contactInfo.notInterested) {
@@ -420,8 +408,12 @@ ${transcript}`
             await this.smsService.sendVerificationSMS(lead);
             this.logger.log(`Sent verification SMS to ${lead.zohoPhoneNumber}`);
           }
-          
-          await this.leadRepository.update({id:lead.id},{linkSend:true})
+        
+          const cronSetting = await this.cronSettingService.getByName(JobName.REMINDER_CALL);
+          const currentDate = new Date();
+          const nextReminderDate = getNextReminderDate(cronSetting.selectedDays, currentDate);
+
+          await this.leadRepository.update({id:lead.id},{linkSend:true,    reminder: nextReminderDate })
         return;
         }
 
@@ -440,13 +432,22 @@ ${transcript}`
             await this.smsService.sendVerificationSMS(lead);
             this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
           }
+          const cronSetting = await this.cronSettingService.getByName(JobName.REMINDER_CALL);
+          const currentDate = new Date();
+          const nextReminderDate = getNextReminderDate(cronSetting.selectedDays, currentDate);
+
           lead.linkSend=true
+          lead.reminder=nextReminderDate
           await this.leadRepository.save(lead);
         }
         // Handle email only
         else if (contactInfo.preferredMethod === 'email') {
           lead.zohoEmail = contactInfo.contactInfo.email;
           lead.linkSend=true
+          const cronSetting = await this.cronSettingService.getByName(JobName.REMINDER_CALL);
+          const currentDate = new Date();
+          const nextReminderDate = getNextReminderDate(cronSetting.selectedDays, currentDate);
+          lead.reminder=nextReminderDate
           await this.leadRepository.save(lead);
           await this.mailService.sendVerificationLink(lead);
           this.logger.log(`Sent verification email to ${contactInfo.contactInfo.email}`);
@@ -454,14 +455,19 @@ ${transcript}`
         // Handle phone only
         else if (contactInfo.preferredMethod === 'phone') {
           lead.zohoPhoneNumber = contactInfo.contactInfo.phone??lead.phone;
-          lead.linkSend=true
-          await this.leadRepository.save(lead);
           await this.smsService.sendVerificationSMS(lead);
+          
+          lead.linkSend=true
+          const cronSetting = await this.cronSettingService.getByName(JobName.REMINDER_CALL);
+          const currentDate = new Date();
+          const nextReminderDate = getNextReminderDate(cronSetting.selectedDays, currentDate);
+          lead.reminder=nextReminderDate
+          await this.leadRepository.save(lead);
           this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
         }
         else {
           // Default rescheduling if no other method specified
-          lead.scheduledCallbackDate = await this.getNextScheduleDay();
+          lead.scheduledCallbackDate =  getNextReminderDate(cronSetting.selectedDays,new Date() );
           await this.leadRepository.save(lead);   
           this.logger.log(`No contact method specified, scheduled callback for next business day: ${lead.scheduledCallbackDate.toISOString()}`);
         }
@@ -469,7 +475,7 @@ ${transcript}`
       } catch (error) {
         this.logger.error(`Error processing transcript: ${error.message}`, error.stack);
         // On error, schedule for next business day
-        lead.scheduledCallbackDate = await this.getNextScheduleDay();
+        lead.scheduledCallbackDate = getNextReminderDate(cronSetting.selectedDays,new Date());
         await this.leadRepository.save(lead);
       }
     } catch (error) {
@@ -519,14 +525,7 @@ ${transcript}`
   async getRetellLLM(llmId: string) {
     try {
  return this.retellRepository.findOne({where:{llm_id:llmId}})
-      // const response = await axios.get(`${this.retellBaseUrl}/get-retell-llm/${llmId}`, {
-      //   headers: {
-      //     'Authorization': `Bearer ${this.retellApiKey}`,
-      //     'Content-Type': 'application/json',
-      //   },
-      // });
-      // const generalPrompt=response.data.general_prompt  
-      // return response.data;
+     
     } catch (error) {
       this.logger.error(`Error getting Retell LLM: ${error.message}`);
       throw new HttpException(

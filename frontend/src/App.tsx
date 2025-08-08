@@ -22,7 +22,7 @@ import CronSettings from './pages/CronSettings';
 import CallHistory from './pages/CallHistory';
 import PhoneNumberDeletion from './pages/PhoneNumberDeletion';
 import EmailSender from "./components/EmailSender";
-import Categories from './pages/Categories';
+import List from "./pages/List";
 
 
 // A component for embedding in an iframe on machinerymax.com
@@ -86,7 +86,7 @@ function App() {
                             <Route path="/cron-settings" element={<CronSettings />} />
                             <Route path="/phone-deletion" element={<PhoneNumberDeletion />} />
                             <Route path="/email-sender" element={<EmailSender />} />
-                            <Route path="/categories" element={<Categories />} />
+                            <Route path="/lists" element={<List />} />
                             <Route path="*" element={<Navigate to="/" replace />} />
                           </Routes>
                         </main>

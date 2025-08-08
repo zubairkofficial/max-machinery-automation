@@ -445,7 +445,7 @@ const ApolloSearchForm: React.FC<ApolloSearchFormProps> = ({ onSearch, isLoading
 
           <div className="col-span-2">
             <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Category (Optional)
+              List (Optional)
             </label>
             <select
               id="categoryId"

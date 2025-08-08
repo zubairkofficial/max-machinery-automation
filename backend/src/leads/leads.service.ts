@@ -13,7 +13,6 @@ import { In } from 'typeorm';
 import { RetellAiService } from './retell-ai.service';
 import { ScheduleCallsDto } from './dto/schedule-calls.dto';
 import axios from 'axios';
-import { ScheduledCallsService } from './scheduled-calls.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { RetellService } from 'src/retell/retell.service';
@@ -21,6 +20,8 @@ import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
 import { CallDashboardFilterDto } from './dto/call-filter.dto';
 import { ZohoSyncService } from './zoho-sync.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
 
 @Injectable()
 export class LeadsService {
@@ -43,6 +44,7 @@ export class LeadsService {
     private readonly retellService: RetellService,
     private readonly cronSettingsService: CronSettingsService,
     private readonly zohoSyncService: ZohoSyncService,
+    private readonly leadCallService: LeadCallsService,
   ) {
     this.retellApiKey = this.configService.get<string>('RETELL_AI_API_KEY');
   }
@@ -633,17 +635,24 @@ export class LeadsService {
     }
   }
   
+  private getTodayStartEndDates(): [Date, Date] {
+    const todayStart = new Date(new Date().setHours(0, 0, 0, 0));  // Midnight today
+    const todayEnd = new Date(new Date().setHours(23, 59, 59, 999));  // Just before midnight today
+    return [todayStart, todayEnd];
+  }
 
    async findAllWithIndivitualScheduledCalls() {
+    const [todayStart, todayEnd] = this.getTodayStartEndDates();
 
       return this.leadRepository.find({
       where: {
-     scheduledCallbackDate: Not(IsNull()) ,
+        scheduledCallbackDate: Between(todayStart, todayEnd),
      status:Not ('CALLING'),
      notInterested: false,  
      linkClicked: false, 
      formSubmitted: false,
      linkSend: false,  
+     
       },
     });
       
@@ -683,7 +692,8 @@ export class LeadsService {
         // Keep existing fields
         callQuality: callDetails.callQuality,
         analytics: callDetails.analytics,
-        sentiment: callDetails.sentiment
+        sentiment: callDetails.sentiment,
+        jobType: callDetails.jobType || JobName.SCHEDULED_CALLS
       });
       
       await this.callHistoryRepository.save(callHistory);
@@ -812,13 +822,11 @@ export class LeadsService {
     }
   }
 
-  async getCallById(callId: string) {
+  
+  async getRetellCallById(callId: string) {
     try {
       // First try to find the call in our database
-      const call = await this.callHistoryRepository.findOne({
-        where: { callId },
-        relations: ['lead']
-      });
+     
    
        const response = await axios.get(
         `${this.retellApiBaseUrl}/get-call/${callId}`,
@@ -830,7 +838,27 @@ export class LeadsService {
         }
       );
 
-      const retellCall = response.data;
+      return response.data;
+  
+    } catch (error: any) {
+      this.logger.error('Error fetching call details:', error.response?.data || error.message);
+      throw new HttpException(
+        error.response?.data?.message || 'Failed to fetch call details',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+  async getCallById(callId: string) {
+    try {
+      // First try to find the call in our database
+      const call = await this.callHistoryRepository.findOne({
+        where: { callId },
+        relations: ['lead']
+      });
+   
+    
+
+      const retellCall = await this.getRetellCallById(callId);
   if(call) {
     await this.updateLeadCallHistory(call.lead_id, retellCall);
   }
@@ -1064,6 +1092,8 @@ export class LeadsService {
     }
   }
 
+
+  
   /**
    * Make a single call to a lead
    */
@@ -1434,4 +1464,53 @@ export class LeadsService {
       .orderBy('callHistory.timestamp', 'DESC')
       .getMany();
   }
+  @Cron(CronExpression.EVERY_MINUTE)
+async handleJobAssignments() {
+  try {
+    const jobNames = Object.values(JobName); // Get all Job Names (ScheduledCalls, RescheduleCall, ReminderCall)
+    
+    for (const jobName of jobNames) {
+      
+  
+      // For each job type, find leads created today
+     const now = new Date();
+     const oneMinuteBefore = new Date(now.getTime() - 1 * 60000); // Subtract 1 minute (60,000 ms)
+
+    // Set the seconds and milliseconds to 0 for the start of the minute
+    const startOfMinute = new Date(oneMinuteBefore.setSeconds(0, 0));
+
+    // Set the end of the minute (59 seconds of the 1-minute window)
+    const endOfMinute = new Date(startOfMinute.getTime() + 59 * 1000);
+
+    // Query to find leads for the specified jobType within the current minute window
+    const leads = await this.callHistoryRepository
+      .createQueryBuilder('callHistory')
+      .where('callHistory.jobType = :jobName', { jobName })  // Filter by jobType (e.g., SCHEDULED_CALLS)
+      .andWhere('callHistory.createdAt >= :startOfMinute', { startOfMinute })  // From the start of the minute
+      .andWhere('callHistory.createdAt <= :endOfMinute', { endOfMinute })  // To the end of the minute
+      .getMany();  // Get the results
+      for (const lead of leads) {
+        // Assuming you have logic to check if the lead's call history needs to be updated with the job type
+const callResult= await this.getRetellCallById(lead.callId)
+       const result = (callResult.disconnection_reason === "user_hangup" || callResult.disconnection_reason === "agent_hangup") ? 1 : 0;
+    if(result) await this.leadCallService.countScheduledCalls(result,jobName)
+console.log("response",result)
+}
+
+      this.logger.log(`Job assignments updated for ${jobName}`);
+    }
+  } catch (error) {
+    this.logger.error('Error assigning job types to call history: ' + error.message, error.stack);
+  }
+}
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+async handleJobReset() {
+  try {
+   await this.leadCallService.resetScheduledCalls()
+  } catch (error) {
+    this.logger.error('Error assigning job types to call history: ' + error.message, error.stack);
+  }
+}
+
+
 } 

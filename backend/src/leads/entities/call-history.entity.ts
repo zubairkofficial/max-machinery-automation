@@ -8,6 +8,7 @@ import {
   JoinColumn
 } from 'typeorm';
 import { Lead } from './lead.entity';
+import { JobName } from 'src/cron-settings/enums/job-name.enum';
 
 @Entity('call_history')
 export class CallHistory {
@@ -128,6 +129,14 @@ export class CallHistory {
 
   @Column({ default: false })
   opt_in_signed_url: boolean;
+
+    @Column({
+    type: 'enum',
+    enum: JobName,
+    default:JobName.SCHEDULED_CALLS  // Use the JobName enum to define the column type
+  })
+  jobType: JobName;  // New column to track job type (e.g., SCHEDULED_CALLS, RESCHEDULE_CALL, REMINDER_CALL)
+
 
   @ManyToOne(() => Lead, lead => lead.callHistoryRecords)
   @JoinColumn({ name: 'lead_id' })

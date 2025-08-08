@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { categoryService, Category, CreateCategoryDto, UpdateCategoryDto } from '../../services/category-service';
+import { Category, categoryService,  CreateCategoryDto, UpdateCategoryDto } from '../../services/category-service';
 import { FaPlus, FaEdit, FaTrash, FaSave, FaTimes, FaTag } from 'react-icons/fa';
 import { CategoryRow } from './CategoryRow';
 import AddCategoryModal from './AddCategoryModal';
@@ -116,14 +116,14 @@ const CategoryManager: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Categories</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">All Lists</h1>
         <button
           onClick={() => setIsCreating(true)}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           disabled={isCreating}
         >
           <FaPlus className="mr-2" />
-          Add Category
+          Add List
         </button>
       </div>
 
@@ -148,15 +148,13 @@ const CategoryManager: React.FC = () => {
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Category
+                List
               </th>
            
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Leads
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Status
-              </th>
+              
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Actions
               </th>

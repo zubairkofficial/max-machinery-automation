@@ -56,6 +56,14 @@ export class LeadCallsService {
     let [leadCall] = await this.leadCallRepository.find();
     return leadCall;
   }
+  async resetScheduledCalls() {
+    const leadCall = await this.getAllLeadCalls();
+    leadCall.scheduledCallCount = 0;
+    leadCall.rescheduledCallCount = 0;
+    leadCall.reminderCallCount = 0;
+    await this.leadCallRepository.save(leadCall);
+   
+  }
 
   findOne(id: number) {
     return `This action returns a #${id} leadCall`;

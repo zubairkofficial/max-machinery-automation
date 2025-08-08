@@ -4,11 +4,13 @@ import { CronSettingsService } from './cron-settings.service';
 import { CronSettingsController } from './cron-settings.controller';
 import { CronSetting } from './entities/cron-setting.entity';
 import { LeadsModule } from '../leads/leads.module';
+import { LeadCallsModule } from '../lead_calls/lead_calls.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([CronSetting]), 
-    forwardRef(() => LeadsModule)
+    forwardRef(() => LeadsModule),
+    LeadCallsModule
   ],
   controllers: [CronSettingsController],
   providers: [CronSettingsService],

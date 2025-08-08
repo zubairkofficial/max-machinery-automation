@@ -9,6 +9,10 @@ export class LeadCallsController {
 
  
   
+  @Get()
+  getAllLeadCalls() {
+    return this.leadCallsService.getAllLeadCalls();
+  }
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.leadCallsService.findOne(+id);

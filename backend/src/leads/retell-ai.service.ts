@@ -314,7 +314,7 @@ await this.leadRepository.update(
             lead_phone_number: lead.phone,
           },
           metadata: { 
-            lead_id: lead.id,
+            lead_id: lead.lead_id ,
             call_type: 'reminder'
           },
         },
@@ -356,60 +356,6 @@ await this.leadRepository.update(
     
     return cleaned;;
   }
-
-  // async handleCallEnded(call: any): Promise<void> {
-  //   try {
-  //     this.logger.log(`Call ended: ${call.call_id}`);
-      
-  //     // Find lead information from the call metadata
-  //     const leadId = this.extractLeadId(call);
-  //     if (!leadId) {
-  //       this.logger.warn(`No lead ID found for call ${call.call_id}`);
-  //       return;
-  //     }
-
-  //     // Update call history with ended status and transcript
-  //     const callHistory = await this.createOrUpdateCallHistory(call, leadId, 'ended');
-
-  //     // Store the transcript
-  //     await this.storeTranscript(call, callHistory.id);
-
-  //     // Get the lead and call type
-  //     const lead = await this.leadRepository.findOne({ where: { id: leadId } });
-  //     const callType = call.metadata?.call_type || 'unknown';
-
-  //     // Update Zoho CRM status based on call outcome
-  //     try {
-  //       const zohoLead = await this.zohoSyncService.searchLeadInZohoByPhone(lead.phone);
-  //       if (zohoLead) {
-  //         let status = 'Contact Attempted';
-          
-  //         // Set status based on call outcome
-  //         if (call.disconnection_reason === 'completed') {
-  //           status = 'Contact Made';
-  //         } else if (call.disconnection_reason === 'no-answer') {
-  //           status = 'No Answer';
-  //         } else if (call.disconnection_reason === 'busy') {
-  //           status = 'Line Busy';
-  //         }
-
-  //         await this.zohoSyncService.updateLeadInZoho(zohoLead.id, {
-  //           leadStatus: status,
-  //           lastCalledAt: new Date().toISOString(),
-  //           callType: callType,
-  //           description: `Call ended with status: ${status}. Call type: ${callType}. Duration: ${call.duration_ms}ms`
-  //         });
-  //       }
-  //     } catch (error) {
-  //       this.logger.error(`Error updating Zoho CRM after call: ${error.message}`);
-  //     }
-
-  //     // Process transcript for email or phone information
-  //     await this.processTranscriptForContactInfo(call, leadId);
-  //   } catch (error) {
-  //     this.logger.error(`Error handling call_ended event: ${error.message}`, error.stack);
-  //   }
-  // }
 
   private async createOrUpdateCallHistory(call: any, leadId: string, status: string): Promise<any> {
     // Check if call history already exists

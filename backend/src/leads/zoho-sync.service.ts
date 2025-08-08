@@ -14,6 +14,7 @@ import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
 import { addBusinessDays, isSameDate } from 'src/utils/business-day.util';
 import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
+import { LeadsService } from './leads.service';
 
 export interface ZohoLeadData {
   firstName?: string;
@@ -48,7 +49,8 @@ export class ZohoSyncService {
     @Inject(forwardRef(() => RetellAiService))
     private readonly retellAiService: RetellAiService,
     private readonly cronSettingService: CronSettingsService,
-    private readonly leadCallService: LeadCallsService,
+    @Inject(forwardRef(() => LeadsService))
+    private leadsService: LeadsService,
   ) {
     this.clientId = this.configService.get<string>('ZOHO_CLIENT_ID');
     this.clientSecret = this.configService.get<string>('ZOHO_CLIENT_SECRET');
@@ -65,99 +67,131 @@ export class ZohoSyncService {
   async zohoLinkNoCall() {
     try {
       this.logger.log('Starting Zoho CRM sync');
-   const callReminder = await this.cronSettingService.getByName(JobName.REMINDER_CALL);
-    
-    if (!callReminder?.isEnabled || !callReminder?.startTime) {
-      console.log('ReminderCall job is not enabled or has no start time');
-      return;
-    }
-    if(!callReminder.runDate){
-      const runDate = new Date();
-      callReminder.runDate = addBusinessDays(runDate, +callReminder.selectedDays); // Next business day
-      await this.cronSettingService.update(JobName.REMINDER_CALL, callReminder);
-    }
-
-    if (callReminder.runDate && isSameDate(new Date(callReminder.runDate), new Date())) {
-    const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
-    const startTime = callReminder.startTime;
-    const endTime = callReminder.endTime;
-
-    // Check if current time matches the schedule
-    let shouldRun = false;
-    if (endTime) {
-      // If end time is specified, check if current time is within the window
-      shouldRun = currentTime >= startTime && currentTime <= endTime;
-    } else {
-      // If no end time, check if current time matches start time (within 1 minute)
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const [startHours, startMinutes] = startTime.split(':').map(Number);
-      const startTotalMinutes = startHours * 60 + startMinutes;
-      shouldRun = Math.abs(currentMinutes - startTotalMinutes) <= 1;
-    }
-
-    console.log(`Current time: ${currentTime}, Schedule: ${startTime}${endTime ? ` - ${endTime}` : ''}, Should run: ${shouldRun}`);
-    
-    if (shouldRun) {
-      const currentDate = new Date();
-currentDate.setDate(currentDate.getDate() - 1); // Previous day
-
-     const leads = await this.leadRepository
-  .createQueryBuilder('lead')
-  .where('lead.contacted = true')
-   .andWhere('lead.linkSend = :linkSend', { linkSend: true })
-   .andWhere('(lead.linkClicked = :linkClicked OR lead.formSubmitted = :formSubmitted)', { 
-     linkClicked: false, 
-     formSubmitted: false 
-   })
-  .select([
-    'lead.id',
-    'lead.zohoEmail',
-    // پہلے zohoPhoneNumber، ورنہ lead.phone
-    'COALESCE(lead.zohoPhoneNumber, lead.phone) AS phone',
-    'lead.reminder',
-    'lead.linkClicked',
-    'lead.formSubmitted',
-  ])
-  .getRawMany();
-// Now, `leads` will contain only leads that satisfy the given conditions and do not have an associated UserInfo
-
-const todayStr = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
-
-for(const lead of leads) {
-
-  try {
-    const reminderStr = lead.lead_reminder
-    ? new Date(lead.lead_reminder).toISOString().slice(0, 10)
-    : null;
-
-  const shouldCall = !reminderStr || reminderStr < todayStr;  // آج کی نہیں ہے؟
-const leadCall = await this.leadCallService.getAllLeadCalls();
-if(leadCall.reminderCallCount >= callReminder.callLimit){
-  break;
-}
-   if(shouldCall  ){
-  const callResult = await this.retellAiService.makeCallLeadZoho(lead,this.configService.get<string>('FROM_PHONE_NUMBER'), lead.lead_formSubmitted,lead.lead_linkClicked,this.configService.get<string>('AGENT_ID'));
-   const result = (callResult.disconnection_reason === "user_hangup" || callResult.disconnection_reason === "agent_hangup") ? 1 : 0;
-   await this.leadCallService.countScheduledCalls(result,JobName.REMINDER_CALL);
-}  } catch (error) {
-    this.logger.error(`Error processing lead ${lead.id}: ${error.message}`);
-    continue; // Continue with next lead even if one fails
-  }
-}
+      
+      // Fetch cron job settings
+      const callReminder = await this.cronSettingService.getByName(JobName.REMINDER_CALL);
+      if (!callReminder?.isEnabled || !callReminder?.startTime) {
+        this.logger.log('ReminderCall job is not enabled or has no start time');
+        return;
+      }
+  
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
+      const { startTime, endTime } = callReminder;
+  
+      // Determine if the current time matches the schedule
+      const shouldRun = this.shouldRunSchedule(currentTime, startTime, endTime);
+  
+      this.logger.log(`Current time: ${currentTime}, Schedule: ${startTime}${endTime ? ` - ${endTime}` : ''}, Should run: ${shouldRun}`);
+  
+      if (!shouldRun) {
+        await this.handleNextRunDate(callReminder);
+        return;
+      }
+  
+      // Fetch leads that meet the conditions
+      const leads = await this.fetchLeadsForCallReminder();
+  
+      // Parallel processing of each lead
+      const leadProcessingPromises = leads.map(async (lead) => {
+        try {
+          const shouldCall = this.shouldCallLead(lead);
+  
+          if (shouldCall) {
+            const callResult = await this.makeCall(lead);
+            await this.leadsService.updateLeadCallHistory(lead.id, {
+              ...callResult,
+              fromNumber: this.configService.get<string>('FROM_PHONE_NUMBER'),
+              toNumber: lead.phone,
+              agent_id: callResult.agent_id,
+              jobType: JobName.REMINDER_CALL
+            });
+          }
+        } catch (error) {
+          this.logger.error(`Error processing lead ${lead.id}: ${error.message}`);
+        }
+      });
+  
+      // Wait for all lead processing to complete
+      await Promise.all(leadProcessingPromises);
+  
       this.logger.log('Completed Zoho CRM sync');
-}
-else{
-  const runDate = new Date();
-  callReminder.runDate = addBusinessDays(runDate, +callReminder.selectedDays); // Next business day
-  await this.cronSettingService.update(JobName.REMINDER_CALL, callReminder);
-}}
-
     } catch (error) {
       this.logger.error(`Error in Zoho sync: ${error.message}`);
     }
-    
   }
+  
+  // Check if the current time is within the schedule window
+  private shouldRunSchedule(currentTime: string, startTime: string, endTime: string | null): boolean {
+    if (endTime) {
+      return currentTime >= startTime && currentTime <= endTime;
+    }
+  
+    // No end time specified, check if the current time is within 1 minute of the start time
+    const currentMinutes = new Date().getHours() * 60 + new Date().getMinutes();
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    return Math.abs(currentMinutes - startTotalMinutes) <= 1;
+  }
+  
+  // Handle the next run date for the cron job
+  private async handleNextRunDate(callReminder: any) {
+    const runDate = new Date();
+    callReminder.runDate = addBusinessDays(runDate, +callReminder.selectedDays); // Next business day
+    await this.cronSettingService.update(JobName.REMINDER_CALL, callReminder);
+  }
+  
+  private getTodayStartEndDates(): [Date, Date] {
+    const todayStart = new Date(new Date().setHours(0, 0, 0, 0));  // Midnight today
+    const todayEnd = new Date(new Date().setHours(23, 59, 59, 999));  // Just before midnight today
+    return [todayStart, todayEnd];
+  }
+  // Fetch leads based on the defined conditions
+  private async fetchLeadsForCallReminder() {
+    const [todayStart, todayEnd] = this.getTodayStartEndDates();
+
+    return await this.leadRepository
+      .createQueryBuilder('lead')
+      .where('lead.contacted = true')
+      .andWhere('lead.linkSend = :linkSend', { linkSend: true })
+      .andWhere('(lead.linkClicked = :linkClicked OR lead.formSubmitted = :formSubmitted)', { 
+        linkClicked: false, 
+        formSubmitted: false 
+      }).andWhere('lead.reminder >= :startDate AND lead.reminder <= :endDate', {
+        startDate: todayStart,  
+        endDate: todayEnd,    
+          })
+      .select([
+        'lead.id',
+        'lead.zohoEmail',
+        'COALESCE(lead.zohoPhoneNumber, lead.phone) AS phone',
+        'lead.reminder',
+        'lead.linkClicked',
+        'lead.formSubmitted',
+      ])
+      .getRawMany();
+  }
+  
+  // Determine if the lead should be called based on its reminder date
+  private shouldCallLead(lead: any): boolean {
+    const todayStr = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
+    const reminderStr = lead.reminder ? new Date(lead.reminder).toISOString().slice(0, 10) : null;
+    return !reminderStr || reminderStr < todayStr;  // Ensure lead is eligible to be called
+  }
+  
+  // Make the call to the lead and return the result
+  private async makeCall(lead: any) {
+    return this.retellAiService.makeCallLeadZoho(
+      lead,
+      this.configService.get<string>('FROM_PHONE_NUMBER'),
+      lead.formSubmitted,
+      lead.linkClicked,
+      this.configService.get<string>('AGENT_ID')
+    );
+  }
+  
+
+  
 
 
 

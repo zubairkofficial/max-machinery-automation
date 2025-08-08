@@ -49,28 +49,11 @@ interface CategoryRowProps {
               />
             </div>
           </td>
-          <td className="px-6 py-4">
-            <textarea
-              value={editData.description}
-              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-              className="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-full"
-              rows={2}
-            />
-          </td>
+         
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
             {category.leadCount || 0}
           </td>
-          <td className="px-6 py-4 whitespace-nowrap">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={editData.isActive}
-                onChange={(e) => setEditData({ ...editData, isActive: e.target.checked })}
-                className="mr-2"
-              />
-              <span className="text-sm">Active</span>
-            </label>
-          </td>
+         
           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <div className="flex justify-end space-x-2">
               <button

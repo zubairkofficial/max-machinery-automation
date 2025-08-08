@@ -5,7 +5,7 @@ import { LeadsService } from './leads.service';
 import { ConfigService } from '@nestjs/config';
 import { CronSettingsService } from '../cron-settings/cron-settings.service';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
-import { addBusinessDays, isSameDate } from 'src/utils/business-day.util';
+import {  isSameDate } from 'src/utils/business-day.util';
 import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
 
 @Injectable()
@@ -37,36 +37,17 @@ export class ScheduledCallsService {
         return; // Job is not enabled or has no start time
       }
   
-      // Ensure that runDate is set or update it
-      if (!reScheduleCalls.runDate) {
-        await this.setRunDate(reScheduleCalls);
-      }
-  
       // Check if today's run date is today's date
-      if (reScheduleCalls.runDate && isSameDate(new Date(reScheduleCalls.runDate), new Date())) {
         // Proceed with the job logic
         await this.handleRescheduledCalls(reScheduleCalls);
-      } else {
-        // Update the run date for the next business day
-        await this.setRunDate(reScheduleCalls);
-      }
+       
   
     } catch (error) {
       this.logger.error(`Error processing rescheduled calls: ${error.message}`, error.stack);
     }
   }
   
-  // Helper function to set the next run date
-  private async setRunDate(reScheduleCalls: any) {
-    try {
-      const runDate = new Date();
-      reScheduleCalls.runDate = addBusinessDays(runDate, +reScheduleCalls.selectedDays); // Next business day
-      await this.cronSettingsService.update(JobName.RESCHEDULE_CALL, reScheduleCalls);
-      this.logger.log(`Updated run date for rescheduled calls to: ${reScheduleCalls.runDate}`);
-    } catch (error) {
-      this.logger.error(`Failed to update run date for rescheduled calls: ${error.message}`);
-    }
-  }
+
   
   // Helper function to handle the rescheduled calls
   private async handleRescheduledCalls(reScheduleCalls: any) {
@@ -119,10 +100,12 @@ export class ScheduledCallsService {
   private async makeRescheduledCall(scheduledCallLead: any, reScheduleCalls: any) {
     try {
       const leadCall = await this.leadCallService.getAllLeadCalls();
+     if(leadCall){
       if (leadCall.scheduledCallCount >= reScheduleCalls.callLimit) {
         this.logger.log(`Lead ${scheduledCallLead.id} has reached the call limit.`);
         return; // Skip this lead if the call limit is reached
       }
+    }
   
       // Make the call to the lead
       const callResult = await this.retellAiService.makeCall(
@@ -133,15 +116,14 @@ export class ScheduledCallsService {
         this.configService.get<string>('AGENT_ID'),
       );
   
-      const result = (callResult.disconnection_reason === "user_hangup" || callResult.disconnection_reason === "agent_hangup") ? 1 : 0;
   
       // Update lead call count and call history
-      await this.leadCallService.countScheduledCalls(result,JobName.RESCHEDULE_CALL);
       await this.leadsService.updateLeadCallHistory(scheduledCallLead.id, {
         ...callResult,
         fromNumber: this.configService.get<string>('FROM_PHONE_NUMBER'),
         toNumber: scheduledCallLead.phone,
         agent_id: callResult.agent_id,
+        jobType: JobName.RESCHEDULE_CALL
       });
   
     } catch (error) {
@@ -167,31 +149,14 @@ export class ScheduledCallsService {
         return; 
       }
   
-      // Update run date if it's not set or if it's already been processed for the day
-      if (!scheduleCalls.runDate) {
-        await this.updateRunDate(scheduleCalls);
-      }
-  
       // Check if today's run date is equal to the current date
-      if (scheduleCalls.runDate && isSameDate(new Date(scheduleCalls.runDate), new Date())) {
         await this.handleScheduledCalls(scheduleCalls);
-      } else {
-        // If the run date is not today, set the next business day for the next call
-        await this.updateRunDate(scheduleCalls);
-      }
-  
     } catch (error) {
       this.logger.error(`Error processing daily scheduled calls: ${error.message}`, error.stack);
     }
   }
   
-  // Helper function to update the run date
-  private async updateRunDate(scheduleCalls: any) {
-    const runDate = new Date();
-    scheduleCalls.runDate = addBusinessDays(runDate, +scheduleCalls.selectedDays); // Calculate the next business day
-    await this.cronSettingsService.update(JobName.SCHEDULED_CALLS, scheduleCalls);
-    this.logger.log(`Scheduled calls run date updated to: ${scheduleCalls.runDate}`);
-  }
+
   
   // Helper function to check if the job should run based on time
   private shouldRun(startTime: string, endTime?: string): boolean {
@@ -247,10 +212,11 @@ export class ScheduledCallsService {
             const leadCall = await this.leadCallService.getAllLeadCalls();
   
             // Check if call limit is reached for scheduled calls
+          if(leadCall){
             if (leadCall.scheduledCallCount >= scheduleCalls.callLimit) {
               this.logger.log(`Lead ${lead.id} has reached the call limit.`);
               break; // Stop processing further leads if call limit is reached
-            }
+            }}
   
             // Make the call
             const callResult = await this.retellAiService.makeCall(
@@ -261,15 +227,13 @@ export class ScheduledCallsService {
               this.configService.get<string>('AGENT_ID'),
             );
   
-            const result = (callResult.disconnection_reason === "user_hangup" || callResult.disconnection_reason === "agent_hangup") ? 1 : 0;
-  
-            // Update call count for this lead and process the result
-            await this.leadCallService.countScheduledCalls(result,JobName.SCHEDULED_CALLS);
+        
             await this.leadsService.updateLeadCallHistory(lead.id, {
               ...callResult,
               fromNumber: this.configService.get<string>('FROM_PHONE_NUMBER'),
               toNumber: lead.phone,
               agent_id: callResult.agent_id,
+              jobType: JobName.SCHEDULED_CALLS
             });
           }
         } catch (error) {

@@ -24,9 +24,25 @@ export interface UpdateCronSettingDto {
   callLimit?: number;
 }
 
+export interface LeadCallData {
+  scheduledCallCount: number;
+  rescheduledCallCount: number;
+  reminderCallCount: number;
+}
+
+export interface CronSettingsResponse {
+  cronSettings: CronSetting[];
+  leadCallData: LeadCallData;
+}
+
 class CronService {
   async getCronSettings(): Promise<CronSetting[]> {
-    const response = await apiClient.get<CronSetting[]>('/cron-settings');
+    const response = await apiClient.get<CronSettingsResponse>('/cron-settings');
+    return response.data.cronSettings;
+  }
+
+  async getCronSettingsWithLeadData(): Promise<CronSettingsResponse> {
+    const response = await apiClient.get<CronSettingsResponse>('/cron-settings');
     return response.data;
   }
 
