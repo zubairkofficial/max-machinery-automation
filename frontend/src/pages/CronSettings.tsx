@@ -51,7 +51,7 @@ const CronSettings: React.FC = () => {
   const subtractFourHours = (time: string | undefined): string => {
     if (!time) return '';
     const [hours, minutes] = time.split(':').map(Number);
-    let newHours = hours-4;
+    let newHours = hours;
     
     // Handle negative hours (wrap around to previous day)
     if (newHours < 0) {
@@ -65,7 +65,7 @@ const CronSettings: React.FC = () => {
   const addFourHours = (time: string | undefined): string => {
     if (!time) return '';
     const [hours, minutes] = time.split(':').map(Number);
-    let newHours = hours+4;
+    let newHours = hours;
     
     // Handle hours >= 24 (wrap around to next day)
     if (newHours >= 24) {

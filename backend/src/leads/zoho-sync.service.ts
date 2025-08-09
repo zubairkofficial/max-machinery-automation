@@ -229,7 +229,7 @@ export class ZohoSyncService {
           // Check if we need to refresh the token
           await this.ensureValidAccessToken();
       
-          if (!foundInZoho && userInfo.phone) {
+          if ( userInfo.phone) {
              foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
             if (foundLead?.Phone) {
               foundInZoho = true;
