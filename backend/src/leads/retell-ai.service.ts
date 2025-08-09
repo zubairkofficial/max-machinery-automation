@@ -151,29 +151,29 @@ if (type===JobName.RESCHEDULE_CALL && lead.lastCallRecord) {
       // Update Zoho CRM status based on call type
       try {
         // Check if lead exists in Zoho
-        let zohoLead = await this.zohoSyncService.searchLeadInZohoByPhone(cleanToNumber);
+        // let zohoLead = await this.zohoSyncService.searchLeadInZohoByPhone(cleanToNumber);
         
-        if (!zohoLead?.Phone) {
-          // If this is a first-time call and lead doesn't exist in Zoho, create it
-          zohoLead = await this.zohoSyncService.createLeadInZoho({
-            firstName: lead.firstName || '',
-            lastName: lead.lastName || lead.firstName,
-            phone: cleanToNumber,
-            email: lead.zohoEmail || '',
-            company: lead.company || '',
-            industry: lead.industry || '',
-            leadStatus: 'Initial Call',
-            description: `Lead created during initial call attempt on ${new Date().toISOString()}`
-          });
-        }
+        // if (!zohoLead?.Phone) {
+        //   // If this is a first-time call and lead doesn't exist in Zoho, create it
+        //   zohoLead = await this.zohoSyncService.createLeadInZoho({
+        //     firstName: lead.firstName || '',
+        //     lastName: lead.lastName || lead.firstName,
+        //     phone: cleanToNumber,
+        //     email: lead.zohoEmail || '',
+        //     company: lead.company || '',
+        //     industry: lead.industry || '',
+        //     leadStatus: 'Initial Call',
+        //     description: `Lead created during initial call attempt on ${new Date().toISOString()}`
+        //   });
+        // }
 
         // Update Zoho lead status based on call type
-        const zohoStatus = this.getZohoStatusForCallType(type);
-        await this.zohoSyncService.updateLeadInZoho(zohoLead.id, {
-          leadStatus: zohoStatus,
-          lastCalledAt: new Date().toISOString(),
-          callType: type
-        });
+        // const zohoStatus = this.getZohoStatusForCallType(type);
+        // await this.zohoSyncService.updateLeadInZoho(zohoLead.id, {
+        //   leadStatus: zohoStatus,
+        //   lastCalledAt: new Date().toISOString(),
+        //   callType: type
+        // });
 
       } catch (error) {
         this.logger.error(`Error updating Zoho CRM: ${error.message}`);
@@ -271,7 +271,7 @@ if (type===JobName.RESCHEDULE_CALL && lastCallTranscription) {
       // Update Zoho CRM status based on call type
       try {
         // Check if lead exists in Zoho
-        let zohoLead = await this.zohoSyncService.searchLeadInZohoByPhone(cleanToNumber);
+        // let zohoLead = await this.zohoSyncService.searchLeadInZohoByPhone(cleanToNumber);
         
        
 
@@ -288,11 +288,11 @@ await this.leadRepository.update(
     status:'Reminder'
    } // Field to be updated
 );  
- await this.zohoSyncService.updateLeadInZoho(zohoLead.id, {
-          leadStatus: status,
-          lastCalledAt: new Date().toISOString(),
-          callType: 'reminder'
-        });
+//  await this.zohoSyncService.updateLeadInZoho(zohoLead.id, {
+//           leadStatus: status,
+//           lastCalledAt: new Date().toISOString(),
+//           callType: 'reminder'
+//         });
 
       } catch (error) {
         this.logger.error(`Error updating Zoho CRM: ${error.message}`);

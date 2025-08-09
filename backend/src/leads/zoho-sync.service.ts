@@ -201,24 +201,28 @@ export class ZohoSyncService {
       this.logger.log('Starting UserInfo Zoho check');
       
       // Get all userInfo records that haven't been contacted yet
-      const userInfoList = await this.userInfoRepository.find({
-        where: [
-          {
-            email: Not(IsNull()),
-            contacted: false
-          },
-          {
-            phone: Not(IsNull()),
-            contacted: false
-          }
-        ],
-        select: ['id', 'email', 'phone', 'contacted', 'leadId'],
+      const userInfoList = await this.leadRepository.find({
+        where: {
+          linkSend: true,
+          reminder: Not(IsNull()),  // Ensure reminder has a value (not null)
+          linkClicked:true,
+
+        },
       });
+      if(userInfoList.length===0){
+        this.logger.log('No userInfo records to check');
+        return;
+      }
 
       this.logger.log(`Found ${userInfoList.length} userInfo records to check`);
 
       for (const userInfo of userInfoList) {
         try {
+        
+            const zohoCRM=await this.getLeadsByPhoneNumber(userInfo.zohoPhoneNumber||userInfo.phone)
+         if(zohoCRM.Lead_Status==='Link Send'){
+            await this.deleteLeadsFromZohoByPhone(userInfo.phone)
+          }
           let foundInZoho = false;
           let foundLead=null
            
@@ -254,6 +258,17 @@ export class ZohoSyncService {
               
               // Update Zoho lead with transcript and summary
             try {
+              userInfo.contacted = true;
+              await this.leadRepository.update(userInfo.leadId, {
+                status: 'completed',
+                formSubmitted:true,
+                contacted: true,
+                formSubmittedAt:new Date(),
+                scheduledCallbackDate: null
+              });
+              await this.userInfoRepository.save(userInfo);
+              this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
+           
            await axios.put(`${this.zohoApiUrl}/${foundLead.id}`, {
                 data: [
                   {
@@ -293,18 +308,7 @@ export class ZohoSyncService {
           }
           
           // If found in Zoho, update the status
-          if (foundLead) {
-            userInfo.contacted = true;
-            await this.leadRepository.update(userInfo.leadId, {
-              status: 'completed',
-              formSubmitted:true,
-              contacted: true,
-              formSubmittedAt:new Date(),
-              scheduledCallbackDate: null
-            });
-            await this.userInfoRepository.save(userInfo);
-            this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
-          }
+        
           
         } catch (error) {
           this.logger.error(`Error checking userInfo ${userInfo.id} in Zoho: ${error.message}`);
@@ -616,35 +620,7 @@ await this.leadRepository.save(leadData)
     }
   }
 
-  private async getAccessToken(): Promise<string> {
-    // Check if token is still valid
-    if (this.accessToken && this.tokenExpiry && this.tokenExpiry > new Date()) {
-      return this.accessToken;
-    }
-
-    try {
-      const response = await axios.post(
-        'https://accounts.zoho.com/oauth/v2/token',
-        null,
-        {
-          params: {
-            refresh_token: process.env.ZOHO_REFRESH_TOKEN,
-            client_id: process.env.ZOHO_CLIENT_ID,
-            client_secret: process.env.ZOHO_CLIENT_SECRET,
-            grant_type: 'refresh_token'
-          }
-        }
-      );
-
-      this.accessToken = response.data.access_token;
-      this.tokenExpiry = new Date(Date.now() + (response.data.expires_in * 1000));
-
-      return this.accessToken;
-    } catch (error) {
-      this.logger.error(`Failed to get Zoho access token: ${error.message}`);
-      throw error;
-    }
-  }
+ 
 
   public async deleteLeadsFromZohoByPhone(phoneNumber: string): Promise<{ deletedCount: number; message: string }> {
     try {
@@ -715,6 +691,7 @@ await this.leadRepository.save(leadData)
   }
 
   async  getLeadsByPhoneNumber(phoneNumber) {
+    await this.ensureValidAccessToken();
     if (!phoneNumber) {
         this.logger.warn('Phone number is missing, skipping Zoho search.');
         return []; // Return an empty array if no phone number is provided

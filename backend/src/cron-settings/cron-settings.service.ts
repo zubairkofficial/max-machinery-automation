@@ -67,40 +67,13 @@ export class CronSettingsService implements OnModuleInit {
       if (setting.isEnabled && setting.startTime) {
         const [hours, minutes] = setting.startTime.split(':');
         const cronExpression = `${minutes} ${hours} * * *`;
-        this.setupJobByName(setting.jobName, cronExpression);
+       
       }
     }
     this.logger.log('Cron jobs initialized.');
   }
 
-  private setupJobByName(jobName: JobName, cronExpression: string) {
-    let jobCallback: () => Promise<void>;
 
-    switch (jobName) {
-      case JobName.SCHEDULED_CALLS:
-        // jobCallback = () => this.scheduledCallsService.handleDailyScheduledCalls();
-        break;
-      case JobName.RESCHEDULE_CALL:
-        // jobCallback = () => this.scheduledCallsService.handleRescheduleCalls();
-        break;
-      case JobName.REMINDER_CALL:
-        // jobCallback = () => this.scheduledCallsService.handleReminderCalls();
-        break;
-      default:
-        this.logger.warn(`No callback defined for cron job: ${jobName}`);
-        return;
-    }
-
-    const job = new CronJob(cronExpression, jobCallback);
-
-    try {
-      this.schedulerRegistry.addCronJob(jobName, job);
-      job.start();
-      this.logger.log(`Cron job "${jobName}" scheduled with expression: ${cronExpression}`);
-    } catch (e) {
-      this.logger.error(`Error adding cron job "${jobName}". A job with this name might already exist.`, e.stack);
-    }
-  }
 
   deleteCronJob(name: string) {
     try {
@@ -147,12 +120,7 @@ export class CronSettingsService implements OnModuleInit {
     const savedSetting = await this.cronSettingsRepository.save(setting);
 
     // If the job is enabled and has a start time, set up the cron job
-    if (savedSetting.isEnabled && savedSetting.startTime) {
-      const [hours, minutes] = savedSetting.startTime.split(':');
-      const cronExpression = `${minutes} ${hours} * * *`;
-      this.setupJobByName(savedSetting.jobName, cronExpression);
-    }
-
+   
     return savedSetting;
   }
 

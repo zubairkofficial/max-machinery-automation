@@ -2,7 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as nodemailer from 'nodemailer';
+import { cleanPhoneNumber } from 'src/common';
 import { Lead } from 'src/leads/entities/lead.entity';
+import { ZohoSyncService } from 'src/leads/zoho-sync.service';
 import { MessageCategory } from 'src/message-templates/entities/message-template.entity';
 import { MessageTemplatesService } from 'src/message-templates/message-templates.service';
 
@@ -11,8 +13,7 @@ export class MailService {
   private transporter: nodemailer.Transporter;
   private readonly logger = new Logger(MailService.name);
   private emailSentTimestamps: Map<string, number> = new Map(); // Map to track sent email timestamps
-
-  constructor(private configService: ConfigService,private jwtService: JwtService,  private readonly messageTemplatesService: MessageTemplatesService,
+  constructor(private configService: ConfigService,private jwtService: JwtService,  private readonly messageTemplatesService: MessageTemplatesService,private readonly zohoSyncService: ZohoSyncService
  ) {
     const mailConfig = this.configService.get('mail');
     
@@ -32,11 +33,13 @@ export class MailService {
     subject,
     text,
     html,
+    lead
   }: {
     to: string;
     subject: string;
     text?: string;
     html?: string;
+    lead?: Lead;
   }) {
     try {
       const mailConfig = this.configService.get('mail');
@@ -51,7 +54,22 @@ export class MailService {
         text,
         html,
       });
-
+      const alreadyExists=await this.zohoSyncService.searchLeadInZohoByPhone(cleanPhoneNumber(lead.phone||lead.zohoPhoneNumber))
+      if(alreadyExists.length>0){
+        return result
+      }
+      await this.zohoSyncService.createLeadInZoho(
+        {
+              firstName: lead.firstName || '',
+              lastName: lead.lastName || lead.firstName,
+              phone: cleanPhoneNumber(lead.phone||lead.zohoPhoneNumber),
+              email: lead.zohoEmail || '',
+              company: lead.company || '',
+              industry: lead.industry || '',
+              leadStatus: 'Link Send',
+              description: `Lead created during link send attempt on ${new Date().toISOString()}`
+            }
+      )
       this.logger.log(`Email sent successfully to ${to}`);
       return result;
     } catch (error) {
@@ -106,6 +124,7 @@ export class MailService {
         subject: emailMessage.subject,
         text: emailMessage.content,
         html: emailMessage.htmlContent || emailMessage.content,
+        lead: lead
       });
 
       this.logger.log(`Verification email sent successfully to ${lead.email}`);

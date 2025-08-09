@@ -22,3 +22,20 @@ export async function updateZohoLead(leadId, leadData) {
     console.error('Error updating lead in Zoho CRM:', error.message);
   }}
 
+  export function cleanPhoneNumber(phone: string): string {
+    let cleaned = phone.replace(/[^\d+]/g, '');
+    
+    // Ensure it starts with + if it doesn't already
+    if (!cleaned.startsWith('+')) {
+      cleaned = '+' + cleaned;
+    }
+    
+    // If it's a US/Canada number without country code, add +1
+    if (cleaned.length === 11 && cleaned.startsWith('+')) {
+      cleaned = '+1' + cleaned.slice(1);
+    } else if (cleaned.length === 10) {
+      cleaned = '+1' + cleaned;
+    }
+    
+    return cleaned;;
+  }

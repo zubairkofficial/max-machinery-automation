@@ -5,6 +5,8 @@ import { Lead } from '../leads/entities/lead.entity';
 import { MessageTemplatesService } from '../message-templates/message-templates.service';
 import { MessageCategory } from '../message-templates/entities/message-template.entity';
 import axios from 'axios';
+import { ZohoSyncService } from 'src/leads/zoho-sync.service';
+import { cleanPhoneNumber } from 'src/common';
 
 @Injectable()
 export class SmsService {
@@ -18,7 +20,7 @@ private readonly shortDomain: string;
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     private readonly messageTemplatesService: MessageTemplatesService,
-    
+    private readonly zohoSyncService: ZohoSyncService
     ) {
     this.apiKey = this.configService.get<string>('BIRD_API_KEY') || 'Fcd0htERi3akNCxrw7k9B7Its2yXopTdYoLg';
     this.fromNumber = this.configService.get<string>('BIRD_ORIGINATOR') || 'MachineryMax';
@@ -33,7 +35,7 @@ private readonly shortDomain: string;
     }
   }
 
-  async sendSms(to: string, body: string): Promise<boolean> {
+  async sendSms(to: string, body: string,lead:Lead): Promise<boolean> {
     if (!this.apiKey) {
       this.logger.warn('Bird API key not configured');
       return false;
@@ -72,6 +74,24 @@ private readonly shortDomain: string;
     if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const alreadyExists=await this.zohoSyncService.searchLeadInZohoByPhone(cleanPhoneNumber(lead.phone||lead.zohoPhoneNumber))
+        if(alreadyExists.length>0){
+          return true
+        }
+        await this.zohoSyncService.createLeadInZoho(
+          {
+                firstName: lead.firstName || '',
+                lastName: lead.lastName || lead.firstName,
+                phone: cleanPhoneNumber(lead.phone||lead.zohoPhoneNumber),
+                email: lead.zohoEmail || '',
+                company: lead.company || '',
+                industry: lead.industry || '',
+                leadStatus: 'Link Send',
+                description: `Lead created during link send attempt on ${new Date().toISOString()}`
+              }
+        )
+        
 
         const responseData = await response.json();
         this.logger.log(`SMS sent successfully to ${to}. Message ID: ${responseData.id}`);
@@ -151,7 +171,7 @@ private async shortenUrl(url: string): Promise<string> {
       );
 
       // Send SMS using Bird API
-      const success = await this.sendSms(lead.zohoPhoneNumber=="this number"?lead.phone:lead.zohoPhoneNumber, message);
+      const success = await this.sendSms(lead.zohoPhoneNumber=="this number"?lead.phone:lead.zohoPhoneNumber, message,lead);
 
       if (success) {
         this.logger.log(`Verification SMS sent to ${lead.phone}`);
