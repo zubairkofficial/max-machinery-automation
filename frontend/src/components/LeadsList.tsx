@@ -62,6 +62,9 @@ const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, 
               Date Created
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Reminder
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Actions
             </th>
           </tr>
@@ -144,6 +147,9 @@ const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, 
               <td className="px-6 py-4 whitespace-nowrap">
                 {new Date(lead.createdAt).toLocaleDateString()}
               </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {lead.reminder ? new Date(lead.reminder).toLocaleDateString() : '-'}
+                </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div className="flex space-x-2">
                   <button

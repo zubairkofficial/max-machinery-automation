@@ -96,6 +96,9 @@ export interface Lead {
     name: string;
     color?: string;
   };
+  // Reminder functionality
+  reminder?: string | null;
+  
 }
 
 export interface SearchParams {
