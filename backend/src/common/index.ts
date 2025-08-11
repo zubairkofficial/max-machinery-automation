@@ -39,3 +39,13 @@ export async function updateZohoLead(leadId, leadData) {
     
     return cleaned;;
   }
+
+
+   export function getRandomValueFromEnv(key: string): string {
+    const values = key
+      .split(',')
+      .map(value => value.trim());  // Split and trim in case there are extra spaces
+
+    const randomIndex = Math.floor(Math.random() * values.length);
+    return values[randomIndex];
+  }

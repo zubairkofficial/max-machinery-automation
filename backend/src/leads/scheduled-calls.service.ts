@@ -7,6 +7,7 @@ import { CronSettingsService } from '../cron-settings/cron-settings.service';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
 import {  isSameDate } from 'src/utils/business-day.util';
 import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
+import { getRandomValueFromEnv } from 'src/common';
 
 @Injectable()
 export class ScheduledCallsService {
@@ -106,11 +107,13 @@ export class ScheduledCallsService {
         return; // Skip this lead if the call limit is reached
       }
     }
-  
+    const getNumber =  this.configService.get<string>('FROM_PHONE_NUMBER');
+      const fromNumber = getRandomValueFromEnv(getNumber);
+   
       // Make the call to the lead
       const callResult = await this.retellAiService.makeCall(
-        this.configService.get<string>('FROM_PHONE_NUMBER'),
-        scheduledCallLead.phone,
+        fromNumber,
+         scheduledCallLead.phone,
         scheduledCallLead.id,
         JobName.RESCHEDULE_CALL,
         this.configService.get<string>('AGENT_ID'),
@@ -120,7 +123,7 @@ export class ScheduledCallsService {
       // Update lead call count and call history
       await this.leadsService.updateLeadCallHistory(scheduledCallLead.id, {
         ...callResult,
-        fromNumber: this.configService.get<string>('FROM_PHONE_NUMBER'),
+        fromNumber:fromNumber,
         toNumber: scheduledCallLead.phone,
         agent_id: callResult.agent_id,
         jobType: JobName.RESCHEDULE_CALL
@@ -218,9 +221,12 @@ export class ScheduledCallsService {
               break; // Stop processing further leads if call limit is reached
             }}
   
+            const getNumber =  this.configService.get<string>('FROM_PHONE_NUMBER');
+            const fromNumber = getRandomValueFromEnv(getNumber);
+         
             // Make the call
             const callResult = await this.retellAiService.makeCall(
-              this.configService.get<string>('FROM_PHONE_NUMBER'),
+              fromNumber,
               lead.phone,
               lead.id,
               JobName.SCHEDULED_CALLS,
@@ -230,7 +236,7 @@ export class ScheduledCallsService {
         
             await this.leadsService.updateLeadCallHistory(lead.id, {
               ...callResult,
-              fromNumber: this.configService.get<string>('FROM_PHONE_NUMBER'),
+              fromNumber: fromNumber,
               toNumber: lead.phone,
               agent_id: callResult.agent_id,
               jobType: JobName.SCHEDULED_CALLS

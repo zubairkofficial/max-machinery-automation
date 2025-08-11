@@ -22,6 +22,7 @@ import { CallDashboardFilterDto } from './dto/call-filter.dto';
 import { ZohoSyncService } from './zoho-sync.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
+import { getRandomValueFromEnv } from 'src/common';
 
 @Injectable()
 export class LeadsService {
@@ -588,18 +589,20 @@ export class LeadsService {
               skipped++;
               continue;
             }
-
+            const getNumber =  this.configService.get<string>('FROM_PHONE_NUMBER');
+            const fromNumber = getRandomValueFromEnv(getNumber);
+         
             const callResult = await this.retellAiService.makeCall(
-              scheduleDto.fromNumber || this.configService.get<string>('FROM_PHONE_NUMBER'),
+              scheduleDto.fromNumber || fromNumber,
               lead.phone,
               lead.id,
              JobName.SCHEDULED_CALLS,
               scheduleDto.overrideAgentId || this.configService.get<string>('AGENT_ID')
             );
-
+          
             await this.updateLeadCallHistory(lead.id, {
               ...callResult,
-              fromNumber: scheduleDto.fromNumber || this.configService.get<string>('FROM_PHONE_NUMBER'),
+              fromNumber: scheduleDto.fromNumber || fromNumber,
               toNumber: lead.phone,
               agent_id: scheduleDto.overrideAgentId || this.configService.get<string>('AGENT_ID')
             });
@@ -1102,7 +1105,8 @@ export class LeadsService {
     callParams: { toNumber: string, override_agent_id?: string }
   ) {
     try {
-      const fromNumber =  this.configService.get<string>('FROM_PHONE_NUMBER');
+      const getNumber =  this.configService.get<string>('FROM_PHONE_NUMBER');
+      const fromNumber = getRandomValueFromEnv(getNumber);
       await this.retellAiService.updateLLMPromptForCronJob(JobName.SCHEDULED_CALLS);
      
       

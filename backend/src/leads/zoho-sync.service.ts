@@ -15,6 +15,7 @@ import { JobName } from 'src/cron-settings/enums/job-name.enum';
 import { addBusinessDays, isSameDate } from 'src/utils/business-day.util';
 import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
 import { LeadsService } from './leads.service';
+import { getRandomValueFromEnv } from 'src/common';
 
 export interface ZohoLeadData {
   firstName?: string;
@@ -99,9 +100,12 @@ export class ZohoSyncService {
   
           if (shouldCall) {
             const callResult = await this.makeCall(lead);
+            const getNumber =  this.configService.get<string>('FROM_PHONE_NUMBER');
+            const fromNumber = getRandomValueFromEnv(getNumber);
+         
             await this.leadsService.updateLeadCallHistory(lead.id, {
               ...callResult,
-              fromNumber: this.configService.get<string>('FROM_PHONE_NUMBER'),
+              fromNumber,
               toNumber: lead.phone,
               agent_id: callResult.agent_id,
               jobType: JobName.REMINDER_CALL
@@ -181,9 +185,12 @@ export class ZohoSyncService {
   
   // Make the call to the lead and return the result
   private async makeCall(lead: any) {
+    const getNumber =  this.configService.get<string>('FROM_PHONE_NUMBER');
+    const fromNumber = getRandomValueFromEnv(getNumber);
+ 
     return this.retellAiService.makeCallLeadZoho(
       lead,
-      this.configService.get<string>('FROM_PHONE_NUMBER'),
+      fromNumber,
       lead.formSubmitted,
       lead.linkClicked,
       this.configService.get<string>('AGENT_ID')
@@ -264,7 +271,8 @@ export class ZohoSyncService {
                 formSubmitted:true,
                 contacted: true,
                 formSubmittedAt:new Date(),
-                scheduledCallbackDate: null
+                scheduledCallbackDate: null,
+                reminder:null
               });
               await this.userInfoRepository.save(userInfo);
               this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
