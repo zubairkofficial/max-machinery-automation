@@ -51,7 +51,7 @@ const CronSettings: React.FC = () => {
   const subtractFourHours = (time: string | undefined): string => {
     if (!time) return '';
     const [hours, minutes] = time.split(':').map(Number);
-    let newHours = hours;
+    let newHours = hours-4;
     
     // Handle negative hours (wrap around to previous day)
     if (newHours < 0) {
@@ -65,7 +65,7 @@ const CronSettings: React.FC = () => {
   const addFourHours = (time: string | undefined): string => {
     if (!time) return '';
     const [hours, minutes] = time.split(':').map(Number);
-    let newHours = hours;
+    let newHours = hours+4;
     
     // Handle hours >= 24 (wrap around to next day)
     if (newHours >= 24) {
@@ -335,7 +335,7 @@ const CronSettings: React.FC = () => {
                       className={`w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border ${timeErrors[setting.jobName] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-gray-100 font-mono`}
                     />
                   </div>
-                  <div>
+                 {setting.jobName!==JobName.SCHEDULED_CALLS && <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-1" />
@@ -353,7 +353,7 @@ const CronSettings: React.FC = () => {
                       <option value={4}>4 days</option>
                       <option value={5}>5 days</option>
                     </select>
-                  </div>
+                  </div>}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       <div className="flex items-center">
