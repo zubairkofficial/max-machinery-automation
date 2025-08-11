@@ -1164,6 +1164,35 @@ export class LeadsService {
       );
     }
   }
+  async fetchLeadsForCallReminder(
+   
+  ) {
+    try {
+      const [todayStart, todayEnd] = this.getTodayStartEndDates();
+
+     return this.leadRepository
+      .createQueryBuilder('lead')
+      .where('lead.contacted = true')
+      .andWhere('lead.linkSend = :linkSend', { linkSend: true })
+      .andWhere('lead.status <> :status', { status: 'CALLING' })
+      .andWhere('(lead.linkClicked = :linkClicked OR lead.formSubmitted = :formSubmitted)', { 
+        linkClicked: false, 
+        formSubmitted: false 
+      }).andWhere('lead.reminder >= :startDate AND lead.reminder <= :endDate', {
+        startDate: todayStart,  
+        endDate: todayEnd,    
+          })
+     
+      .getRawMany();
+     
+    } catch (error) {
+      this.logger.error(`Failed to make call to lead : ${error.message}`);
+      throw new HttpException(
+        error.message || 'Failed to make call',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 
   /**
    * Update call details after the call ends

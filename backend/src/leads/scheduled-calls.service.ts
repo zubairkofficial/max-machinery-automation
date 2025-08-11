@@ -22,12 +22,85 @@ export class ScheduledCallsService {
     @Inject(forwardRef(() => CronSettingsService))
     private cronSettingsService: CronSettingsService,
     private leadCallService: LeadCallsService,
+   
  
   ) {}
 
 
+  private async makeCall(lead: any,fromNumber: string) {
 
+    return this.retellAiService.makeCallLeadZoho(
+      lead,
+      fromNumber,
+      lead.lead_formSubmitted,
+      lead.lead_linkClicked,
+      this.configService.get<string>('AGENT_ID')
+    );
+  }
 
+  private shouldRunSchedule(currentTime: string, startTime: string, endTime: string | null): boolean {
+    if (endTime) {
+      return currentTime >= startTime && currentTime <= endTime;
+    }
+  
+    // No end time specified, check if the current time is within 1 minute of the start time
+    const currentMinutes = new Date().getHours() * 60 + new Date().getMinutes();
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    return Math.abs(currentMinutes - startTotalMinutes) <= 1;
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async zohoLinkNoCall() {
+      const callReminder = await this.cronSettingsService.getByName(JobName.REMINDER_CALL);
+      if (!callReminder?.isEnabled || !callReminder?.startTime) {
+          this.logger.log('ReminderCall job is not enabled or has no start time');
+          return;
+      }
+  
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
+      const { startTime, endTime } = callReminder;
+      const shouldRun = this.shouldRunSchedule(currentTime, startTime, endTime);
+      if (!shouldRun) {
+          return;
+      }
+      
+      const leads = await this.leadsService.fetchLeadsForCallReminder();
+      this.logger.log("Processing leads:", leads.length);
+  
+      const getNumber = this.configService.get<string>('FROM_PHONE_NUMBER');
+      const fromNumber = getRandomValueFromEnv(getNumber);
+  
+      // Set to track unique leads that have already been processed
+      const processedLeads = new Set<string>();
+  
+      for (const lead of leads) {
+          try {
+              // Skip processing if this lead has already been processed
+              if (processedLeads.has(lead.lead_id)) {
+                  this.logger.log(`Skipping lead ${lead.lead_id} as it has already been processed.`);
+                  continue;
+              }
+  
+              // Add the lead ID to the Set
+              processedLeads.add(lead.lead_id);
+  
+              const callResult = await this.makeCall(lead, fromNumber);
+              
+              await this.leadsService.updateLeadCallHistory(lead.lead_id, {
+                  ...callResult,
+                  fromNumber,
+                  toNumber: lead.phone,
+                  agent_id: callResult.agent_id,
+                  jobType: JobName.REMINDER_CALL,
+              });
+          } catch (error) {
+              this.logger.error(`Error in Zoho sync: ${error.message}`);
+          }
+      }
+  }
+  
 
   @Cron(CronExpression.EVERY_MINUTE)
   async handleIndivitualReScheduledCall() {

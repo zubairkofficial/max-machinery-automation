@@ -246,58 +246,16 @@ if (type===JobName.RESCHEDULE_CALL && lastCallTranscription) {
     }
   }
 
-  private getZohoStatusForCallType(type:JobName): string {
-    switch (type) {
-      case JobName.SCHEDULED_CALLS:
-        return 'Initial Call';
-      case JobName.RESCHEDULE_CALL:
-        return 'Rescheduled Call';
-      case JobName.REMINDER_CALL:
-        return 'Reminder Call';
-      default:
-        return 'Attempted Contact';
-    }
-  }
+
 
   // Lead call reminder handling method
   public async makeCallLeadZoho(lead, fromNumber: string, formSubmit: boolean, linkClick: boolean, overrideAgentId?: string): Promise<any> {
     try {
       if (!this.apiKey) throw new Error('RetellAI API key is not configured');
-      if (lead.phone){
+      if (lead.lead_phone ){
 
       const cleanFromNumber = this.cleanPhoneNumber(fromNumber);
-      const cleanToNumber = this.cleanPhoneNumber(lead.phone);
-
-      // Update Zoho CRM status based on call type
-      try {
-        // Check if lead exists in Zoho
-        // let zohoLead = await this.zohoSyncService.searchLeadInZohoByPhone(cleanToNumber);
-        
-       
-
-        // Update Zoho lead status based on form submission and link click
-        let status = 'Contact Attempted';
-        if (formSubmit) {
-          status = 'Form Submitted';
-        } else if (linkClick) {
-          status = 'Link Clicked';
-        }
-await this.leadRepository.update(
-  { id: lead.lead_id }, // Condition for selecting the lead
-  { reminder: new Date(),
-    status:'Reminder'
-   } // Field to be updated
-);  
-//  await this.zohoSyncService.updateLeadInZoho(zohoLead.id, {
-//           leadStatus: status,
-//           lastCalledAt: new Date().toISOString(),
-//           callType: 'reminder'
-//         });
-
-      } catch (error) {
-        this.logger.error(`Error updating Zoho CRM: ${error.message}`);
-        // Continue with the call even if Zoho update fails
-      }
+      const cleanToNumber = this.cleanPhoneNumber(lead.lead_phone );
 
       // Make the call via RetellAI API
       const response = await axios.post(
@@ -307,11 +265,11 @@ await this.leadRepository.update(
           to_number: cleanToNumber,
           override_agent_id: overrideAgentId,
           retell_llm_dynamic_variables: {
-            lead_name: `${lead.firstName}`,
+            lead_name: `${lead.lead_firstName}`,
             follow_up_weeks: "2 weeks",
             consultation_link: "https://machinerymax.com/schedule",
             contact_info: "contact@machinerymax.com | (555) 123-4567",
-            lead_phone_number: lead.phone,
+            lead_phone_number: lead.lead_phone,
           },
           metadata: { 
             lead_id: lead.lead_id ,
@@ -326,9 +284,7 @@ await this.leadRepository.update(
         }
       );
 
-      // Update lead status
-      // lead.status = 'CALLING';
-      // await this.leadRepository.save(lead);
+      
       return response.data;}
     } catch (error) {
       throw new HttpException(`Failed to make call: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);

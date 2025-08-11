@@ -438,6 +438,7 @@ ${transcript}`
 
           lead.linkSend=true
           lead.reminder=nextReminderDate
+          lead.scheduledCallbackDate=null
           await this.leadRepository.save(lead);
         }
         // Handle email only
@@ -448,8 +449,10 @@ ${transcript}`
           const currentDate = new Date();
           const nextReminderDate = getNextReminderDate(cronSetting.selectedDays, currentDate);
           lead.reminder=nextReminderDate
+          lead.scheduledCallbackDate=null
           await this.leadRepository.save(lead);
           await this.mailService.sendVerificationLink(lead);
+
           this.logger.log(`Sent verification email to ${contactInfo.contactInfo.email}`);
         } 
         // Handle phone only
@@ -462,6 +465,7 @@ ${transcript}`
           const currentDate = new Date();
           const nextReminderDate = getNextReminderDate(cronSetting.selectedDays, currentDate);
           lead.reminder=nextReminderDate
+          lead.scheduledCallbackDate=null
           await this.leadRepository.save(lead);
           this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
         }
