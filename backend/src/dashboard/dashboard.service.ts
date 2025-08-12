@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { Lead } from '../leads/entities/lead.entity';
 import { CallHistory } from '../leads/entities/call-history.entity';
 import { LastCall } from '../leads/entities/last-call.entity';
@@ -18,26 +18,77 @@ export class DashboardService {
 
   async getStats() {
     try {
+      // Get today's date range in UTC
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
       const [
         totalLeads,
-        activeCalls,
+        todaysCalls,
+        pendingCalls,
         completedCalls,
-        pendingFollowUps,
-        successfulConversions,
+        interestedLeads,
+        notInterestedLeads,
+        rescheduledLeads,
+        reminderLeads,
+        completedLeads,
       ] = await Promise.all([
+        // Total leads count
         this.leadRepository.count(),
-        this.lastCallRepository.count({ where: { status: 'active' } }),
-        this.callHistoryRepository.count({ where: { status: 'ended' } }),
-        this.leadRepository.count({ where: { contacted: false } }),
-        this.leadRepository.count({ where: { status: 'converted' } }),
+        
+        // Today's calls (calls made today)
+        this.callHistoryRepository
+          .createQueryBuilder('call')
+          .where('call.createdAt >= :startOfDay', { startOfDay })
+          .andWhere('call.createdAt < :endOfDay', { endOfDay })
+          .getCount(),
+        
+        // Pending calls (leads that haven't been contacted yet)
+        this.leadRepository.count({ 
+          where: { contacted: false } 
+        }),
+        
+        // Completed calls (calls that ended successfully)
+        this.callHistoryRepository.count({ 
+          where: {
+            duration_ms: MoreThan(0),}
+        }),
+
+        // Lead status counts
+        this.leadRepository.count({ 
+          where: { status: 'interested' } 
+        }),
+        
+        this.leadRepository.count({ 
+          where: { notInterested: true } 
+        }),
+        
+        this.leadRepository
+          .createQueryBuilder('lead')
+          .where('lead.scheduledCallbackDate IS NOT NULL')
+          .getCount(),
+        
+        this.leadRepository
+          .createQueryBuilder('lead')
+          .where('lead.reminder IS NOT NULL')
+          .getCount(),
+        
+        this.leadRepository.count({ 
+          where: { status: 'completed' } 
+        }),
       ]);
 
       return {
         totalLeads,
-        activeCalls,
+        todaysCalls,
+        pendingCalls,
         completedCalls,
-        pendingFollowUps,
-        successfulConversions,
+        interestedLeads,
+        notInterestedLeads,
+        rescheduledLeads,
+        reminderLeads,
+        completedLeads,
       };
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);

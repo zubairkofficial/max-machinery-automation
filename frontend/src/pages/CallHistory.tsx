@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPhone, FaSpinner, FaClock, FaFileAlt, FaFilter, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaPhone, FaSpinner, FaFilter, FaChevronLeft, FaChevronRight, FaSearch, FaTimes } from 'react-icons/fa';
 import { api } from '../services/api';
 import { CallHistory as CallHistoryType } from '../types/call-history';
 import toast from 'react-hot-toast';
@@ -62,10 +62,11 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
   const [selectedCall, setSelectedCall] = useState<CallDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+ 
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
-    limit: 50,
+    limit: 10,
     totalPages: 0
   });
   console.log("selectedCall", selectedCall);
@@ -132,6 +133,10 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
       setPagination(prev => ({ ...prev, page: newPage }));
     }
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
   };
 
   const handleFilterChange = (key: string, value: string) => {
@@ -234,6 +239,8 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
             All Call History
@@ -242,124 +249,8 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
             Complete call history sorted by newest first
           </p>
         </div>
-
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 p-4">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <FaFilter className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Filters{getActiveFiltersCount() > 0 && ` (${getActiveFiltersCount()} active)`}:
-              </span>
-            </div>
-            
-            {/* First Row - Search and Main Status */}
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 dark:text-gray-400">Name:</label>
-                <input
-                  type="text"
-                  placeholder="Search by name..."
-                  value={filters.name}
-                  onChange={(e) => handleFilterChange('name', e.target.value)}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm min-w-[150px]"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 dark:text-gray-400">Call Status:</label>
-                <select
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="ended">Ended</option>
-                  <option value="not_connected">Not Connected</option>
-                  <option value="error">Error</option>
-                  <option value="registered">Registered</option>
-                  <option value="in_progress">In Progress</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Second Row - Lead Status Filters */}
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 dark:text-gray-400">ReSchedule:</label>
-                <select
-                  value={filters.reschedule}
-                  onChange={(e) => handleFilterChange('reschedule', e.target.value)}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="all">All</option>
-                  <option value="scheduled">Scheduled</option>
-                  <option value="not_scheduled">Not Scheduled</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 dark:text-gray-400">Link Status:</label>
-                <select
-                  value={filters.linkClicked}
-                  onChange={(e) => handleFilterChange('linkClicked', e.target.value)}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="all">All</option>
-                  <option value="clicked">Clicked</option>
-                  <option value="not_clicked">Not Clicked</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 dark:text-gray-400">Form Status:</label>
-                <select
-                  value={filters.formSubmitted}
-                  onChange={(e) => handleFilterChange('formSubmitted', e.target.value)}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="all">All</option>
-                  <option value="submitted">Submitted</option>
-                  <option value="not_submitted">Not Submitted</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Third Row - Date Filters and Clear Button */}
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 dark:text-gray-400">From:</label>
-                <input
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 dark:text-gray-400">To:</label>
-                <input
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                />
-              </div>
-
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md text-sm transition-colors"
-              >
-                Clear All Filters
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div className='float-right'>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 w-[200px] float-right">
             <div className="flex items-center">
               <FaPhone className="h-8 w-8 text-blue-500 mr-3" />
               <div>
@@ -369,30 +260,153 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                 </p>
               </div>
             </div>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <FaClock className="h-8 w-8 text-green-500 mr-3" />
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Current Page</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {pagination.page} of {pagination.totalPages}
-                </p>
+          </div></div>
+        </div>
+        {/* Enhanced Filters */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg mb-6 p-6 border border-gray-200 dark:border-gray-700 ">
+          <div className="space-y-6">
+            {/* Filter Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <FaFilter className="text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {getActiveFiltersCount() > 0 ? `${getActiveFiltersCount()} active filters` : 'No active filters'}
+                  </p>
+                </div>
+              </div>
+              {getActiveFiltersCount() > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm transition-all duration-200 border border-red-200 dark:border-red-800"
+                >
+                  <FaTimes className="w-3 h-3" />
+                  Clear All
+                </button>
+              )}
+            </div>
+            
+            {/* Search Bar */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaSearch className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search by lead name..."
+                value={filters.name}
+                onChange={(e) => handleFilterChange('name', e.target.value)}
+                className="block w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              />
+            </div>
+
+            {/* Filter Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {/* Call Status */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Call Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="ended">Ended</option>
+                  <option value="not_connected">Not Connected</option>
+                  <option value="error">Error</option>
+                  <option value="registered">Registered</option>
+                  <option value="in_progress">In Progress</option>
+                </select>
+              </div>
+
+              {/* Reschedule Status */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Reschedule</label>
+                <select
+                  value={filters.reschedule}
+                  onChange={(e) => handleFilterChange('reschedule', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                >
+                  <option value="all">All</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="not_scheduled">Not Scheduled</option>
+                </select>
+              </div>
+
+              {/* Link Status */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Link Status</label>
+                <select
+                  value={filters.linkClicked}
+                  onChange={(e) => handleFilterChange('linkClicked', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                >
+                  <option value="all">All</option>
+                  <option value="clicked">Clicked</option>
+                  <option value="not_clicked">Not Clicked</option>
+                </select>
+              </div>
+
+              {/* Form Status */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Form Status</label>
+                <select
+                  value={filters.formSubmitted}
+                  onChange={(e) => handleFilterChange('formSubmitted', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                >
+                  <option value="all">All</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="not_submitted">Not Submitted</option>
+                </select>
+              </div>
+
+              {/* Items per page */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Per Page</label>
+                <select
+                  value={pagination.limit}
+                  onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                >
+                  <option value={10}>10 per page</option>
+                  <option value={20}>20 per page</option>
+                  <option value={30}>30 per page</option>
+                  <option value={40}>40 per page</option>
+                </select>
               </div>
             </div>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <FaFileAlt className="h-8 w-8 text-purple-500 mr-3" />
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Per Page</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{pagination.limit}</p>
+
+            {/* Date Range */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">From Date</label>
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">To Date</label>
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
               </div>
             </div>
           </div>
         </div>
+
+        {/* Stats */}
+      
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Call History List */}
@@ -447,32 +461,86 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
               )}
             </div>
 
-            {/* Pagination */}
+            {/* Enhanced Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => handlePageChange(pagination.page - 1)}
-                    disabled={pagination.page <= 1}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
-                  >
-                    <FaChevronLeft className="w-3 h-3" />
-                    Previous
-                  </button>
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 overflow-auto">
+              
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  {/* Pagination Info */}
                   
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Page {pagination.page} of {pagination.totalPages}
-                  </span>
                   
-                  <button
-                    onClick={() => handlePageChange(pagination.page + 1)}
-                    disabled={pagination.page >= pagination.totalPages}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
-                  >
-                    Next
-                    <FaChevronRight className="w-3 h-3" />
-                  </button>
+                  {/* Pagination Controls */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handlePageChange(1)}
+                      disabled={pagination.page <= 1}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
+                    >
+                      First
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      disabled={pagination.page <= 1}
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
+                    >
+                      <FaChevronLeft className="w-3 h-3" />
+                      Previous
+                    </button>
+                    
+                    {/* Page Numbers */}
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (pagination.totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (pagination.page <= 3) {
+                          pageNum = i + 1;
+                        } else if (pagination.page >= pagination.totalPages - 2) {
+                          pageNum = pagination.totalPages - 4 + i;
+                        } else {
+                          pageNum = pagination.page - 2 + i;
+                        }
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                              pagination.page === pageNum
+                                ? 'bg-blue-600 text-white border border-blue-600'
+                                : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    <button
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      disabled={pagination.page >= pagination.totalPages}
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
+                    >
+                      Next
+                      <FaChevronRight className="w-3 h-3" />
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePageChange(pagination.totalPages)}
+                      disabled={pagination.page >= pagination.totalPages}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
+                    >
+                      Last
+                    </button>
+                  </div>
                 </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
+                    {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                    {pagination.total.toLocaleString()} results
+                  </div>
               </div>
             )}
           </div>
@@ -502,12 +570,12 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                             {selectedCall.lead.firstName} {selectedCall.lead.lastName}
                           </p>
                         </div>
-                        <div>
+                        {/* <div>
                           <p className="text-gray-600 dark:text-gray-400">Status:</p>
                           <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.status)}`}>
                             { selectedCall.lead.status}
                           </span>
-                        </div>
+                        </div> */}
                         <div>
                           <p className="text-gray-600 dark:text-gray-400">Clicked Status:</p>
                           <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedCall.lead.linkClicked?"Link Clicked":"Not Clicked")}`}>

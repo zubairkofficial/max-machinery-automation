@@ -14,6 +14,9 @@ import { MessageTemplatesService } from 'src/message-templates/message-templates
 import { CronSettingsModule } from 'src/cron-settings/cron-settings.module';
 import { Retell } from './entities/retell.entity';
 import { LeadsModule } from '../leads/leads.module';
+import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
+import { LeadCallsModule } from 'src/lead_calls/lead_calls.module';
+import { LeadCall } from 'src/lead_calls/entities/lead_call.entity';
 
 @Module({
   imports: [
@@ -25,10 +28,11 @@ import { LeadsModule } from '../leads/leads.module';
       LastCall,
       MessageTemplate,
       Retell,
+      LeadCall
     ]),
     forwardRef(() => LeadsModule),
     forwardRef(() => CronSettingsModule),
-   
+    forwardRef(() => LeadCallsModule),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'secret-key',
       signOptions: { expiresIn: '365d' },
@@ -39,7 +43,9 @@ import { LeadsModule } from '../leads/leads.module';
     RetellService,
     MailService,
     SmsService,
-    MessageTemplatesService
+    MessageTemplatesService,
+    LeadCallsService
+    
   ],
   exports: [RetellService],
 })

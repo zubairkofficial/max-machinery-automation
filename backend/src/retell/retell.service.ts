@@ -17,7 +17,8 @@ import { ConfigService } from '@nestjs/config';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 import { Retell } from './entities/retell.entity';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
-import { getNextReminderDate } from 'src/utils/business-day.util';
+import { addBusinessDays, getNextReminderDate } from 'src/utils/business-day.util';
+import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
 
 @Injectable()
 export class RetellService {
@@ -39,6 +40,7 @@ export class RetellService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private cronSettingService: CronSettingsService,
+    private leadCallService: LeadCallsService,
    @InjectRepository(Retell)
 private retellRepository: Repository<Retell>
   ) {
@@ -101,8 +103,10 @@ private retellRepository: Repository<Retell>
 
       // Update call history with ended status and transcript
       const callHistory = await this.createOrUpdateCallHistory(call, leadId, 'ended');
-
-      // Store the transcript
+const lead=await this.leadRepository.findOne({where:{id:leadId}})
+const result = (call.disconnection_reason === "user_hangup" ||call.disconnection_reason === "agent_hangup") ? 1 : 0;  
+if(result) await this.leadCallService.countScheduledCalls(result,lead.jobType)
+// Store the transcript
       await this.storeTranscript(call, callHistory.id);
 
       // Process transcript for email or phone information
@@ -299,13 +303,13 @@ private retellRepository: Repository<Retell>
       });
       const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
      if(!call.transcript && lead.reminder){
-      lead.reminder=getNextReminderDate(cronSetting.selectedDays,new Date());
+      lead.reminder=getNextReminderDate(+cronSetting.selectedDays,new Date());
       await this.leadRepository.save(lead);
       return;
      }
       else if (!call.transcript) {
         this.logger.warn(`No transcript found for call ${call.call_id}`);
-        lead.scheduledCallbackDate = getNextReminderDate(cronSetting.selectedDays,new Date());
+        lead.scheduledCallbackDate = addBusinessDays(new Date(),+cronSetting.selectedDays);
         await this.leadRepository.save(lead);  
         return;
       }

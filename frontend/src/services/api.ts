@@ -157,6 +157,8 @@ export const leadsApi = {
       search?: string;
       tab?: string;
       categoryId?: string;
+      createdFrom?: string;
+      createdTo?: string;
     }
   ): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> => {
     const params = new URLSearchParams({
@@ -188,6 +190,12 @@ export const leadsApi = {
     }
     if (filters?.categoryId) {
       params.append('categoryId', filters.categoryId);
+    }
+    if (filters?.createdFrom) {
+      params.append('createdFrom', filters.createdFrom);
+    }
+    if (filters?.createdTo) {
+      params.append('createdTo', filters.createdTo);
     }
     
     const response = await apiClient.get(`/leads?${params.toString()}`);
@@ -292,6 +300,19 @@ export const leadsApi = {
 
   deleteByPhoneNumber: async (phoneNumber: string): Promise<{ deletedCount: number; message: string }> => {
     const response = await apiClient.delete(`/leads/by-phone/${phoneNumber}`);
+    return response.data;
+  },
+
+  getTabStats: async (): Promise<{
+    all: number;
+    interested: number;
+    notInterested: number;
+    reschedule: number;
+    reminder: number;
+    completed: number;
+    total: number;
+  }> => {
+    const response = await apiClient.get('/leads/stats/tabs');
     return response.data;
   },
 };

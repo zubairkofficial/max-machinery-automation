@@ -1,4 +1,5 @@
-import { IsBoolean, IsNotEmpty, IsObject, IsOptional, IsString, IsDateString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsObject, IsOptional, IsString, IsDateString, IsEnum } from 'class-validator';
+import { JobName } from 'src/cron-settings/enums/job-name.enum';
 
 export class CreateLeadDto {
   @IsNotEmpty()
@@ -86,4 +87,8 @@ export class CreateLeadDto {
   @IsOptional()
   @IsString()
   categoryId?: string;
+
+  @IsOptional()
+  @IsEnum(JobName)
+  jobType?: JobName;
 } 

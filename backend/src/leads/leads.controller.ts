@@ -54,6 +54,8 @@ export class LeadsController {
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search in firstName, lastName, email, company, phone' })
   @ApiQuery({ name: 'tab', required: false, type: String, description: 'Filter by tab: all, interested, not-interested, reschedule, reminder, completed' })
   @ApiQuery({ name: 'categoryId', required: false, type: String, description: 'Filter by category ID' })
+  @ApiQuery({ name: 'createdFrom', required: false, type: String, description: 'Filter from creation date (ISO string)' })
+  @ApiQuery({ name: 'createdTo', required: false, type: String, description: 'Filter to creation date (ISO string)' })
   async getAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
@@ -65,8 +67,10 @@ export class LeadsController {
     @Query('search') search?: string,
     @Query('tab') tab?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('createdFrom') createdFrom?: string,
+    @Query('createdTo') createdTo?: string,
   ) {
-    return this.leadsService.findAll({ page, limit, status, industry, linkClicked, formSubmitted, reschedule, search, tab, categoryId });
+    return this.leadsService.findAll({ page, limit, status, industry, linkClicked, formSubmitted, reschedule, search, tab, categoryId, createdFrom, createdTo });
   }
 
   @Get('surplus-machinery')
@@ -346,6 +350,13 @@ export class LeadsController {
   async migrateCallData() {
     await this.callDataMigrationService.migrateCallData();
     return { message: 'Call data migration completed successfully' };
+  }
+
+  @Get('stats/tabs')
+  @ApiOperation({ summary: 'Get statistics for all tabs' })
+  @ApiResponse({ status: 200, description: 'Returns count of leads for each tab' })
+  async getTabStats() {
+    return this.leadsService.getTabStats();
   }
 
   @Get('dashboard/calls')

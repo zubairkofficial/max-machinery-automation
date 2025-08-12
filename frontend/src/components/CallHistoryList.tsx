@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FaPhone, FaCheckCircle, FaTimesCircle, FaClock } from 'react-icons/fa';
 import { CallHistory } from '../types/call-history';
 import CallDetailPanel from './CallDetailPanel';
+import { convertToEasternTime } from '@/utils/timeUtils';
 
 interface CallHistoryListProps {
   callHistoryRecords?: CallHistory[];
@@ -46,8 +47,13 @@ export const CallHistoryList: React.FC<CallHistoryListProps> = ({
     }
   };
 
-  const formatTimestamp = (timestamp: number): string => {
-    return new Date(timestamp).toLocaleString();
+  const formatTimestamp = (timestamp: string | number) => {
+    try {
+      const timeNum = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+      return convertToEasternTime(timeNum, 'MMM dd, yyyy hh:mm:ss a');
+    } catch {
+      return 'Invalid Date';
+    }
   };
 
   // Combine and sort both old and new call records

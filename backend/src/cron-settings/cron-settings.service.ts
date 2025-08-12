@@ -85,7 +85,11 @@ export class CronSettingsService implements OnModuleInit {
   }
 
   async findAll() {
-    const cronSettings = await this.cronSettingsRepository.find();
+    const cronSettings = await this.cronSettingsRepository.find({
+      order: {
+        createdAt: 'ASC',  // Replace 'createdAt' with the field you want to sort by
+      },
+    });
     const leadCallData = await this.leadCallsService.getAllLeadCalls();
     
     return {

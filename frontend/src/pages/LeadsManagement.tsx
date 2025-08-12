@@ -75,9 +75,21 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     linkClicked: 'all',
     formSubmitted: 'all',
     categoryId: 'all',
+    createdFrom: '',
+    createdTo: '',
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const queryClient = useQueryClient();
+
+  // Query for tab statistics
+  const { data: tabStats } = useQuery(
+    ['tab-stats'],
+    () => leadsApi.getTabStats(),
+    {
+      staleTime: 30000, // Cache for 30 seconds
+      refetchOnWindowFocus: false,
+    }
+  );
 
   // Fetch categories on component mount
   useEffect(() => {
@@ -92,6 +104,9 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     fetchCategories();
   }, []);
 
+  useEffect(()=>{
+    refetch()
+  },[activeTab])
   // Query for leads based on current tab
   const {
     data: leadsData,
@@ -109,10 +124,12 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
         linkClicked: filters.linkClicked !== 'all' ? filters.linkClicked : undefined,
         formSubmitted: filters.formSubmitted !== 'all' ? filters.formSubmitted : undefined,
         categoryId: filters.categoryId !== 'all' ? filters.categoryId : undefined,
+        createdFrom: filters.createdFrom ? filters.createdFrom : undefined,
+        createdTo: filters.createdTo ? filters.createdTo : undefined,
         search: searchTerm && searchTerm.trim() !== '' ? searchTerm.trim() : undefined,
         tab: activeTab,
       };
-
+console.log("leadsData",leadsData)
       switch (activeTab) {
         case TABS.PRIORITY:
           return leadsApi.getPriority(page, pageSize);
@@ -188,6 +205,9 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
           reschedule: 'all',
           linkClicked: 'all',
           formSubmitted: 'all',
+          categoryId: 'all',
+          createdFrom: '',
+          createdTo: '',
         });
         // Set sort to newest first to show latest synced leads
         setSortOption('newest');
@@ -223,6 +243,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
   // Handle lead update
   const handleLeadUpdated = (updatedLead: Lead) => {
     queryClient.invalidateQueries(['leads']);
+    queryClient.invalidateQueries(['tab-stats']); // Refresh stats
     setSelectedLead(updatedLead);
   };
 
@@ -261,6 +282,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     const handleLeadAdded = () => {
     // Optionally refetch or update your leads list here
     queryClient.invalidateQueries(['leads']);
+    queryClient.invalidateQueries(['tab-stats']); // Refresh stats
   };
 
   // Add delete lead function
@@ -277,6 +299,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
       await leadsApi.delete(leadToDelete.id);
       // Refetch leads after deletion
       queryClient.invalidateQueries(['leads']);
+      queryClient.invalidateQueries(['tab-stats']); // Refresh stats
       // Show success message
       toast.success('Lead deleted successfully');
       // Close modal
@@ -341,7 +364,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800">
+        <div className="bg-white dark:bg-gray-800 overflow-auto">
           <div className="sm:hidden px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <label htmlFor="tabs" className="sr-only">
               Select a tab
@@ -353,7 +376,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
               value={activeTab}
               onChange={(e) => handleTabChange(e.target.value)}
             >
-              <option value={TABS.ALL}>All Leads</option>
+              <option value={TABS.ALL}>New Leads</option>
               <option value={TABS.INTERESTED}>Interested</option>
               <option value={TABS.NOT_INTERESTED}>Not Interested</option>
               <option value={TABS.RESCHEDULE}>Reschedule</option>
@@ -373,10 +396,10 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                   } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
                 >
                   <FaUserTie className="mr-2 h-5 w-5" />
-                  All Leads
-                  {leadsData?.pagination?.total && activeTab === TABS.ALL && (
+                  New Leads
+                  {tabStats?.all !== undefined && (
                     <span className="bg-indigo-100 text-indigo-600 ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium">
-                      {leadsData.pagination.total}
+                      {tabStats.all}
                     </span>
                   )}
                 </button>
@@ -391,6 +414,11 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                 >
                   <FaCheckCircle className="mr-2 h-5 w-5" />
                   Interested
+                  {tabStats?.interested !== undefined && (
+                    <span className="bg-green-100 text-green-600 ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                      {tabStats.interested}
+                    </span>
+                  )}
                 </button>
 
                 <button
@@ -403,6 +431,11 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                 >
                   <FaTimesCircle className="mr-2 h-5 w-5" />
                   Not Interested
+                  {tabStats?.notInterested !== undefined && (
+                    <span className="bg-red-100 text-red-600 ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                      {tabStats.notInterested}
+                    </span>
+                  )}
                 </button>
 
                 <button
@@ -415,6 +448,11 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                 >
                   <FaClock className="mr-2 h-5 w-5" />
                   Reschedule
+                  {tabStats?.reschedule !== undefined && (
+                    <span className="bg-yellow-100 text-yellow-600 ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                      {tabStats.reschedule}
+                    </span>
+                  )}
                 </button>
 
                 <button
@@ -427,6 +465,11 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                 >
                   <FaBell className="mr-2 h-5 w-5" />
                   Reminder
+                  {tabStats?.reminder !== undefined && (
+                    <span className="bg-purple-100 text-purple-600 ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                      {tabStats.reminder}
+                    </span>
+                  )}
                 </button>
 
                 <button
@@ -439,8 +482,33 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                 >
                   <FaCheckDouble className="mr-2 h-5 w-5" />
                   Completed
+                  {tabStats?.completed !== undefined && (
+                    <span className="bg-emerald-100 text-emerald-600 ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                      {tabStats.completed}
+                    </span>
+                  )}
                 </button>
+                <button
+                  className={`${
+                    activeTab === TABS.COMPLETED
+                      ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+                >
+                  
+                    <span className="bg-emerald-100 text-emerald-600 ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                    total  {tabStats?.total}
+                    </span>
+                
+                </button>
+                  
+                  {/* <span className="bg-indigo-100 text-indigo-600 ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                      {leadsData?.pagination?.total}
+                    </span> */}
+                 
+                
               </nav>
+
             </div>
           </div>
         </div>
@@ -483,6 +551,24 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
                   </option>
                 ))}
               </select>
+
+              {/* Date Created From Filter */}
+              <input
+                type="date"
+                value={filters.createdFrom}
+                onChange={(e) => setFilters({ ...filters, createdFrom: e.target.value })}
+                placeholder="Created From"
+                className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+
+              {/* Date Created To Filter */}
+              <input
+                type="date"
+                value={filters.createdTo}
+                onChange={(e) => setFilters({ ...filters, createdTo: e.target.value })}
+                placeholder="Created To"
+                className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
               
               <button
                 onClick={handleRefresh}

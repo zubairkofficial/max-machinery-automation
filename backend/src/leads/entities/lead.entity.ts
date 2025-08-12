@@ -13,6 +13,7 @@ import { CallHistory } from './call-history.entity';
 import { LastCall } from './last-call.entity';
 import { UserInfo } from 'src/userInfo/entities/user-info.entity';
 import { Category } from '../../categories/entities/category.entity';
+import { JobName } from 'src/cron-settings/enums/job-name.enum';
 
 @Entity('leads')
 export class Lead {
@@ -128,6 +129,14 @@ userInfo: UserInfo;
   @Column({ default: false })
   linkSend: boolean;
 
+  @Column({
+    type: 'enum',
+    enum: JobName,
+    default:JobName.SCHEDULED_CALLS  // Use the JobName enum to define the column type
+  })
+  jobType: JobName;  // New column to track job type (e.g., SCHEDULED_CALLS, RESCHEDULE_CALL, REMINDER_CALL)
+
+  
  @Column({ type: 'timestamp', nullable: true })
   reminder: Date;
 

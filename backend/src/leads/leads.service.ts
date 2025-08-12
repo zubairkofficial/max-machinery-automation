@@ -71,6 +71,8 @@ export class LeadsService {
     search?: string;
     tab?: string;
     categoryId?: string;
+    createdFrom?: string;
+    createdTo?: string;
   }): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> {
     const page = options?.page || 1;
     const limit = options?.limit || 10;
@@ -152,6 +154,24 @@ export class LeadsService {
     // Apply category filter
     if (options.categoryId && options.categoryId !== 'all') {
       queryBuilder.andWhere('lead.categoryId = :categoryId', { categoryId: options.categoryId });
+    }
+
+    // Apply date created filter
+    if (options.createdFrom || options.createdTo) {
+      if (options.createdFrom && options.createdTo) {
+        queryBuilder.andWhere('lead.createdAt BETWEEN :createdFrom AND :createdTo', {
+          createdFrom: new Date(options.createdFrom),
+          createdTo: new Date(options.createdTo)
+        });
+      } else if (options.createdFrom) {
+        queryBuilder.andWhere('lead.createdAt >= :createdFrom', {
+          createdFrom: new Date(options.createdFrom)
+        });
+      } else if (options.createdTo) {
+        queryBuilder.andWhere('lead.createdAt <= :createdTo', {
+          createdTo: new Date(options.createdTo)
+        });
+      }
     }
 
     // Apply linkClicked filter
@@ -696,8 +716,7 @@ export class LeadsService {
         callQuality: callDetails.callQuality,
         analytics: callDetails.analytics,
         sentiment: callDetails.sentiment,
-        jobType: callDetails.jobType || JobName.SCHEDULED_CALLS
-      });
+       });
       
       await this.callHistoryRepository.save(callHistory);
 
@@ -721,6 +740,8 @@ export class LeadsService {
       await this.leadRepository.update(leadId, {
         contacted: true,
         status: callDetails.status || callDetails.call_status,
+        jobType: JobName.SCHEDULED_CALLS
+     
         });
       this.logger.log(`Updated call history for lead ${leadId} with call ${callDetails.callId || callDetails.call_id}`);
     } catch (error) {
@@ -1497,51 +1518,145 @@ export class LeadsService {
       .orderBy('callHistory.timestamp', 'DESC')
       .getMany();
   }
-  @Cron(CronExpression.EVERY_MINUTE)
-async handleJobAssignments() {
-  try {
-    const jobNames = Object.values(JobName); // Get all Job Names (ScheduledCalls, RescheduleCall, ReminderCall)
+
+//   @Cron(CronExpression.EVERY_MINUTE)
+// async handleJobAssignments() {
+//   try {
+//     const jobNames = Object.values(JobName); // Get all Job Names (ScheduledCalls, RescheduleCall, ReminderCall)
     
-    for (const jobName of jobNames) {
+//     for (const jobName of jobNames) {
       
   
-      // For each job type, find leads created today
-     const now = new Date();
-     const oneMinuteBefore = new Date(now.getTime() - 1 * 60000); // Subtract 1 minute (60,000 ms)
+//       // For each job type, find leads created today
+//      const now = new Date();
+//      const oneMinuteBefore = new Date(now.getTime() - 1 * 60000); // Subtract 1 minute (60,000 ms)
 
-    // Set the seconds and milliseconds to 0 for the start of the minute
-    const startOfMinute = new Date(oneMinuteBefore.setSeconds(0, 0));
+//     // Set the seconds and milliseconds to 0 for the start of the minute
+//     const startOfMinute = new Date(oneMinuteBefore.setSeconds(0, 0));
 
-    // Set the end of the minute (59 seconds of the 1-minute window)
-    const endOfMinute = new Date(startOfMinute.getTime() + 59 * 1000);
+//     // Set the end of the minute (59 seconds of the 1-minute window)
+//     const endOfMinute = new Date(startOfMinute.getTime() + 59 * 1000);
 
-    // Query to find leads for the specified jobType within the current minute window
-    const leads = await this.callHistoryRepository
-      .createQueryBuilder('callHistory')
-      .where('callHistory.jobType = :jobName', { jobName })  // Filter by jobType (e.g., SCHEDULED_CALLS)
-      .andWhere('callHistory.createdAt >= :startOfMinute', { startOfMinute })  // From the start of the minute
-      .andWhere('callHistory.createdAt <= :endOfMinute', { endOfMinute })  // To the end of the minute
-      .getMany();  // Get the results
-      for (const lead of leads) {
-        // Assuming you have logic to check if the lead's call history needs to be updated with the job type
-const callResult= await this.getRetellCallById(lead.callId)
-       const result = (callResult.disconnection_reason === "user_hangup" || callResult.disconnection_reason === "agent_hangup") ? 1 : 0;
-    if(result) await this.leadCallService.countScheduledCalls(result,jobName)
-console.log("response",result)
-}
+//     // Query to find leads for the specified jobType within the current minute window
+//     const leads = await this.callHistoryRepository
+//       .createQueryBuilder('callHistory')
+//       .where('callHistory.jobType = :jobName', { jobName })  // Filter by jobType (e.g., SCHEDULED_CALLS)
+//       .andWhere('callHistory.createdAt >= :startOfMinute', { startOfMinute })  // From the start of the minute
+//       .andWhere('callHistory.createdAt <= :endOfMinute', { endOfMinute })  // To the end of the minute
+//       .getMany();  // Get the results
+//       for (const lead of leads) {
+//         // Assuming you have logic to check if the lead's call history needs to be updated with the job type
+// const callResult= await this.getRetellCallById(lead.callId)
+//        const result = (callResult.disconnection_reason === "user_hangup" || callResult.disconnection_reason === "agent_hangup") ? 1 : 0;
+//     if(result) await this.leadCallService.countScheduledCalls(result,jobName)
+// console.log("response",result)
+// }
 
-      this.logger.log(`Job assignments updated for ${jobName}`);
-    }
-  } catch (error) {
-    this.logger.error('Error assigning job types to call history: ' + error.message, error.stack);
-  }
-}
+//       this.logger.log(`Job assignments updated for ${jobName}`);
+//     }
+//   } catch (error) {
+//     this.logger.error('Error assigning job types to call history: ' + error.message, error.stack);
+//   }
+// }
+
+
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
 async handleJobReset() {
   try {
    await this.leadCallService.resetScheduledCalls()
   } catch (error) {
     this.logger.error('Error assigning job types to call history: ' + error.message, error.stack);
+  }
+}
+
+async getTabStats(): Promise<{
+  all: number;
+  interested: number;
+  notInterested: number;
+  reschedule: number;
+  reminder: number;
+  completed: number;
+  total: number;
+}> {
+  try {
+    const results = await Promise.all([
+      // All (New Leads)
+      this.leadRepository
+        .createQueryBuilder('lead')
+        .where('lead.linkSend = :linkSend AND lead.contacted = :contacted AND lead.notInterested = :notInterested AND lead.linkClicked = :linkClicked AND lead.formSubmitted = :formSubmitted AND lead.reminder IS NULL AND lead.scheduledCallbackDate IS NULL', { 
+          linkSend: false, 
+          contacted: false, 
+          notInterested: false, 
+          linkClicked: false, 
+          formSubmitted: false 
+        })
+        .getCount(),
+
+      // Interested
+      this.leadRepository
+        .createQueryBuilder('lead')
+        .where('lead.linkSend = :linkSend AND lead.contacted = :contacted AND lead.notInterested = :notInterested AND lead.reminder IS NULL AND lead.linkClicked = :linkClicked AND lead.formSubmitted = :formSubmitted', { 
+          linkSend: true, 
+          contacted: true, 
+          notInterested: false, 
+          linkClicked: false, 
+          formSubmitted: false 
+        })
+        .getCount(),
+
+      // Not Interested
+      this.leadRepository
+        .createQueryBuilder('lead')
+        .where('lead.notInterested = :notInterested', { notInterested: true })
+        .getCount(),
+
+      // Reschedule
+      this.leadRepository
+        .createQueryBuilder('lead')
+        .where('lead.scheduledCallbackDate IS NOT NULL AND lead.notInterested = :notInterested AND lead.reminder IS NULL AND lead.linkClicked = :linkClicked AND lead.formSubmitted = :formSubmitted AND lead.linkSend = :linkSend', { 
+          notInterested: false, 
+          linkClicked: false, 
+          formSubmitted: false,
+          linkSend: false,
+        })
+        .getCount(),
+
+      // Reminder
+      this.leadRepository
+        .createQueryBuilder('lead')
+        .where(' lead.contacted = :contacted AND lead.linkSend = :linkSend AND (lead.linkClicked = :linkClicked OR lead.formSubmitted = :formSubmitted) ', { 
+          contacted: true,
+          linkSend: true,
+          linkClicked: false, 
+          formSubmitted: false,  
+        })
+        .getCount(),
+
+      // Completed
+      this.leadRepository
+        .createQueryBuilder('lead')
+        .where('lead.linkClicked = :linkClicked AND lead.formSubmitted = :formSubmitted', { 
+          linkClicked: true, 
+          formSubmitted: true 
+        })
+        .getCount(),
+
+      // Total leads
+      this.leadRepository.count()
+    ]);
+
+    return {
+      all: results[0],
+      interested: results[1],
+      notInterested: results[2],
+      reschedule: results[3],
+      reminder: results[4],
+      completed: results[5],
+      total: results[6]
+    };
+  } catch (error) {
+    this.logger.error('Error getting tab stats:', error);
+    throw new HttpException('Failed to get tab statistics', HttpStatus.INTERNAL_SERVER_ERROR);
   }
 }
 

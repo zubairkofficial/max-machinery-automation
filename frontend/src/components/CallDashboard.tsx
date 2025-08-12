@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import Pagination from './common/Pagination';
+import { convertToEasternTime } from '@/utils/timeUtils';
 
 const CallDashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<CallDashboardData | null>(null);
@@ -56,12 +57,11 @@ const CallDashboard: React.FC = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const formatTimestamp = (timestamp: string | number): string => {
+  const formatTimestamp = (timestamp: string | number) => {
     try {
-      const date = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
-      return new Date(date).toLocaleString();
-    } catch (error) {
-      console.error('Error formatting timestamp:', timestamp, error);
+      const timeNum = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+      return convertToEasternTime(timeNum, 'MMM dd, yyyy hh:mm:ss a');
+    } catch {
       return 'Invalid Date';
     }
   };

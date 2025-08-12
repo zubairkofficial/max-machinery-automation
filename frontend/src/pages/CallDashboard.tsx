@@ -8,6 +8,7 @@ import { retellService, RetellCall } from '../services/retell-service';
 import toast from 'react-hot-toast';
 import CallDetailPanel from '@/components/CallDetailPanel';
 import { CallHistory } from '../types/call-history';
+import { convertToEasternTime } from '@/utils/timeUtils';
 
 interface CallRecord extends RetellCall {
   leadId?: string;
@@ -30,8 +31,13 @@ const CallDashboard: React.FC = () => {
     end: '',
   });
 
-  const formatTimestamp = (timestamp: number): string => {
-    return new Date(timestamp).toLocaleString();
+  const formatTimestamp = (timestamp: string | number) => {
+    try {
+      const timeNum = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+      return convertToEasternTime(timeNum, 'MMM dd, yyyy hh:mm:ss a');
+    } catch {
+      return 'Invalid Date';
+    }
   };
 
   const calculateDuration = (start: number, end: number): string => {

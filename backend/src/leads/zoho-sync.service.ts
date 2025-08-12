@@ -88,94 +88,97 @@ export class ZohoSyncService {
 
       for (const userInfo of userInfoList) {
         try {
-        
+           // Check if we need to refresh the token
+           await this.ensureValidAccessToken();
             const zohoCRM=await this.getLeadsByPhoneNumber(userInfo.zohoPhoneNumber||userInfo.phone)
-         if(zohoCRM.Lead_Status==='Link Send'){
+        const zohoCRMS=await this.searchLeadInZohoByPhone(userInfo.zohoPhoneNumber||userInfo.phone)
+            if(zohoCRM.Lead_Status==='Link Send' && zohoCRMS.length>1){
             await this.deleteLeadsFromZohoByPhone(userInfo.phone)
-          }
-          let foundInZoho = false;
-          let foundLead=null
-           
-          // Check if we need to refresh the token
-          await this.ensureValidAccessToken();
-      
-          if ( userInfo.phone) {
-             foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
-            if (foundLead?.Phone) {
-              foundInZoho = true;
-              this.logger.log(`Found user in Zoho by phone: ${userInfo.phone}`);
-              
-              // Get lead with last call information
-              const lead = await this.leadRepository.findOne({
-                where: { id: userInfo.leadId },
-                relations: ['lastCallRecord']
-              });
-              
-              let transcript = "";
-              let summary = "";
-              
-              // If lead has last call record, get call information from Retell AI
-              if (lead?.lastCallRecord?.callId) {
-                try {
-                  const callDetail = await this.retellAiService.getCallDetail(lead.lastCallRecord.callId);
-                  transcript = callDetail.transcript || "";
-                  summary = callDetail.call_analysis?.call_summary || "";
-                  this.logger.log(`Retrieved call information for callId: ${lead.lastCallRecord.callId}`);
-                } catch (error) {
-                  this.logger.error(`Error getting call detail for callId ${lead.lastCallRecord.callId}: ${error.message}`);
-                }
-              }
-              
-              // Update Zoho lead with transcript and summary
-            try {
-              userInfo.contacted = true;
-              await this.leadRepository.update(userInfo.id, {
-                status: 'completed',
-                formSubmitted:true,
-                contacted: true,
-                formSubmittedAt:new Date(),
-                scheduledCallbackDate: null,
-                reminder:null
-              });
-              this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
-           
-           await axios.put(`${this.zohoApiUrl}/${foundLead.id}`, {
-                data: [
-                  {
-                    "Lead_Status": 'completed',
-                    "Lead_Source": "Retell AI",
-                    
-                    "Campaign_Medium": "call", 
+          }else if(zohoCRM.Lead_Status!=='Link Send'){
+            let foundInZoho = false;
+            let foundLead=null
+             
+         
+        
+            if ( userInfo.phone) {
+               foundLead = await this.searchLeadInZohoByPhone(userInfo.phone);
+              if (foundLead?.Phone) {
+                foundInZoho = true;
+                this.logger.log(`Found user in Zoho by phone: ${userInfo.phone}`);
+                
+                // Get lead with last call information
+                const lead = await this.leadRepository.findOne({
+                  where: { id: userInfo.leadId },
+                  relations: ['lastCallRecord']
+                });
+                
+                let transcript = "";
+                let summary = "";
+                
+                // If lead has last call record, get call information from Retell AI
+                if (lead?.lastCallRecord?.callId) {
+                  try {
+                    const callDetail = await this.retellAiService.getCallDetail(lead.lastCallRecord.callId);
+                    transcript = callDetail.transcript || "";
+                    summary = callDetail.call_analysis?.call_summary || "";
+                    this.logger.log(`Retrieved call information for callId: ${lead.lastCallRecord.callId}`);
+                  } catch (error) {
+                    this.logger.error(`Error getting call detail for callId ${lead.lastCallRecord.callId}: ${error.message}`);
                   }
-                ]
-              }, {
-                headers: {
-                  Authorization: `Zoho-oauthtoken ${this.accessToken}`,
                 }
-              });
-              const noteData = {
-                data: [{
-                  "Note_Title": "Call Summary", // Required field
-                  "Note_Content": `Transcript:\n${transcript} \n\n\nSummary:\n${summary}\n` // Ensure both summary and transcript start on new lines
-                }]
-              };
-              const noteResponse = await axios.post(
-                `${this.zohoApiUrl}/${foundLead.id}/Notes`,  // Note endpoint
-                noteData,
-                {
+                
+                // Update Zoho lead with transcript and summary
+              try {
+                userInfo.contacted = true;
+                await this.leadRepository.update(userInfo.id, {
+                  status: 'completed',
+                  formSubmitted:true,
+                  contacted: true,
+                  formSubmittedAt:new Date(),
+                  scheduledCallbackDate: null,
+                  reminder:null
+                });
+                this.logger.log(`Updated userInfo status to contacted for ID: ${userInfo.id}`);
+             
+             await axios.put(`${this.zohoApiUrl}/${foundLead.id}`, {
+                  data: [
+                    {
+                      "Lead_Status": 'completed',
+                      "Lead_Source": "Retell AI",
+                      
+                      "Campaign_Medium": "call", 
+                    }
+                  ]
+                }, {
                   headers: {
                     Authorization: `Zoho-oauthtoken ${this.accessToken}`,
-                    'Content-Type': 'application/json'  // Explicit content type
                   }
-                }
-              );
-                this.logger.log(`Lead updated in Zoho: ${noteResponse.data}`);
-            } catch (error) {
-              this.logger.error(`Error updating lead in Zoho: ${error.message}`);
+                });
+                const noteData = {
+                  data: [{
+                    "Note_Title": "Call Summary", // Required field
+                    "Note_Content": `Transcript:\n${transcript} \n\n\nSummary:\n${summary}\n` // Ensure both summary and transcript start on new lines
+                  }]
+                };
+                const noteResponse = await axios.post(
+                  `${this.zohoApiUrl}/${foundLead.id}/Notes`,  // Note endpoint
+                  noteData,
+                  {
+                    headers: {
+                      Authorization: `Zoho-oauthtoken ${this.accessToken}`,
+                      'Content-Type': 'application/json'  // Explicit content type
+                    }
+                  }
+                );
+                  this.logger.log(`Lead updated in Zoho: ${noteResponse.data}`);
+              } catch (error) {
+                this.logger.error(`Error updating lead in Zoho: ${error.message}`);
+              }
+              }
+             
             }
-            }
-           
           }
+        
           
           // If found in Zoho, update the status
         

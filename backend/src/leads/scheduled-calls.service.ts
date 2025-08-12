@@ -8,6 +8,7 @@ import { JobName } from 'src/cron-settings/enums/job-name.enum';
 import {  isSameDate } from 'src/utils/business-day.util';
 import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
 import { getRandomValueFromEnv } from 'src/common';
+import { LeadCall } from 'src/lead_calls/entities/lead_call.entity';
 
 @Injectable()
 export class ScheduledCallsService {
@@ -50,8 +51,8 @@ export class ScheduledCallsService {
     return Math.abs(currentMinutes - startTotalMinutes) <= 1;
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
-  async zohoLinkNoCall() {
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async handleReminderCall() {
       const callReminder = await this.cronSettingsService.getByName(JobName.REMINDER_CALL);
       if (!callReminder?.isEnabled || !callReminder?.startTime) {
           this.logger.log('ReminderCall job is not enabled or has no start time');
@@ -93,8 +94,8 @@ export class ScheduledCallsService {
                   fromNumber,
                   toNumber: lead.phone,
                   agent_id: callResult.agent_id,
-                  jobType: JobName.REMINDER_CALL,
               });
+                await this.leadsService.update(lead.lead_id, {jobType: JobName.REMINDER_CALL});
           } catch (error) {
               this.logger.error(`Error in Zoho sync: ${error.message}`);
           }
@@ -102,7 +103,7 @@ export class ScheduledCallsService {
   }
   
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   async handleIndivitualReScheduledCall() {
     try {
       const reScheduleCalls = await this.cronSettingsService.getByName(JobName.RESCHEDULE_CALL);
@@ -199,8 +200,8 @@ export class ScheduledCallsService {
         fromNumber:fromNumber,
         toNumber: scheduledCallLead.phone,
         agent_id: callResult.agent_id,
-        jobType: JobName.RESCHEDULE_CALL
       });
+      await this.leadsService.update(scheduledCallLead.id, {jobType: JobName.RESCHEDULE_CALL});
   
     } catch (error) {
       this.logger.error(`Failed to process rescheduled call for lead ${scheduledCallLead.id}: ${error.message}`, error.stack);
@@ -213,7 +214,7 @@ export class ScheduledCallsService {
 
  
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   async handleDailyScheduledCalls() {
     try {
       // Fetch the schedule configuration
@@ -224,9 +225,9 @@ export class ScheduledCallsService {
         this.logger.log('Scheduled calls job is either disabled or lacks a start time.');
         return; 
       }
-  
+      const leadCall = await this.leadCallService.getAllLeadCalls();
       // Check if today's run date is equal to the current date
-        await this.handleScheduledCalls(scheduleCalls);
+        await this.handleScheduledCalls(scheduleCalls,leadCall);
     } catch (error) {
       this.logger.error(`Error processing daily scheduled calls: ${error.message}`, error.stack);
     }
@@ -252,12 +253,20 @@ export class ScheduledCallsService {
   }
   
   // Helper function to handle making calls for the scheduled job
-  private async handleScheduledCalls(scheduleCalls: any) {
+  private async handleScheduledCalls(scheduleCalls: any,leadCall: LeadCall) {
     const now = new Date();
     const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
     const startTime = scheduleCalls.startTime;
     const endTime = scheduleCalls.endTime;
-  
+    const startDate = new Date(`1970-01-01T${startTime}:00Z`); // Use UTC time by appending 'Z'
+    const endDate = new Date(`1970-01-01T${endTime}:00Z`);
+    
+    // Calculate the difference in milliseconds
+    const timeDifferenceInMillis = endDate.getTime() - startDate.getTime();
+    
+    // Convert milliseconds to hours
+    const timeDifferenceInHours = timeDifferenceInMillis / (1000 * 60 * 60); // Convert to hours
+    
     // Check if current time is within the scheduled time window
     const shouldRun = this.shouldRun(startTime, endTime);
   
@@ -267,9 +276,18 @@ export class ScheduledCallsService {
     }
   
     this.logger.log(`Scheduled calls should run. Current time: ${currentTime}, Schedule: ${startTime} - ${endTime || 'No end time'}`);
-  
-    // Fetch leads to process
-    const leads = await this.leadsService.findAllWithScheduledCalls(scheduleCalls.callLimit);
+  const numberOfCallAvailable=Number(scheduleCalls.callLimit) - Number(leadCall?.scheduledCallCount??0)
+
+if(numberOfCallAvailable<1){
+  return
+}
+
+ const timePerCall = Math.floor(timeDifferenceInHours / numberOfCallAvailable)
+    this.logger.log(`Time available per call: ${timePerCall.toFixed(2)} hours`);
+
+
+  // Fetch leads to process
+    const leads = await this.leadsService.findAllWithScheduledCalls(timePerCall);
     this.logger.log(`Found ${leads.length} leads for daily calling`);
   
     if (leads.length > 0) {
@@ -312,8 +330,8 @@ export class ScheduledCallsService {
               fromNumber: fromNumber,
               toNumber: lead.phone,
               agent_id: callResult.agent_id,
-              jobType: JobName.SCHEDULED_CALLS
             });
+            await this.leadsService.update(lead.id, {jobType: JobName.SCHEDULED_CALLS});
           }
         } catch (error) {
           this.logger.error(`Failed to process daily scheduled call for lead ${lead.id}: ${error.message}`, error.stack);
