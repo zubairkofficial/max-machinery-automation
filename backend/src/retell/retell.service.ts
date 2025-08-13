@@ -304,6 +304,7 @@ if(result) await this.leadCallService.countScheduledCalls(result,lead.jobType)
       const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
      if(!call.transcript && lead.reminder){
       lead.reminder=getNextReminderDate(+cronSetting.selectedDays,new Date());
+      lead.scheduledCallbackDate=null
       await this.leadRepository.save(lead);
       return;
      }
