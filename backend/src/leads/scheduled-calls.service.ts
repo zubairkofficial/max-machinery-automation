@@ -51,7 +51,7 @@ export class ScheduledCallsService {
     return Math.abs(currentMinutes - startTotalMinutes) <= 1;
   }
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async handleReminderCall() {
       const callReminder = await this.cronSettingsService.getByName(JobName.REMINDER_CALL);
       if (!callReminder?.isEnabled || !callReminder?.startTime) {
@@ -119,7 +119,7 @@ export class ScheduledCallsService {
   }
   
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async handleIndivitualReScheduledCall() {
     try {
       const reScheduleCalls = await this.cronSettingsService.getByName(JobName.RESCHEDULE_CALL);
@@ -249,7 +249,7 @@ export class ScheduledCallsService {
 
  
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async handleDailyScheduledCalls() {
     try {
       // Fetch the schedule configuration
