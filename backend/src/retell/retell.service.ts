@@ -473,8 +473,12 @@ ${transcript}`
           lead.scheduledCallbackDate=null
           await this.leadRepository.save(lead);
           this.logger.log(`Sent verification SMS to ${contactInfo.contactInfo.phone}`);
-        }
-        else {
+        }else if(call.transcript && lead.reminder){
+          lead.reminder=getNextReminderDate(+cronSetting.selectedDays,new Date());
+          lead.scheduledCallbackDate=null
+          await this.leadRepository.save(lead);
+          return;
+         } else {
           // Default rescheduling if no other method specified
           lead.scheduledCallbackDate =  getNextReminderDate(cronSetting.selectedDays,new Date() );
           await this.leadRepository.save(lead);   
