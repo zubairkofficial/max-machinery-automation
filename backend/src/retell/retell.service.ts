@@ -104,8 +104,13 @@ private retellRepository: Repository<Retell>
       // Update call history with ended status and transcript
       const callHistory = await this.createOrUpdateCallHistory(call, leadId, 'ended');
 const lead=await this.leadRepository.findOne({where:{id:leadId}})
-const result = (call.disconnection_reason === "user_hangup" ||call.disconnection_reason === "agent_hangup") ? 1 : 0;  
-if(result) await this.leadCallService.countScheduledCalls(result,lead.jobType)
+const result =
+  (call.disconnection_reason === "user_hangup" ||
+   call.disconnection_reason === "agent_hangup") &&
+  call.duration_ms > 0
+    ? 1
+    : 0;
+    if(result) await this.leadCallService.countScheduledCalls(result,lead.jobType)
 // Store the transcript
       await this.storeTranscript(call, callHistory.id);
 

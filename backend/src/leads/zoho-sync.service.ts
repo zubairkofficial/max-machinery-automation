@@ -69,7 +69,8 @@ export class ZohoSyncService {
   async checkUserInfoInZoho() {
     try {
       this.logger.log('Starting UserInfo Zoho check');
-      
+        await this.ensureValidAccessToken();
+          this.logger.log(this.accessToken)
       // Get all userInfo records that haven't been contacted yet
       const userInfoList = await this.leadRepository.find({
         where: {
@@ -89,8 +90,7 @@ export class ZohoSyncService {
       for (const userInfo of userInfoList) {
         try {
            // Check if we need to refresh the token
-           await this.ensureValidAccessToken();
-            const zohoCRM=await this.getLeadsByPhoneNumber(userInfo.zohoPhoneNumber||userInfo.phone)
+           const zohoCRM=await this.getLeadsByPhoneNumber(userInfo.zohoPhoneNumber||userInfo.phone)
         const zohoCRMS=await this.searchLeadInZohoByPhone(userInfo.zohoPhoneNumber||userInfo.phone)
             if(zohoCRM.Lead_Status==='Link Send' && zohoCRMS.length>1){
             await this.deleteLeadsFromZohoByPhone(userInfo.phone)
