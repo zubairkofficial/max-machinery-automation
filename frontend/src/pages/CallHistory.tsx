@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaPhone, FaSpinner, FaFilter, FaChevronLeft, FaChevronRight, FaSearch, FaTimes } from 'react-icons/fa';
 import { api } from '../services/api';
 import { CallHistory as CallHistoryType } from '../types/call-history';
+import { convertToEasternTime } from '../utils/timeUtils';
 import toast from 'react-hot-toast';
 
 interface CallHistoryPageProps {}
@@ -199,14 +200,7 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
   const formatTimestamp = (timestamp: string | number) => {
     try {
       const timeNum = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
-      return new Date(timeNum).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      });
+      return convertToEasternTime(timeNum, 'MMM dd, yyyy hh:mm:ss a');
     } catch {
       return 'Invalid Date';
     }
@@ -237,36 +231,37 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-3 sm:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="max-w-7xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
-            All Call History
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Complete call history sorted by newest first
-          </p>
-        </div>
-        <div className='float-right'>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 w-[200px] float-right">
-            <div className="flex items-center">
-              <FaPhone className="h-8 w-8 text-blue-500 mr-3" />
+        {/* Header Section - Responsive */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <div className="flex-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-2">
+              All Call History
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Complete call history sorted by newest first
+            </p>
+          </div>
+          
+          {/* Stats Card - Responsive */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 w-full sm:w-auto lg:min-w-[200px]">
+            <div className="flex items-center justify-center sm:justify-start">
+              <FaPhone className="h-6 w-6 md:h-8 md:w-8 text-blue-500 mr-3" />
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Calls</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                   {pagination.total.toLocaleString()}
                 </p>
               </div>
             </div>
-          </div></div>
+          </div>
         </div>
         {/* Enhanced Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg mb-6 p-6 border border-gray-200 dark:border-gray-700 ">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg mb-6 p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
           <div className="space-y-6">
-            {/* Filter Header */}
-            <div className="flex items-center justify-between">
+            {/* Filter Header - Responsive */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                   <FaFilter className="text-blue-600 dark:text-blue-400" />
@@ -281,7 +276,7 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
               {getActiveFiltersCount() > 0 && (
                 <button
                   onClick={clearFilters}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm transition-all duration-200 border border-red-200 dark:border-red-800"
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm transition-all duration-200 border border-red-200 dark:border-red-800 w-full sm:w-auto"
                 >
                   <FaTimes className="w-3 h-3" />
                   Clear All
@@ -303,8 +298,8 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
               />
             </div>
 
-            {/* Filter Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {/* Filter Grid - Responsive */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {/* Call Status */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Call Status</label>
@@ -365,19 +360,7 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
               </div>
 
               {/* Items per page */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Per Page</label>
-                <select
-                  value={pagination.limit}
-                  onChange={(e) => handleLimitChange(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                >
-                  <option value={10}>10 per page</option>
-                  <option value={20}>20 per page</option>
-                  <option value={30}>30 per page</option>
-                  <option value={40}>40 per page</option>
-                </select>
-              </div>
+              
             </div>
 
             {/* Date Range */}
@@ -408,7 +391,7 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
         {/* Stats */}
       
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Call History List */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -417,7 +400,7 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
               </h2>
             </div>
             
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-96 lg:max-h-[500px] overflow-y-auto">
               {callHistory.length === 0 ? (
                 <div className="p-8 text-center">
                   <FaPhone className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -430,24 +413,24 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                     onClick={() => call.callId && fetchCallDetail(call.callId)}
                     className="p-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium text-gray-900 dark:text-white">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <p className="font-medium text-gray-900 dark:text-white truncate">
                             {(call as any).lead?.firstName || 'Unknown'} {(call as any).lead?.lastName || ''}
                           </p>
-                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(call.status)}`}>
+                          <span className={`px-2 py-1 text-xs rounded-full whitespace-nowrap ${getStatusColor(call.status)}`}>
                             {call.status}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                           {call.toNumber}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-500">
                           {formatTimestamp(call.startTimestamp)}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left sm:text-right flex-shrink-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
                           {formatDuration(call.duration_ms)}
                         </p>
@@ -463,18 +446,14 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
 
             {/* Enhanced Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 overflow-auto">
-              
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  {/* Pagination Info */}
-                  
-                  
-                  {/* Pagination Controls */}
-                  <div className="flex items-center gap-2">
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  {/* Pagination Controls - Responsive */}
+                  <div className="flex flex-wrap items-center justify-center gap-2 order-2 lg:order-1">
                     <button
                       onClick={() => handlePageChange(1)}
                       disabled={pagination.page <= 1}
-                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
+                      className="px-2 md:px-3 py-2 text-xs md:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
                     >
                       First
                     </button>
@@ -482,10 +461,11 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                     <button
                       onClick={() => handlePageChange(pagination.page - 1)}
                       disabled={pagination.page <= 1}
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
+                      className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 text-xs md:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
                     >
                       <FaChevronLeft className="w-3 h-3" />
-                      Previous
+                      <span className="hidden sm:inline">Previous</span>
+                      <span className="sm:hidden">Prev</span>
                     </button>
                     
                     {/* Page Numbers */}
@@ -506,7 +486,7 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                           <button
                             key={pageNum}
                             onClick={() => handlePageChange(pageNum)}
-                            className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                            className={`px-2 md:px-3 py-2 text-xs md:text-sm font-medium rounded-lg transition-all ${
                               pagination.page === pageNum
                                 ? 'bg-blue-600 text-white border border-blue-600'
                                 : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
@@ -521,27 +501,47 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                     <button
                       onClick={() => handlePageChange(pagination.page + 1)}
                       disabled={pagination.page >= pagination.totalPages}
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
+                      className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 text-xs md:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
                     >
-                      Next
+                      <span className="hidden sm:inline">Next</span>
+                      <span className="sm:hidden">Next</span>
                       <FaChevronRight className="w-3 h-3" />
                     </button>
                     
                     <button
                       onClick={() => handlePageChange(pagination.totalPages)}
                       disabled={pagination.page >= pagination.totalPages}
-                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
+                      className="px-2 md:px-3 py-2 text-xs md:text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 transition-all"
                     >
                       Last
                     </button>
                   </div>
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {/* Pagination Info and Per Page Selector */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 order-1 lg:order-2">
+                  <div className="text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
                     Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
                     {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
                     {pagination.total.toLocaleString()} results
                   </div>
+                  
+                  {/* Per Page Selector */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Per Page:</label>
+                    <select
+                      value={pagination.limit}
+                      onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={30}>30</option>
+                      <option value={40}>40</option>
+                    </select>
+                  </div>
+                </div>
               </div>
+              
             )}
           </div>
 
@@ -557,13 +557,13 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                 <p className="text-gray-600 dark:text-gray-400">Loading call details...</p>
               </div>
             ) : selectedCall ? (
-              <div className="p-4 max-h-96 overflow-y-auto">
+              <div className="p-4 max-h-96 lg:max-h-[500px] overflow-y-auto">
                 <div className="space-y-4">
                   {/* Lead Information */}
                   {selectedCall.lead && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                       <h3 className="font-medium text-gray-900 dark:text-white mb-3">Lead Information</h3>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
                           <p className="text-gray-600 dark:text-gray-400">Name:</p>
                           <p className="font-medium text-gray-900 dark:text-white">
@@ -602,11 +602,12 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                         <div>
                           <p className="text-gray-600 dark:text-gray-400">ReSchedule:</p>
                           <p className="font-medium text-gray-900 dark:text-white">
-                         {
-    selectedCall.lead.scheduledCallbackDate 
-          ? new Date(selectedCall.lead.scheduledCallbackDate).toLocaleString() 
-          : 'No Schedule'
-  }    </p>
+                          {
+  selectedCall.lead.scheduledCallbackDate 
+    ? convertToEasternTime(selectedCall.lead.scheduledCallbackDate, 'MMM dd, yyyy') 
+    : 'No Schedule'
+}
+    </p>
                         </div>
                         {selectedCall.lead.company && (
                           <div>
@@ -625,7 +626,7 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <h3 className="font-medium text-gray-900 dark:text-white mb-2">Call Info</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">

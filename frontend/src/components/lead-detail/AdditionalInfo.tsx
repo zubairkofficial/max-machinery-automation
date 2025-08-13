@@ -1,5 +1,6 @@
 import React from 'react';
 import { Lead } from '../../services/api';
+import { convertToEasternTime } from '../../utils/timeUtils';
 
 interface AdditionalInfoProps {
   lead: Lead;
@@ -42,13 +43,13 @@ const AdditionalInfo: React.FC<AdditionalInfoProps> = ({ lead }) => {
         <div>
           <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400">Created</h4>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {new Date(lead.createdAt).toLocaleString()}
+            {convertToEasternTime(lead.createdAt, 'MMM dd, yyyy hh:mm a')}
           </p>
         </div>
         <div>
           <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400">Last Updated</h4>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {new Date(lead.updatedAt).toLocaleString()}
+            {convertToEasternTime(lead.updatedAt, 'MMM dd, yyyy hh:mm a')}
           </p>
         </div>
       </div>

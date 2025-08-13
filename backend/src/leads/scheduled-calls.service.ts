@@ -62,12 +62,28 @@ export class ScheduledCallsService {
       const now = new Date();
       const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
       const { startTime, endTime } = callReminder;
+      const startDate = new Date(`1970-01-01T${startTime}:00Z`); // Use UTC time by appending 'Z'
+      const endDate = new Date(`1970-01-01T${endTime}:00Z`);
+      
+      // Calculate the difference in milliseconds
+      const timeDifferenceInMillis = endDate.getTime() - startDate.getTime();
+      
+      // Convert milliseconds to hours
+      const timeDifferenceInHours = timeDifferenceInMillis / (1000 * 60 * 60); // Convert to hours
       const shouldRun = this.shouldRunSchedule(currentTime, startTime, endTime);
       if (!shouldRun) {
           return;
       }
+      const leadCall = await this.leadCallService.getAllLeadCalls();
+      const numberOfCallAvailable=Number(callReminder.callLimit) - Number(leadCall?.reminderCallCount??0)
+      if(numberOfCallAvailable<1){
+        return
+      }
+      const timePerCall = Math.floor(timeDifferenceInHours / numberOfCallAvailable)
+      this.logger.log(`Time available per call: ${timePerCall.toFixed(2)} hours`);
+    
       
-      const leads = await this.leadsService.fetchLeadsForCallReminder();
+      const leads = await this.leadsService.fetchLeadsForCallReminder(timePerCall);
       this.logger.log("Processing leads:", leads.length);
   
       const getNumber = this.configService.get<string>('FROM_PHONE_NUMBER');
@@ -111,10 +127,11 @@ export class ScheduledCallsService {
       if (!reScheduleCalls?.isEnabled || !reScheduleCalls?.startTime) {
         return; // Job is not enabled or has no start time
       }
-  
+      const leadCall = await this.leadCallService.getAllLeadCalls();
+     
       // Check if today's run date is today's date
         // Proceed with the job logic
-        await this.handleRescheduledCalls(reScheduleCalls);
+        await this.handleRescheduledCalls(reScheduleCalls,leadCall);
        
   
     } catch (error) {
@@ -125,19 +142,37 @@ export class ScheduledCallsService {
 
   
   // Helper function to handle the rescheduled calls
-  private async handleRescheduledCalls(reScheduleCalls: any) {
+  private async handleRescheduledCalls(reScheduleCalls: any,leadCall: LeadCall) {
     const now = new Date();
     const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
     const { startTime, endTime } = reScheduleCalls;
-  
+    const startDate = new Date(`1970-01-01T${startTime}:00Z`); // Use UTC time by appending 'Z'
+    const endDate = new Date(`1970-01-01T${endTime}:00Z`);
+    
+    // Calculate the difference in milliseconds
+    const timeDifferenceInMillis = endDate.getTime() - startDate.getTime();
+    
+    // Convert milliseconds to hours
+    const timeDifferenceInHours = timeDifferenceInMillis / (1000 * 60 * 60); // Convert to hours
+    
+   
     // Check if current time is within the scheduled window
     const shouldRun = this.isTimeWithinWindow(startTime, endTime, currentTime);
-  
+    const numberOfCallAvailable=Number(reScheduleCalls.callLimit) - Number(leadCall?.reminderCallCount??0)
+
+    if(numberOfCallAvailable<1){
+      return
+    }
+    
+     const timePerCall = Math.floor(timeDifferenceInHours / numberOfCallAvailable)
+        this.logger.log(`Time available per call: ${timePerCall.toFixed(2)} hours`);
+    
+    
     if (shouldRun) {
       this.logger.log(`Running rescheduled calls at ${currentTime}`);
   
       // Fetch leads for rescheduled calls
-      const scheduledCallsLeads = await this.leadsService.findAllWithIndivitualScheduledCalls();
+      const scheduledCallsLeads = await this.leadsService.findAllWithIndivitualScheduledCalls(timePerCall);
       this.logger.log(`Found ${scheduledCallsLeads.length} leads for rescheduled calls`);
   
       if (scheduledCallsLeads.length > 0) {

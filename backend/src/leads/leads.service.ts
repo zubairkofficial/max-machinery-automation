@@ -664,7 +664,7 @@ export class LeadsService {
     return [todayStart, todayEnd];
   }
 
-   async findAllWithIndivitualScheduledCalls() {
+   async findAllWithIndivitualScheduledCalls(limit: number) {
     const [todayStart, todayEnd] = this.getTodayStartEndDates();
 
       return this.leadRepository.find({
@@ -677,6 +677,7 @@ export class LeadsService {
      linkSend: false,  
      
       },
+      take: limit
     });
       
     }
@@ -1186,7 +1187,7 @@ export class LeadsService {
     }
   }
   async fetchLeadsForCallReminder(
-   
+   limit: number
   ) {
     try {
       const [todayStart, todayEnd] = this.getTodayStartEndDates();
@@ -1203,7 +1204,7 @@ export class LeadsService {
         startDate: todayStart,  
         endDate: todayEnd,    
           })
-     
+      .take(limit)
       .getRawMany();
      
     } catch (error) {
