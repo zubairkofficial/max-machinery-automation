@@ -92,7 +92,8 @@ export class ZohoSyncService {
            // Check if we need to refresh the token
            const zohoCRM=await this.getLeadsByPhoneNumber(userInfo.zohoPhoneNumber||userInfo.phone)
         const zohoCRMS=await this.searchLeadInZohoByPhone(userInfo.zohoPhoneNumber||userInfo.phone)
-            if(zohoCRM.Lead_Status==='Link Send' && zohoCRMS.length>1){
+           
+        if(zohoCRMS.length>1){
             await this.deleteLeadsFromZohoByPhone(userInfo.phone)
           }else if(zohoCRM.Lead_Status!=='Link Send'){
             let foundInZoho = false;
@@ -523,6 +524,8 @@ await this.leadRepository.save(leadData)
 
       // Delete each lead found
       for (const lead of searchResponse.data.data) {
+        if (lead.Lead_Status === 'Link Send' && searchResponse.data.data.length > 1) {
+    
         try {
           const deleteResponse = await axios.delete(
             `${this.zohoApiUrl}/${lead.id}`,
@@ -543,6 +546,7 @@ await this.leadRepository.save(leadData)
           this.logger.error(errorMsg);
           errors.push(errorMsg);
         }
+      }
       }
 
       const message = deletedCount > 0 
