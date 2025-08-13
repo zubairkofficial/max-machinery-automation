@@ -110,7 +110,7 @@ export class ScheduledCallsService {
                   fromNumber,
                   toNumber: lead.phone,
                   agent_id: callResult.agent_id,
-              });
+              },"calling");
                 await this.leadsService.update(lead.lead_id, {jobType: JobName.REMINDER_CALL});
           } catch (error) {
               this.logger.error(`Error in Zoho sync: ${error.message}`);
@@ -235,7 +235,7 @@ export class ScheduledCallsService {
         fromNumber:fromNumber,
         toNumber: scheduledCallLead.phone,
         agent_id: callResult.agent_id,
-      });
+      },"calling");
       await this.leadsService.update(scheduledCallLead.id, {jobType: JobName.RESCHEDULE_CALL});
   
     } catch (error) {
@@ -365,7 +365,7 @@ if(numberOfCallAvailable<1){
               fromNumber: fromNumber,
               toNumber: lead.phone,
               agent_id: callResult.agent_id,
-            });
+            },"calling");
             await this.leadsService.update(lead.id, {jobType: JobName.SCHEDULED_CALLS});
           }
         } catch (error) {

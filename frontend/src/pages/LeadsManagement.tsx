@@ -104,9 +104,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     fetchCategories();
   }, []);
 
-  useEffect(()=>{
-    refetch()
-  },[activeTab])
+ 
   // Query for leads based on current tab
   const {
     data: leadsData,
@@ -144,7 +142,9 @@ console.log("leadsData",leadsData)
     }
   );
 
-
+  useEffect(()=>{
+    refetch()
+  },[activeTab])
 
   // Update sorting logic with proper typing
   const processedLeads = React.useMemo(() => {

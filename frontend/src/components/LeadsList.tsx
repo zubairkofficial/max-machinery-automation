@@ -1,6 +1,7 @@
 import React from 'react';
 import { Lead } from '../services/api';
 import { FaEye, FaTrash } from 'react-icons/fa';
+import { convertToEasternTime } from '../utils/timeUtils';
 
 interface LeadsListProps {
   leads: Lead[];
@@ -62,6 +63,9 @@ const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, 
               Date Created
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Last Call Update
+            </th>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Reminder
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -108,11 +112,8 @@ const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, 
               <td className="px-6 py-4 whitespace-nowrap">
                 {lead.scheduledCallbackDate ? (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                 {new Date(lead.scheduledCallbackDate).toLocaleDateString('en-US', {
-  year: 'numeric',
-  month: 'short',  // 'long', 'short', 'narrow'
-  day: 'numeric',
-})}    </span>
+                    {convertToEasternTime(lead.scheduledCallbackDate, 'MMM dd, yyyy')}
+                  </span>
                 ) : (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
                     Not Scheduled
@@ -145,11 +146,28 @@ const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, 
                 {lead.category?.name}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                {new Date(lead.createdAt).toLocaleDateString()}
+                <div className="text-sm text-gray-900 dark:text-gray-100">
+                  {convertToEasternTime(lead.createdAt, 'MMM dd, yyyy')}
+                </div>
               </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {lead.reminder ? new Date(lead.reminder).toLocaleDateString() : '-'}
-                </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-gray-900 dark:text-gray-100">
+                  {lead.lastCallRecord?.updatedAt ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                      {convertToEasternTime(lead.lastCallRecord.updatedAt, 'MMM dd, hh:mm a')}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                      No Calls
+                    </span>
+                  )}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-gray-900 dark:text-gray-100">
+                  {lead.reminder ? convertToEasternTime(lead.reminder, 'MMM dd, yyyy') : '-'}
+                </div>
+              </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div className="flex space-x-2">
                   <button

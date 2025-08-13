@@ -66,6 +66,7 @@ export interface Lead {
     callId: string;
     status: string;
     timestamp: string;
+    updatedAt: string;
     lead_id: string;
   };
   industry: string;

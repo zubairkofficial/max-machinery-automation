@@ -685,7 +685,7 @@ export class LeadsService {
   /**
    * Update lead's call history
    */
-  public async updateLeadCallHistory(leadId: string, callDetails: any): Promise<void> {
+  public async updateLeadCallHistory(leadId: string, callDetails: any,status?: string): Promise<void> {
     try {
       const lead = await this.findOne(leadId);
       
@@ -699,7 +699,7 @@ export class LeadsService {
         callId: callDetails.callId || callDetails.call_id,
         callType: callDetails.callType || callDetails.call_type,
         agentId: callDetails.agentId || callDetails.agent_id,
-        status: callDetails.status || callDetails.call_status,
+        status: status || callDetails.status || callDetails.call_status,
         fromNumber: callDetails.fromNumber || callDetails.from_number,
         toNumber: callDetails.toNumber || lead.phone,
         direction: callDetails.direction,
