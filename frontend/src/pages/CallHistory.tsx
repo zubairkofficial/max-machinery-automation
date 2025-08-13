@@ -17,6 +17,8 @@ interface CallDetail {
   duration_ms: number;
   disconnection_reason: string;
   transcript: string;
+  from_number: string;
+  to_number: string;
   recording_url?: string;
   call_cost: {
     combined_cost: number;
@@ -84,7 +86,7 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
   useEffect(() => {
     fetchCallHistory();
   }, [pagination.page, pagination.limit, filters]);
-
+console.log("selectedCall",selectedCall?.from_number)
   const fetchCallHistory = async () => {
     try {
       setLoading(true);
@@ -640,6 +642,12 @@ const CallHistory: React.FC<CallHistoryPageProps> = () => {
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         Disconnection Reason: {selectedCall.disconnection_reason}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        From Number: {selectedCall.from_number}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        To Number: {selectedCall.to_number}
                       </p>
                     </div>
                     <div>
