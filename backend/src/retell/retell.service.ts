@@ -17,8 +17,9 @@ import { ConfigService } from '@nestjs/config';
 import { CronSettingsService } from 'src/cron-settings/cron-settings.service';
 import { Retell } from './entities/retell.entity';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
-import { addBusinessDays, getNextReminderDate } from 'src/utils/business-day.util';
+import { addBusinessDays, getNextReminderDate, parseUserSchedule } from 'src/utils/business-day.util';
 import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
+import { computeRescheduleViaLLM } from 'src/utils/computeRescheduleViaLLM';
 
 @Injectable()
 export class RetellService {
@@ -353,6 +354,7 @@ Return ONLY a JSON object with these fields:
     phone: the phone number or null
   }
 - scheduleDays: number of days for callback or null
+- scheduleText: any natural language schedule text mentioned, e.g., "next Monday", "Dec", "after 1 month"
 - specificTime: the specific time mentioned for callback in 24-hour format or null
 - resentLink: boolean
 - isBusy: boolean (true if person indicates they are busy or want to reschedule)
@@ -388,18 +390,30 @@ ${transcript}`
           }
         }
 
-        // Handle busy/reschedule case first
-        if (contactInfo.isBusy || contactInfo.preferredMethod === 'busy' || contactInfo.preferredMethod === 'schedule') {
-          // Get the next available time from cron settings
-          const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
-         
-         
-          lead.scheduledCallbackDate = getNextReminderDate(cronSetting.selectedDays,new Date());
 
-            await this.leadRepository.save(lead);
-            this.logger.log(`Lead is busy, rescheduled for next available time: ${lead.scheduledCallbackDate.toISOString()}`);
-            return;
-         
+        let scheduledDate: Date | null = null;
+
+if (contactInfo.scheduleText) {
+  scheduledDate = await computeRescheduleViaLLM(contactInfo.scheduleText, {
+    tz: "America/New_York",
+    defaultHour: 10,
+    model: "gpt-4o-mini",
+    temperature: 0,
+  });
+} else if (contactInfo.scheduleDays != null) {
+  scheduledDate = getNextReminderDate(contactInfo.scheduleDays, new Date());
+}
+        // Handle busy/reschedule case first
+        if ((contactInfo.isBusy || contactInfo.preferredMethod === 'busy' || contactInfo.preferredMethod === 'schedule') && !scheduledDate) {
+          const cronSetting = await this.cronSettingService.getByName(JobName.RESCHEDULE_CALL);
+          scheduledDate = getNextReminderDate(cronSetting.selectedDays, new Date());
+        }
+        
+        if (scheduledDate) {
+          lead.scheduledCallbackDate = scheduledDate;
+          await this.leadRepository.save(lead);
+          this.logger.log(`Lead rescheduled for: ${scheduledDate.toISOString()}`);
+          return;
         }
 
         if (contactInfo.notInterested) {

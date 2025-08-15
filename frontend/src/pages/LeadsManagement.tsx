@@ -115,6 +115,7 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
     ['leads', activeTab, page, pageSize, sortOption, filters, searchTerm],
     () => {
       // Pass filters to the API
+      const selectedSort = SORT_OPTIONS.find(option => option.value === sortOption);
       const apiFilters = {
         status: filters.status !== 'all' ? filters.status : undefined,
         industry: filters.industry !== 'all' ? filters.industry : undefined,
@@ -126,6 +127,8 @@ const LeadsManagement: React.FC<LeadsManagementProps> = ({ currentTab = TABS.ALL
         createdTo: filters.createdTo ? filters.createdTo : undefined,
         search: searchTerm && searchTerm.trim() !== '' ? searchTerm.trim() : undefined,
         tab: activeTab,
+        sortBy: selectedSort?.field || 'createdAt',
+        sortOrder: selectedSort?.direction || 'DESC',
       };
 console.log("leadsData",leadsData)
       switch (activeTab) {
@@ -146,35 +149,10 @@ console.log("leadsData",leadsData)
     refetch()
   },[activeTab])
 
-  // Update sorting logic with proper typing
+  // Use leads data directly since sorting is now done server-side
   const processedLeads = React.useMemo(() => {
-    if (!leadsData?.data) return [];
-    
-    let leads = [...leadsData.data];
-    
-    // Find the selected sort option
-    const selectedSort = SORT_OPTIONS.find(option => option.value === sortOption);
-    if (selectedSort) {
-      leads.sort((a, b) => {
-        const aValue = String(a[selectedSort.field] || '');
-        const bValue = String(b[selectedSort.field] || '');
-        
-        if (selectedSort.field === 'createdAt') {
-          // Handle date comparison
-          return selectedSort.direction === 'ASC' 
-            ? new Date(aValue).getTime() - new Date(bValue).getTime()
-            : new Date(bValue).getTime() - new Date(aValue).getTime();
-        }
-        
-        // Handle string comparison
-        return selectedSort.direction === 'ASC'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      });
-    }
-    
-    return leads;
-  }, [leadsData?.data, sortOption]);
+    return leadsData?.data || [];
+  }, [leadsData?.data]);
 
   // Mutation for searching and importing leads
   const searchMutation = useMutation(
@@ -310,6 +288,28 @@ console.log("leadsData",leadsData)
       toast.error('Failed to delete lead. Please try again.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleSort = (field: string) => {
+    const selectedSort = SORT_OPTIONS.find(option => option.field === field);
+    if (!selectedSort) return;
+    
+    // Toggle sort direction if clicking the same field
+    const currentSelectedSort = SORT_OPTIONS.find(option => option.value === sortOption);
+    if (currentSelectedSort && currentSelectedSort.field === field) {
+      // Toggle direction
+      const newDirection = currentSelectedSort.direction === 'ASC' ? 'DESC' : 'ASC';
+      const newSortOption = SORT_OPTIONS.find(option => option.field === field && option.direction === newDirection);
+      if (newSortOption) {
+        setSortOption(newSortOption.value);
+      }
+    } else {
+      // Default to DESC for new field
+      const defaultSort = SORT_OPTIONS.find(option => option.field === field && option.direction === 'DESC');
+      if (defaultSort) {
+        setSortOption(defaultSort.value);
+      }
     }
   };
 
@@ -609,6 +609,9 @@ console.log("leadsData",leadsData)
                 isLoading={isLoading || isRefreshing}
                 onViewDetails={handleViewLeadDetails}
                 onDeleteLead={handleDeleteLead}
+                sortBy={SORT_OPTIONS.find(option => option.value === sortOption)?.field}
+                sortOrder={SORT_OPTIONS.find(option => option.value === sortOption)?.direction}
+                onSort={handleSort}
               />
 
               {/* Pagination */}

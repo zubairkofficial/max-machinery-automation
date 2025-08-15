@@ -606,7 +606,7 @@ console.log("selectedCall",selectedCall?.from_number)
                           <p className="font-medium text-gray-900 dark:text-white">
                           {
   selectedCall.lead.scheduledCallbackDate 
-    ? convertToEasternTime(selectedCall.lead.scheduledCallbackDate, 'MMM dd, yyyy') 
+    ? new Date(selectedCall.lead.scheduledCallbackDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : 'No Schedule'
 }
     </p>

@@ -158,7 +158,7 @@ export class ScheduledCallsService {
    
     // Check if current time is within the scheduled window
     const shouldRun = this.isTimeWithinWindow(startTime, endTime, currentTime);
-    const numberOfCallAvailable=Number(reScheduleCalls.callLimit) - Number(leadCall?.reminderCallCount??0)
+    const numberOfCallAvailable=Number(reScheduleCalls.callLimit) - Number(leadCall?.rescheduledCallCount??0)
 
     if(numberOfCallAvailable<1){
       return
@@ -249,7 +249,7 @@ export class ScheduledCallsService {
 
  
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_MINUTE)
   async handleDailyScheduledCalls() {
     try {
       // Fetch the schedule configuration

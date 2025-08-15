@@ -160,6 +160,8 @@ export const leadsApi = {
       categoryId?: string;
       createdFrom?: string;
       createdTo?: string;
+      sortBy?: string;
+      sortOrder?: string;
     }
   ): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> => {
     const params = new URLSearchParams({
@@ -197,6 +199,12 @@ export const leadsApi = {
     }
     if (filters?.createdTo) {
       params.append('createdTo', filters.createdTo);
+    }
+    if (filters?.sortBy) {
+      params.append('sortBy', filters.sortBy);
+    }
+    if (filters?.sortOrder) {
+      params.append('sortOrder', filters.sortOrder);
     }
     
     const response = await apiClient.get(`/leads?${params.toString()}`);

@@ -56,6 +56,8 @@ export class LeadsController {
   @ApiQuery({ name: 'categoryId', required: false, type: String, description: 'Filter by category ID' })
   @ApiQuery({ name: 'createdFrom', required: false, type: String, description: 'Filter from creation date (ISO string)' })
   @ApiQuery({ name: 'createdTo', required: false, type: String, description: 'Filter to creation date (ISO string)' })
+  @ApiQuery({ name: 'sortBy', required: false, type: String, description: 'Sort field: createdAt, company, firstName' })
+  @ApiQuery({ name: 'sortOrder', required: false, type: String, description: 'Sort order: ASC or DESC' })
   async getAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
@@ -69,8 +71,10 @@ export class LeadsController {
     @Query('categoryId') categoryId?: string,
     @Query('createdFrom') createdFrom?: string,
     @Query('createdTo') createdTo?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
   ) {
-    return this.leadsService.findAll({ page, limit, status, industry, linkClicked, formSubmitted, reschedule, search, tab, categoryId, createdFrom, createdTo });
+    return this.leadsService.findAll({ page, limit, status, industry, linkClicked, formSubmitted, reschedule, search, tab, categoryId, createdFrom, createdTo, sortBy, sortOrder });
   }
 
   @Get('surplus-machinery')

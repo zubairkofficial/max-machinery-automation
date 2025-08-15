@@ -1,6 +1,6 @@
 import React from 'react';
 import { Lead } from '../services/api';
-import { FaEye, FaTrash } from 'react-icons/fa';
+import { FaEye, FaTrash, FaSortUp, FaSortDown, FaSort } from 'react-icons/fa';
 import { convertToEasternTime } from '../utils/timeUtils';
 
 interface LeadsListProps {
@@ -8,9 +8,38 @@ interface LeadsListProps {
   isLoading: boolean;
   onViewDetails: (lead: Lead) => void;
   onDeleteLead: (lead: Lead) => void;
+  sortBy?: string;
+  sortOrder?: string;
+  onSort?: (field: string) => void;
 }
 
-const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, onDeleteLead }) => {
+const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, onDeleteLead, sortBy, sortOrder, onSort }) => {
+  const renderSortableHeader = (field: string, label: string) => {
+    const isSortedByField = sortBy === field;
+    const isAsc = sortOrder === 'ASC';
+    
+    return (
+      <th 
+        scope="col" 
+        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 select-none"
+        onClick={() => onSort?.(field)}
+      >
+        <div className="flex items-center space-x-1">
+          <span>{label}</span>
+          {onSort && (
+            <span className="text-gray-400">
+              {isSortedByField ? (
+                isAsc ? <FaSortUp /> : <FaSortDown />
+              ) : (
+                <FaSort />
+              )}
+            </span>
+          )}
+        </div>
+      </th>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -59,9 +88,7 @@ const LeadsList: React.FC<LeadsListProps> = ({ leads, isLoading, onViewDetails, 
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Category
             </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Date Created
-            </th>
+            {renderSortableHeader('createdAt', 'Date Created')}
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Last Call
             </th>

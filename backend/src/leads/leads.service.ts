@@ -73,6 +73,8 @@ export class LeadsService {
     categoryId?: string;
     createdFrom?: string;
     createdTo?: string;
+    sortBy?: string;
+    sortOrder?: string;
   }): Promise<{ data: Lead[]; pagination: { total: number; page: number; limit: number } }> {
     const page = options?.page || 1;
     const limit = options?.limit || 10;
@@ -194,9 +196,18 @@ export class LeadsService {
     // Get total count
     const total = await queryBuilder.getCount();
 
+    // Apply sorting
+    const sortBy = options.sortBy || 'createdAt';
+    const sortOrder = (options.sortOrder?.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
+    
+    // Validate sortBy field to prevent SQL injection
+    const allowedSortFields = ['createdAt', 'company', 'firstName', 'lastName', 'email'];
+    const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    
+    queryBuilder.orderBy(`lead.${safeSortBy}`, sortOrder);
+
     // Apply pagination
     queryBuilder
-      .orderBy('lead.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
