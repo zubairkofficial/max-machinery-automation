@@ -249,7 +249,7 @@ export class ScheduledCallsService {
 
  
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_HOUR)
   async handleDailyScheduledCalls() {
     try {
       // Fetch the schedule configuration
