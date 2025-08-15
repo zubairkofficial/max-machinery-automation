@@ -19,7 +19,7 @@ import { Retell } from './entities/retell.entity';
 import { JobName } from 'src/cron-settings/enums/job-name.enum';
 import { addBusinessDays, getNextReminderDate, parseUserSchedule } from 'src/utils/business-day.util';
 import { LeadCallsService } from 'src/lead_calls/lead_calls.service';
-import { computeRescheduleViaLLM } from 'src/utils/computeRescheduleViaLLM';
+import { computeRescheduleDate } from 'src/utils/computeRescheduleViaLLM';
 
 @Injectable()
 export class RetellService {
@@ -394,12 +394,7 @@ ${transcript}`
         let scheduledDate: Date | null = null;
 
 if (contactInfo.scheduleText) {
-  scheduledDate = await computeRescheduleViaLLM(contactInfo.scheduleText, {
-    tz: "America/New_York",
-    defaultHour: 10,
-    model: "gpt-4o-mini",
-    temperature: 0,
-  });
+  scheduledDate = await computeRescheduleDate(contactInfo.scheduleText);
 } else if (contactInfo.scheduleDays != null) {
   scheduledDate = getNextReminderDate(contactInfo.scheduleDays, new Date());
 }

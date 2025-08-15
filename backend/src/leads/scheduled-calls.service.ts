@@ -79,7 +79,7 @@ export class ScheduledCallsService {
       if(numberOfCallAvailable<1){
         return
       }
-      const timePerCall = Math.floor(timeDifferenceInHours / numberOfCallAvailable)
+      const timePerCall = Math.floor(numberOfCallAvailable /timeDifferenceInHours)
       this.logger.log(`Time available per call: ${timePerCall.toFixed(2)} hours`);
     
       
@@ -164,7 +164,7 @@ export class ScheduledCallsService {
       return
     }
     
-     const timePerCall = Math.floor(timeDifferenceInHours / numberOfCallAvailable)
+     const timePerCall = Math.floor(numberOfCallAvailable /timeDifferenceInHours)
         this.logger.log(`Time available per call: ${timePerCall.toFixed(2)} hours`);
     
     
@@ -317,7 +317,7 @@ if(numberOfCallAvailable<1){
   return
 }
 
- const timePerCall = Math.floor(timeDifferenceInHours / numberOfCallAvailable)
+ const timePerCall = Math.floor(numberOfCallAvailable /timeDifferenceInHours)
     this.logger.log(`Time available per call: ${timePerCall.toFixed(2)} hours`);
 
 
