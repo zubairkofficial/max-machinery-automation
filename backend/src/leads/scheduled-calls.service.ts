@@ -62,11 +62,15 @@ export class ScheduledCallsService {
       const now = new Date();
       const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
       const { startTime, endTime } = callReminder;
-      const startDate = new Date(`1970-01-01T${startTime}:00Z`); // Use UTC time by appending 'Z'
-      const endDate = new Date(`1970-01-01T${endTime}:00Z`);
-      
+      const [startHour, startMinute] = startTime.split(':').map(Number); // Split "5:29" and convert to numbers
+    const [endHour, endMinute] = endTime.split(':').map(Number); // Same for endTime
+
+    // Create startDate and endDate with today's date but using extracted hours and minutes
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHour, startMinute); // Today's date with start time
+    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute); // Today's date with end time
+
       // Calculate the difference in milliseconds
-      const timeDifferenceInMillis = endDate.getTime() - startDate.getTime();
+      const timeDifferenceInMillis = endDate.getTime() - now.getTime();
       
       // Convert milliseconds to hours
       const timeDifferenceInHours = timeDifferenceInMillis / (1000 * 60 * 60); // Convert to hours
@@ -146,12 +150,15 @@ export class ScheduledCallsService {
     const now = new Date();
     const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
     const { startTime, endTime } = reScheduleCalls;
-    const startDate = new Date(`1970-01-01T${startTime}:00Z`); // Use UTC time by appending 'Z'
-    const endDate = new Date(`1970-01-01T${endTime}:00Z`);
-    
+    const [startHour, startMinute] = startTime.split(':').map(Number); // Split "5:29" and convert to numbers
+    const [endHour, endMinute] = endTime.split(':').map(Number); // Same for endTime
+
+    // Create startDate and endDate with today's date but using extracted hours and minutes
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHour, startMinute); // Today's date with start time
+    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute); // Today's date with end time
+
     // Calculate the difference in milliseconds
-    const timeDifferenceInMillis = endDate.getTime() - startDate.getTime();
-    
+    const timeDifferenceInMillis=endDate.getTime() - now.getTime() ;
     // Convert milliseconds to hours
     const timeDifferenceInHours = timeDifferenceInMillis / (1000 * 60 * 60); // Convert to hours
     
@@ -293,12 +300,17 @@ export class ScheduledCallsService {
     const currentTime = now.toTimeString().slice(0, 5); // Get current time in HH:MM format
     const startTime = scheduleCalls.startTime;
     const endTime = scheduleCalls.endTime;
-    const startDate = new Date(`1970-01-01T${startTime}:00Z`); // Use UTC time by appending 'Z'
-    const endDate = new Date(`1970-01-01T${endTime}:00Z`);
-    
+    const [startHour, startMinute] = startTime.split(':').map(Number); // Split "5:29" and convert to numbers
+    const [endHour, endMinute] = endTime.split(':').map(Number); // Same for endTime
+
+    // Create startDate and endDate with today's date but using extracted hours and minutes
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHour, startMinute); // Today's date with start time
+    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute); // Today's date with end time
+
     // Calculate the difference in milliseconds
-    const timeDifferenceInMillis = endDate.getTime() - startDate.getTime();
-    
+    const timeDifferenceInMillis=endDate.getTime() - now.getTime() ;
+   
+   
     // Convert milliseconds to hours
     const timeDifferenceInHours = timeDifferenceInMillis / (1000 * 60 * 60); // Convert to hours
     

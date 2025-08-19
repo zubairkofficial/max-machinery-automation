@@ -55,7 +55,7 @@ export class MailService {
         html,
       });
       const alreadyExists=await this.zohoSyncService.searchLeadInZohoByPhone(cleanPhoneNumber(lead.phone||lead.zohoPhoneNumber))
-      if(alreadyExists.length>0){
+      if(alreadyExists?.length>0){
         return result
       }
       await this.zohoSyncService.createLeadInZoho(

@@ -91,11 +91,10 @@ export class ZohoSyncService {
         try {
            // Check if we need to refresh the token
            const zohoCRM=await this.getLeadsByPhoneNumber(userInfo.zohoPhoneNumber||userInfo.phone)
-        const zohoCRMS=await this.searchLeadInZohoByPhone(userInfo.zohoPhoneNumber||userInfo.phone)
-           
-        if(zohoCRMS.length>1){
+       
+        if(zohoCRM?.length>1){
             await this.deleteLeadsFromZohoByPhone(userInfo.phone)
-          }else if(zohoCRM.Lead_Status!=='Link Send'){
+         
             let foundInZoho = false;
             let foundLead=null
              
@@ -178,7 +177,9 @@ export class ZohoSyncService {
               }
              
             }
+          
           }
+          
         
           
           // If found in Zoho, update the status
