@@ -4,6 +4,7 @@ import { MoreThan, Repository } from 'typeorm';
 import { Lead } from '../leads/entities/lead.entity';
 import { CallHistory } from '../leads/entities/call-history.entity';
 import { LastCall } from '../leads/entities/last-call.entity';
+import { JobName } from 'src/cron-settings/enums/job-name.enum';
 
 @Injectable()
 export class DashboardService {
@@ -25,6 +26,9 @@ export class DashboardService {
 
       const [
         totalLeads,
+        reminderCall,
+        rescheduledCall,
+        scheduledCall,
         todaysCalls,
         pendingCalls,
         completedCalls,
@@ -38,6 +42,24 @@ export class DashboardService {
         this.leadRepository.count(),
         
         // Today's calls (calls made today)
+        this.callHistoryRepository
+          .createQueryBuilder('call')
+          .where('call.jobType = :jobType', { jobType: JobName.REMINDER_CALL })
+          .andWhere('call.createdAt >= :startOfDay', { startOfDay })
+          .andWhere('call.createdAt < :endOfDay', { endOfDay })
+          .getCount(),
+        this.callHistoryRepository
+          .createQueryBuilder('call')
+          .where('call.jobType = :jobType', { jobType: JobName.RESCHEDULE_CALL })
+          .andWhere('call.createdAt >= :startOfDay', { startOfDay })
+          .andWhere('call.createdAt < :endOfDay', { endOfDay })
+          .getCount(),
+        this.callHistoryRepository
+          .createQueryBuilder('call')
+          .where('call.jobType = :jobType', { jobType: JobName.SCHEDULED_CALLS })
+          .andWhere('call.createdAt >= :startOfDay', { startOfDay })
+          .andWhere('call.createdAt < :endOfDay', { endOfDay })
+          .getCount(),
         this.callHistoryRepository
           .createQueryBuilder('call')
           .where('call.createdAt >= :startOfDay', { startOfDay })
@@ -81,6 +103,9 @@ export class DashboardService {
 
       return {
         totalLeads,
+        reminderCall,
+        rescheduledCall,
+        scheduledCall,
         todaysCalls,
         pendingCalls,
         completedCalls,

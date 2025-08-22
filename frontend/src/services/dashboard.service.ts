@@ -5,6 +5,9 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api/
 export interface DashboardStats {
   totalLeads: number;
   todaysCalls: number;
+  scheduledCall: number;
+  rescheduledCall: number;
+  reminderCall: number;
   pendingCalls: number;
   completedCalls: number;
   interestedLeads: number;

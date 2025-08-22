@@ -435,6 +435,10 @@ export class LeadsService {
             return updatedLead;
           }
 
+        if (!apolloLead.organization.phone) {
+          this.logger.log(`Lead with email ${apolloLead.email} has no phone number, skipping creation.`);
+          return null;
+        }
           // Create a new lead from Apollo data
           const newLead = this.leadRepository.create({
             firstName: apolloLead.first_name,

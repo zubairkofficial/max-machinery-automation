@@ -114,6 +114,7 @@ export class ScheduledCallsService {
                   fromNumber,
                   toNumber: lead.phone,
                   agent_id: callResult.agent_id,
+                  jobType: JobName.REMINDER_CALL,
               },"calling");
                 await this.leadsService.update(lead.lead_id, {jobType: JobName.REMINDER_CALL});
           } catch (error) {
@@ -242,6 +243,7 @@ export class ScheduledCallsService {
         fromNumber:fromNumber,
         toNumber: scheduledCallLead.phone,
         agent_id: callResult.agent_id,
+        jobType: JobName.RESCHEDULE_CALL,
       },"calling");
       await this.leadsService.update(scheduledCallLead.id, {jobType: JobName.RESCHEDULE_CALL});
   
@@ -377,6 +379,7 @@ if(numberOfCallAvailable<1){
               fromNumber: fromNumber,
               toNumber: lead.phone,
               agent_id: callResult.agent_id,
+              jobType: JobName.SCHEDULED_CALLS,
             },"calling");
             await this.leadsService.update(lead.id, {jobType: JobName.SCHEDULED_CALLS});
           }
