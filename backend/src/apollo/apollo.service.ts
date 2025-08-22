@@ -34,7 +34,7 @@ export class ApolloService {
       const response = await firstValueFrom(
         this.httpService
           .post(`${baseUrl}/mixed_people/search`, {
-            page: 1,
+            page:searchParams.page|| 1,
             per_page: searchParams.limit || 25,
             ...this.buildSearchCriteria(searchParams),
           }, {

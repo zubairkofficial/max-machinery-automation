@@ -149,6 +149,7 @@ export class ApolloConfigService implements OnModuleInit {
       if (searchParams.companyNames) config.companyNames = searchParams.companyNames;
       if (searchParams.emailStatus !== undefined) config.emailStatus = searchParams.emailStatus;
       if (searchParams.limit) config.limit = searchParams.limit;
+      // if (searchParams.page) config.page = searchParams.page;
       if (searchParams.cronSchedule) config.cronSchedule = searchParams.cronSchedule;
       if (searchParams.categoryId !== undefined) config.categoryId = searchParams.categoryId;
       
