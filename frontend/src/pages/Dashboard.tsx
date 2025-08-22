@@ -149,7 +149,7 @@ const Dashboard = () => {
           </svg>
           <span>Schedule Calls:</span>
         </div>
-        <span className="text-xl font-semibold text-indigo-600 dark:text-indigo-400">
+        <span className="text-xl font-semibold text-gray-900 dark:text-white">
           {stats.scheduledCall.toLocaleString()}
         </span>
       </li>
@@ -160,7 +160,7 @@ const Dashboard = () => {
           </svg>
           <span>ReSchedule Calls:</span>
         </div>
-        <span className="text-xl font-semibold text-yellow-600 dark:text-yellow-400">
+        <span className="text-xl font-semibold text-gray-900 dark:text-white">
           {stats.rescheduledCall.toLocaleString()}
         </span>
       </li>
@@ -171,7 +171,7 @@ const Dashboard = () => {
           </svg>
           <span>Reminder Calls:</span>
         </div>
-        <span className="text-xl font-semibold text-green-600 dark:text-green-400">
+        <span className="text-xl font-semibold text-gray-900 dark:text-white">
           {stats.reminderCall.toLocaleString()}
         </span>
       </li>
